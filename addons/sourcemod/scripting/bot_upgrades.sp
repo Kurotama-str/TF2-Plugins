@@ -10,7 +10,7 @@
 #pragma semicolon 1
 
 #define PLUGIN_NAME    "Bot Upgrades"
-#define PLUGIN_VERSION "1.2"
+#define PLUGIN_VERSION "1.2.1"
 
 // ConVars
 ConVar gCvarBotLevel;
@@ -51,7 +51,8 @@ public Action Event_PlayerSpawn(Event event, const char[] name, bool dontBroadca
     int client = GetClientOfUserId(event.GetInt("userid"));
     if (client && IsClientInGame(client) && IsFakeClient(client))
     {
-        ApplyBotUpgrades(client);
+        // Delay applying upgrades slightly to ensure weapons are equipped
+        CreateTimer(0.2, Timer_ApplyUpgrades, client);
     }
     return Plugin_Continue;
 }
@@ -80,6 +81,15 @@ void ApplyBotUpgrades(int client)
         UpgradeWeaponSlot(client, 1, gCvarSecondaryBase.FloatValue, level); // Secondary
         UpgradeWeaponSlot(client, 2, gCvarMeleeBase.FloatValue, level);     // Melee
     }
+}
+
+public Action Timer_ApplyUpgrades(Handle timer, any client)
+{
+    if (IsClientInGame(client) && IsFakeClient(client))
+    {
+        ApplyBotUpgrades(client);
+    }
+    return Plugin_Stop;
 }
 
 void UpgradeWeaponSlot(int client, int slot, float base, int level)
