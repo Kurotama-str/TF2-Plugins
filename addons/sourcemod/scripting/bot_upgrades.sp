@@ -97,7 +97,7 @@ void UpgradeWeaponSlot(int client, int slot, float base, int level)
     int weapon = GetPlayerWeaponSlot(client, slot);
     if (weapon <= 0) return;
 
-    float multiplier = Pow(base, float(level));
+    float multiplier = Pow(base, float(level) - 1);
     TF2Attrib_SetByName(weapon, "damage bonus", multiplier);
 }
 
