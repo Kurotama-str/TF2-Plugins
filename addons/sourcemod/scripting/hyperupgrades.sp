@@ -1,4 +1,4 @@
-// Hyper Upgrades - Version 0.20
+// Hyper Upgrades - Version 0.21
 // Author: Kuro + OpenAI
 
 #pragma semicolon 1
@@ -19,6 +19,8 @@
 #define CONFIG_WEAP "hu_weapons_list.txt"
 #define CONFIG_ALIAS "hu_alias_list.txt"
 #define TRANSLATION_FILE "hu_translations.txt"
+//#define IN_DUCK (1 << 2)     // Crouch key already defined
+//#define IN_RELOAD (1 << 13)  // Reload key already defined
 
 bool g_bMenuPressed[MAXPLAYERS + 1];
 bool g_bPlayerBrowsing[MAXPLAYERS + 1];
@@ -33,6 +35,8 @@ int g_iMoneySpent[MAXPLAYERS + 1];
 Handle g_hPlayerUpgrades[MAXPLAYERS + 1];
 ConVar g_hResetMoneyPoolOnMapStart;
 
+Handle g_hRefreshTimer[MAXPLAYERS + 1] = { INVALID_HANDLE, ... };
+int g_iPlayerLastMultiplier[MAXPLAYERS + 1];
 
 public Plugin myinfo =
 {
@@ -117,6 +121,15 @@ public void OnClientPutInServer(int client)
 public void OnClientDisconnect(int client)
 {
     RefundPlayerUpgrades(client, false); // No message on disconnect
+    // Stop the refresh timer if active
+    if (g_hRefreshTimer[client] != INVALID_HANDLE)
+    {
+        CloseHandle(g_hRefreshTimer[client]);
+        g_hRefreshTimer[client] = INVALID_HANDLE;
+    }
+
+    // Reset browsing state
+    g_bPlayerBrowsing[client] = false;
 }
 
 public void OnMapStart()
@@ -306,6 +319,22 @@ public int MenuHandler_MainMenu(Menu menu, MenuAction action, int client, int pa
         {
             // You can build the refund menu here later
             PrintToChat(client, "[Hyper Upgrades] Refund menu is not implemented yet.");
+        }
+    }
+    else if (action == MenuAction_Cancel)
+    {
+        if (param == MenuCancel_ExitBack)
+        {
+            g_bPlayerBrowsing[client] = false;
+
+            // Stop refresh timer
+            if (g_hRefreshTimer[client] != INVALID_HANDLE)
+            {
+                CloseHandle(g_hRefreshTimer[client]);
+                g_hRefreshTimer[client] = INVALID_HANDLE;
+            }
+
+            ShowCategoryMenu(client, g_sPlayerCategory[client]);
         }
     }
     return 0;
@@ -592,6 +621,7 @@ void GetBodyAlias(int client, char[] alias, int maxlen)
     }
 }
 
+// This one also handles upgrade bought logic, like keybound multipliers.
 public int MenuHandler_UpgradeMenu(Menu menu, MenuAction action, int client, int item)
 {
     if (action == MenuAction_End)
@@ -603,9 +633,6 @@ public int MenuHandler_UpgradeMenu(Menu menu, MenuAction action, int client, int
         char upgradeAlias[64];
         menu.GetItem(item, upgradeAlias, sizeof(upgradeAlias));
 
-        // PrintToChat(client, "[Hyper Upgrades] You selected upgrade: %s", upgradeAlias);
-
-        // Load the upgrade config
         char upgradesFile[PLATFORM_MAX_PATH];
         BuildPath(Path_SM, upgradesFile, sizeof(upgradesFile), "configs/hu_upgrades.cfg");
 
@@ -628,29 +655,37 @@ public int MenuHandler_UpgradeMenu(Menu menu, MenuAction action, int client, int
         float costMultiplier = kvUpgrades.GetFloat("CostMultiplier", 1.5);
         float increment = kvUpgrades.GetFloat("Increment", 0.1);
 
-        // Get current level and cost
+        int upgradeMultiplier = GetUpgradeMultiplier(client);
         float currentLevel = GetPlayerUpgradeLevel(client, upgradeAlias);
-        float currentCost = baseCost * Pow(costMultiplier, currentLevel / increment);
 
-        if (g_iMoneySpent[client] + RoundToNearest(currentCost) > GetConVarInt(g_hMoneyPool))
+        // Calculate how many times the upgrade was purchased so far
+        int purchases = RoundToFloor(currentLevel / increment);
+
+        // 🔸 Linear cost calculation
+        float totalCost = 0.0;
+        for (int i = 0; i < upgradeMultiplier; i++)
         {
-            PrintToChat(client, "[Hyper Upgrades] Not enough money to buy this upgrade.");
+            totalCost += baseCost + (baseCost * costMultiplier * float(purchases + i));
+        }
+
+        if (g_iMoneySpent[client] + RoundToNearest(totalCost) > GetConVarInt(g_hMoneyPool))
+        {
+            PrintToChat(client, "[Hyper Upgrades] Not enough money to buy %d levels of this upgrade.", upgradeMultiplier);
             delete kvUpgrades;
             return 0;
         }
 
         // Apply the upgrade
-        float newLevel = currentLevel + increment;
+        float newLevel = currentLevel + (increment * upgradeMultiplier);
         KvSetNum(g_hPlayerUpgrades[client], upgradeAlias, RoundToNearest(newLevel * 1000.0)); // Store as int * 1000
-        // Actually apply the upgrade effects
+
         ApplyPlayerUpgrades(client);
-        
 
         // Deduct money
-        g_iMoneySpent[client] += RoundToNearest(currentCost);
+        g_iMoneySpent[client] += RoundToNearest(totalCost);
 
         // Feedback
-        PrintToConsole(client, "[Hyper Upgrades] Purchased upgrade: %s (+%.2f). Cost: %.0f$", upgradeAlias, increment, currentCost);
+        PrintToConsole(client, "[Hyper Upgrades] Purchased upgrade: %s (+%.2f x%d). Total Cost: %.0f$", upgradeAlias, increment, upgradeMultiplier, totalCost);
 
         // Reload menu to refresh display
         ShowUpgradeListMenu(client, g_sPlayerUpgradeGroup[client]);
@@ -665,6 +700,27 @@ public int MenuHandler_UpgradeMenu(Menu menu, MenuAction action, int client, int
         }
     }
     return 0;
+}
+
+public Action Timer_CheckMenuRefresh(Handle timer, any client)
+{
+    if (!IsClientInGame(client) || !g_bPlayerBrowsing[client])
+    {
+        g_hRefreshTimer[client] = INVALID_HANDLE;
+        return Plugin_Stop;
+    }
+
+    int currentMultiplier = GetUpgradeMultiplier(client);
+
+    if (currentMultiplier != g_iPlayerLastMultiplier[client])
+    {
+        g_iPlayerLastMultiplier[client] = currentMultiplier;
+
+        // Refresh the menu
+        ShowUpgradeListMenu(client, g_sPlayerUpgradeGroup[client]);
+    }
+
+    return Plugin_Continue;
 }
 
 void ShowUpgradeListMenu(int client, const char[] upgradeGroup)
@@ -694,9 +750,13 @@ void ShowUpgradeListMenu(int client, const char[] upgradeGroup)
         return;
     }
 
+    // Get the current multiplier when building the menu
+    int multiplier = GetUpgradeMultiplier(client);
+    g_iPlayerLastMultiplier[client] = multiplier; // Save it for refresh tracking
+
     // Build the upgrade menu
     Menu upgradeMenu = new Menu(MenuHandler_UpgradeMenu);
-    upgradeMenu.SetTitle("%s - %s\nBalance: %d/%d$", g_sPlayerCategory[client], upgradeGroup, GetPlayerBalance(client), GetConVarInt(g_hMoneyPool));
+    upgradeMenu.SetTitle("%s - %s\nBalance: %d/%d$ | Multiplier: x%d", g_sPlayerCategory[client], upgradeGroup, GetPlayerBalance(client), GetConVarInt(g_hMoneyPool), multiplier);
 
     bool bFoundUpgrades = false;
 
@@ -725,22 +785,25 @@ void ShowUpgradeListMenu(int client, const char[] upgradeGroup)
             char upgradeName[64];
             kvUpgrades.GetString("Name", upgradeName, sizeof(upgradeName));
 
-            // Retrieve upgrade details
-            float baseCost = kvUpgrades.GetFloat("BaseCost", 100.0); // Default to 100 if not defined
-            float costMultiplier = kvUpgrades.GetFloat("CostMultiplier", 1.5); // Default to 1.5 if not defined
-            float increment = kvUpgrades.GetFloat("Increment", 0.1); // Default to 0.1 if not defined
+            float baseCost = kvUpgrades.GetFloat("BaseCost", 100.0);
+            float costMultiplier = kvUpgrades.GetFloat("CostMultiplier", 1.5);
+            float increment = kvUpgrades.GetFloat("Increment", 0.1);
 
             float currentLevel = GetPlayerUpgradeLevel(client, upgradeAlias);
 
             // Calculate how many times the upgrade was purchased
             int purchases = RoundToFloor(currentLevel / increment);
 
-            // New linear cost formula
-            float currentCost = baseCost + (baseCost * costMultiplier * float(purchases));
+            // 🔸 New linear cost formula with multiplier
+            float totalCost = 0.0;
+            for (int i = 0; i < multiplier; i++)
+            {
+                totalCost += baseCost + (baseCost * costMultiplier * float(purchases + i));
+            }
 
-            // Build display string
+            // Build display string with multiplier
             char display[128];
-            Format(display, sizeof(display), "%s (%.2f) %.0f$", upgradeName, currentLevel, currentCost);
+            Format(display, sizeof(display), "%s (%.2f) %.0f$ (x%d)", upgradeName, currentLevel, totalCost, multiplier);
 
             upgradeMenu.AddItem(upgradeAlias, display);
             bFoundUpgrades = true;
@@ -764,7 +827,14 @@ void ShowUpgradeListMenu(int client, const char[] upgradeGroup)
     delete kv;
 
     strcopy(g_sPlayerUpgradeGroup[client], sizeof(g_sPlayerUpgradeGroup[]), upgradeGroup);
+
+    // 🔸 Start the refresh timer if not already running
+    if (g_hRefreshTimer[client] == INVALID_HANDLE)
+    {
+        g_hRefreshTimer[client] = CreateTimer(0.2, Timer_CheckMenuRefresh, client, TIMER_REPEAT);
+    }
 }
+
 
 float GetPlayerUpgradeLevel(int client, const char[] alias)
 {
@@ -792,6 +862,27 @@ bool GetAttributeName(const char[] alias, char[] attributeName, int maxlen)
     }
 
     return false;
+}
+
+int GetUpgradeMultiplier(int client)
+{
+    int buttons = GetClientButtons(client);
+    bool isCrouching = (buttons & IN_DUCK) != 0;
+    bool isReloading = (buttons & IN_RELOAD) != 0;
+
+    if (isCrouching && isReloading)
+    {
+        return 1000;
+    }
+    else if (isReloading)
+    {
+        return 100;
+    }
+    else if (isCrouching)
+    {
+        return 10;
+    }
+    return 1; // Default if neither key is pressed
 }
 
 void ApplyPlayerUpgrades(int client)
