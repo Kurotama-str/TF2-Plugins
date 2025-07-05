@@ -160,6 +160,13 @@ public void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast
 // Money handler for players
 void RefundPlayerUpgrades(int client, bool bShowMessage = true)
 {
+    if (!IsClientInGame(client))
+        return;
+
+    // Remove all applied attributes from player and their weapons
+    RemovePlayerUpgrades(client);
+
+    // Clear the KeyValues upgrades
     if (g_hPlayerUpgrades[client] != null)
     {
         CloseHandle(g_hPlayerUpgrades[client]); // Delete all stored upgrades
@@ -170,6 +177,7 @@ void RefundPlayerUpgrades(int client, bool bShowMessage = true)
         g_hPlayerUpgrades[client] = CreateKeyValues("Upgrades"); // Safety in case it's null
     }
 
+    // Reset money spent
     g_iMoneySpent[client] = 0;
 
     if (bShowMessage)
@@ -178,6 +186,26 @@ void RefundPlayerUpgrades(int client, bool bShowMessage = true)
     }
 }
 
+// Actually removes the attributes
+void RemovePlayerUpgrades(int client)
+{
+    if (!IsClientInGame(client))
+        return;
+
+    // Remove all body (player) attributes
+    TF2Attrib_RemoveAll(client);
+
+    // Remove attributes from all weapons
+    for (int slot = 0; slot <= 5; slot++) // Check all potential weapon slots
+    {
+        int weapon = GetPlayerWeaponSlot(client, slot);
+        if (IsValidEntity(weapon))
+        {
+            TF2Attrib_RemoveAll(weapon);
+        }
+    }
+}
+// Refund for all players. Should probably have called it refundallplayers. Oh well.
 void ResetAllPlayerUpgrades()
 {
     for (int i = 1; i <= MaxClients; i++)
@@ -702,11 +730,13 @@ void ShowUpgradeListMenu(int client, const char[] upgradeGroup)
             float costMultiplier = kvUpgrades.GetFloat("CostMultiplier", 1.5); // Default to 1.5 if not defined
             float increment = kvUpgrades.GetFloat("Increment", 0.1); // Default to 0.1 if not defined
 
-            // Calculate current level
             float currentLevel = GetPlayerUpgradeLevel(client, upgradeAlias);
 
-            // Calculate cost: baseCost * (costMultiplier ^ currentLevel)
-            float currentCost = baseCost * Pow(costMultiplier, currentLevel / increment);
+            // Calculate how many times the upgrade was purchased
+            int purchases = RoundToFloor(currentLevel / increment);
+
+            // New linear cost formula
+            float currentCost = baseCost + (baseCost * costMultiplier * float(purchases));
 
             // Build display string
             char display[128];
@@ -783,7 +813,7 @@ void ApplyPlayerUpgrades(int client)
         int storedLevel = KvGetNum(g_hPlayerUpgrades[client], NULL_STRING, 0);
         float level = float(storedLevel) / 1000.0;
 
-        // Load the upgrade definition to get the slot
+        // Load the upgrade definition
         char upgradesFile[PLATFORM_MAX_PATH];
         BuildPath(Path_SM, upgradesFile, sizeof(upgradesFile), "configs/hu_upgrades.cfg");
 
@@ -800,7 +830,13 @@ void ApplyPlayerUpgrades(int client)
             continue;
         }
 
-        int weaponSlot = kvUpgrades.GetNum("Slot", -1); // -1 for body upgrades
+        // Load initial value from config (default to 0.0 if not present)
+        float initValue = KvGetFloat(kvUpgrades, "InitValue", 0.0);
+
+        // Final value to apply
+        float flevel = initValue + level;
+
+        int weaponSlot = KvGetNum(kvUpgrades, "Slot", -1); // -1 for body upgrades
         bool isBodyUpgrade = (weaponSlot == -1);
 
         delete kvUpgrades;
@@ -816,14 +852,14 @@ void ApplyPlayerUpgrades(int client)
         // Apply the attribute to the player or weapon
         if (isBodyUpgrade)
         {
-            TF2Attrib_SetByName(client, attributeName, level);
+            TF2Attrib_SetByName(client, attributeName, flevel);
         }
         else
         {
             int weapon = GetPlayerWeaponSlot(client, weaponSlot);
             if (IsValidEntity(weapon))
             {
-                TF2Attrib_SetByName(weapon, attributeName, level);
+                TF2Attrib_SetByName(weapon, attributeName, flevel);
             }
         }
 
@@ -831,10 +867,8 @@ void ApplyPlayerUpgrades(int client)
 
     KvRewind(g_hPlayerUpgrades[client]);
 
-    PrintToChat(client, "[Hyper Upgrades] Your upgrades have been applied.");
+    PrintToConsole(client, "[Hyper Upgrades] Your upgrades have been applied.");
 }
-
-
 
 
 public Action Command_AddMoney(int client, int args)
@@ -1676,6 +1710,7 @@ void GenerateConfigFiles()
             WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
             WriteFileLine(file, "\t\t\"Increment\" \"0.05\"");
             WriteFileLine(file, "\t\t\"Limit\" \"2\"");
+            WriteFileLine(file, "\t\t\"InitValue\" \"1\"");
             WriteFileLine(file, "\t\t\"Name\" \"Speed Bonus\"");
             WriteFileLine(file, "\t}");
 
@@ -1910,6 +1945,7 @@ void GenerateConfigFiles()
             WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
             WriteFileLine(file, "\t\t\"Increment\" \"0.1\"");
             WriteFileLine(file, "\t\t\"Limit\" \"5\"");
+            WriteFileLine(file, "\t\t\"InitValue\" \"1\"");
             WriteFileLine(file, "\t\t\"Name\" \"Primary Ammo Bonus\"");
             WriteFileLine(file, "\t}");
 
