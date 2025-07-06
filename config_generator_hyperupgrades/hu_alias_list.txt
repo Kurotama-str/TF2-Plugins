@@ -1,0 +1,840 @@
+#Aliases,Attributes Name Verified
+Attack_not_cancel_charge,Attack not cancel charge
+Blast_radius_decreased,Blast radius decreased
+Blast_radius_increased,Blast radius increased
+CARD:_damage_bonus,CARD: damage bonus
+CARD:_dmg_taken_from_bullets_reduced,CARD: dmg taken from bullets reduced
+CARD:_health_regen,CARD: health regen
+CARD:_move_speed_bonus,CARD: move speed bonus
+Construction_rate_decreased,Construction rate decreased
+Construction_rate_increased,Construction rate increased
+Halloween_Spellbook_Page:_Audere,Halloween Spellbook Page: Audere
+Halloween_Spellbook_Page:_Congeriae,Halloween Spellbook Page: Congeriae
+Halloween_Spellbook_Page:_Gratanter,Halloween Spellbook Page: Gratanter
+Halloween_Spellbook_Page:_Tumidum,Halloween Spellbook Page: Tumidum
+Halloween_Spellbook_Page:_Veteris,Halloween Spellbook Page: Veteris
+NoCloakWhenCloaked,NoCloakWhenCloaked
+Projectile_range_decreased,Projectile range decreased
+Projectile_range_increased,Projectile range increased
+Projectile_speed_decreased,Projectile speed decreased
+Projectile_speed_increased,Projectile speed increased
+Projectile_speed_increased_HIDDEN,Projectile speed increased HIDDEN
+ReducedCloakFromAmmo,ReducedCloakFromAmmo
+Reload_time_decreased,Reload time decreased
+Reload_time_increased,Reload time increased
+Repair_rate_decreased,Repair rate decreased
+Repair_rate_increased,Repair rate increased
+SET_BONUS:_alien_isolation_merc_bonus_neg,SET BONUS: alien isolation merc bonus neg
+SET_BONUS:_alien_isolation_merc_bonus_pos,SET BONUS: alien isolation merc bonus pos
+SET_BONUS:_alien_isolation_xeno_bonus_neg,SET BONUS: alien isolation xeno bonus neg
+SET_BONUS:_alien_isolation_xeno_bonus_pos,SET BONUS: alien isolation xeno bonus pos
+SET_BONUS:_calling_card_on_kill,SET BONUS: calling card on kill
+SET_BONUS:_chance_of_hunger_decrease,SET BONUS: chance of hunger decrease
+SET_BONUS:_cloak_blink_time_penalty,SET BONUS: cloak blink time penalty
+SET_BONUS:_custom_taunt_particle_attr,SET BONUS: custom taunt particle attr
+SET_BONUS:_dmg_from_sentry_reduced,SET BONUS: dmg from sentry reduced
+SET_BONUS:_dmg_taken_from_bullets_increased,SET BONUS: dmg taken from bullets increased
+SET_BONUS:_dmg_taken_from_crit_reduced_set_bonus,SET BONUS: dmg taken from crit reduced set bonus
+SET_BONUS:_dmg_taken_from_fire_reduced_set_bonus,SET BONUS: dmg taken from fire reduced set bonus
+SET_BONUS:_health_regen_set_bonus,SET BONUS: health regen set bonus
+SET_BONUS:_max_health_additive_bonus,SET BONUS: max health additive bonus
+SET_BONUS:_move_speed_set_bonus,SET BONUS: move speed set bonus
+SET_BONUS:_mystery_solving_time_decrease,SET BONUS: mystery solving time decrease
+SET_BONUS:_no_death_from_headshots,SET BONUS: no death from headshots
+SET_BONUS:_quiet_unstealth,SET BONUS: quiet unstealth
+SET_BONUS:_special_dsp,SET BONUS: special dsp
+SPELL:_Halloween_death_ghosts,SPELL: Halloween death ghosts
+SPELL:_Halloween_green_flames,SPELL: Halloween green flames
+SPELL:_Halloween_pumpkin_explosions,SPELL: Halloween pumpkin explosions
+SPELL:_Halloween_voice_modulation,SPELL: Halloween voice modulation
+SPELL:_set_Halloween_footstep_type,SPELL: set Halloween footstep type
+SPELL:_set_item_tint_RGB,SPELL: set item tint RGB
+SRifle_Charge_rate_decreased,SRifle Charge rate decreased
+SRifle_Charge_rate_increased,SRifle Charge rate increased
+Set_DamageType_Ignite,Set DamageType Ignite
+Wrench_index,Wrench index
+absorb_damage_while_cloaked,absorb damage while cloaked
+accepted_wedding_ring_account_id_1,accepted wedding ring account id 1
+accepted_wedding_ring_account_id_2,accepted wedding ring account id 2
+accuracy_scales_damage,accuracy scales damage
+active_health_degen,active health degen
+active_health_regen,active health regen
+add_cloak_on_hit,add cloak on hit
+add_cloak_on_kill,add cloak on kill
+add_head_on_hit,add head on hit
+add_jingle_to_footsteps,add jingle to footsteps
+add_onhit_addammo,add onhit addammo
+add_uber_charge_on_hit,add uber charge on hit
+add_head_on_kill,add_head_on_kill
+additional_halloween_response_criteria_name,additional halloween response criteria name
+afterburn_duration_bonus,afterburn duration bonus
+afterburn_duration_penalty,afterburn duration penalty
+afterburn_immunity,afterburn immunity
+aiming_knockback_resistance,aiming knockback resistance
+aiming_movespeed_decreased,aiming movespeed decreased
+aiming_movespeed_increased,aiming movespeed increased
+aiming_no_flinch,aiming no flinch
+air_dash_count,air dash count
+air_jump_on_attack,air jump on attack
+airblast_cost_decreased,airblast cost decreased
+airblast_cost_increased,airblast cost increased
+airblast_cost_scale_hidden,airblast cost scale hidden
+airblast_disabled,airblast disabled
+airblast_pushback_scale,airblast pushback scale
+airblast_vertical_pushback_scale,airblast vertical pushback scale
+airblast_vertical_vulnerability_multiplier,airblast vertical vulnerability multiplier
+airblast_vulnerability_multiplier,airblast vulnerability multiplier
+airblast_vulnerability_multiplier_hidden,airblast vulnerability multiplier hidden
+airblast_deflect_projectiles_disabled,airblast_deflect_projectiles_disabled
+airblast_destroy_projectile,airblast_destroy_projectile
+airblast_give_teammate_speed_boost,airblast_give_teammate_speed_boost
+airblast_pushback_disabled,airblast_pushback_disabled
+airblast_pushback_no_stun,airblast_pushback_no_stun
+airblast_pushback_no_viewpunch,airblast_pushback_no_viewpunch
+airblast_put_out_teammate_disabled,airblast_put_out_teammate_disabled
+airblast_turn_projectile_to_ammo,airblast_turn_projectile_to_ammo
+allow_halloween_offering,allow_halloween_offering
+allowed_in_medieval_mode,allowed in medieval mode
+alt_fire_teleport_to_spawn,alt fire teleport to spawn
+alt-fire_disabled,alt-fire disabled
+always_tradable,always tradable
+always_transmit_so,always_transmit_so
+ammo_becomes_health,ammo becomes health
+ammo_gives_charge,ammo gives charge
+ammo_regen,ammo regen
+aoe_deflection,aoe_deflection
+applies_snare_effect,applies snare effect
+apply_look_velocity_on_damage,apply look velocity on damage
+apply_z_velocity_on_damage,apply z velocity on damage
+armor_piercing,armor piercing
+arrow_heals_buildings,arrow heals buildings
+attach_particle_effect,attach particle effect
+attach_particle_effect_static,attach particle effect static
+attack_projectiles,attack projectiles
+attack_minicrits_and_consumes_burning,attack_minicrits_and_consumes_burning
+auto_fires_full_clip,auto fires full clip
+auto_fires_full_clip_all_at_once,auto fires full clip all at once
+auto_fires_full_clip_penalty,auto fires full clip penalty
+auto_fires_when_full,auto fires when full
+axtinguisher_properties,axtinguisher properties
+back_headshot,back headshot
+backstab_shield,backstab shield
+become_fireproof_on_hit_by_fire,become fireproof on hit by fire
+bidirectional_teleport,bidirectional teleport
+blast_dmg_to_self_increased,blast dmg to self increased
+bleeding_duration,bleeding duration
+bombinomicon_effect_on_death,bombinomicon effect on death
+boost_on_damage,boost on damage
+boots_falling_stomp,boots falling stomp
+bot_custom_jump_particle,bot custom jump particle
+bot_medic_uber_deploy_delay_duration,bot medic uber deploy delay duration
+bot_medic_uber_health_threshold,bot medic uber health threshold
+breadgloves_properties,breadgloves properties
+build_rate_bonus,build rate bonus
+building_cost_reduction,building cost reduction
+building_instant_upgrade,building instant upgrade
+bullets_per_shot_bonus,bullets per shot bonus
+burn_damage_earns_rage,burn damage earns rage
+can_overload,can overload
+can_shuffle_crate_contents,can shuffle crate contents
+cancel_falling_damage,cancel falling damage
+cannonball_push_back,cannonball push back
+cannot_be_backstabbed,cannot be backstabbed
+cannot_delete,cannot delete
+cannot_disguise,cannot disguise
+cannot_giftwrap,cannot giftwrap
+cannot_pick_up_buildings,cannot pick up buildings
+cannot_pick_up_intelligence,cannot pick up intelligence
+cannot_restore,cannot restore
+cannot_trade,cannot trade
+cannot_transmute,cannot_transmute
+canteen_specialist,canteen specialist
+centerfire_projectile,centerfire projectile
+charge_impact_damage_decreased,charge impact damage decreased
+charge_impact_damage_increased,charge impact damage increased
+charge_meter_on_hit,charge meter on hit
+charge_recharge_rate_increased,charge recharge rate increased
+charge_time_decreased,charge time decreased
+charge_time_increased,charge time increased
+charged_airblast,charged airblast
+class_select_override_vcd,class select override vcd
+cleaver_description,cleaver description
+clip_size_bonus,clip size bonus
+clip_size_bonus_upgrade,clip size bonus upgrade
+clip_size_penalty,clip size penalty
+clip_size_penalty_HIDDEN,clip size penalty HIDDEN
+clip_size_upgrade_atomic,clip size upgrade atomic
+clipsize_increase_on_kill,clipsize increase on kill
+cloak_consume_rate_decreased,cloak consume rate decreased
+cloak_consume_rate_increased,cloak consume rate increased
+cloak_regen_rate_decreased,cloak regen rate decreased
+cloak_regen_rate_increased,cloak regen rate increased
+cloak_consume_on_feign_death_activate,cloak_consume_on_feign_death_activate
+closerange_backattack_minicrits,closerange backattack minicrits
+community_description,community description
+cosmetic_taunt_sound,cosmetic taunt sound
+cosmetic_allow_inspect,cosmetic_allow_inspect
+counts_as_assister_is_some_kind_of_pet_this_update_is_going_to_be_awesome,counts as assister is some kind of pet this update is going to be awesome
+crate_generation_code,crate generation code
+crit_does_no_damage,crit does no damage
+crit_forces_victim_to_laugh,crit forces victim to laugh
+crit_from_behind,crit from behind
+crit_kill_will_gib,crit kill will gib
+crit_mod_disabled,crit mod disabled
+crit_mod_disabled_hidden,crit mod disabled hidden
+crit_on_hard_hit,crit on hard hit
+crit_vs_burning_players,crit vs burning players
+crit_vs_disguised_players,crit vs disguised players
+crit_vs_non_burning_players,crit vs non burning players
+crit_vs_stunned_players,crit vs stunned players
+crit_vs_wet_players,crit vs wet players
+crit_dmg_falloff,crit_dmg_falloff
+crit_vs_burning_FLARES_DISPLAY_ONLY,crit_vs_burning_FLARES_DISPLAY_ONLY
+critboost,critboost
+critboost_on_kill,critboost on kill
+crits_become_minicrits,crits_become_minicrits
+currency_bonus,currency bonus
+custom_desc_attr,custom desc attr
+custom_employee_number,custom employee number
+custom_name_attr,custom name attr
+custom_projectile_model,custom projectile model
+custom_texture_hi,custom texture hi
+custom_texture_lo,custom texture lo
+custom_paintkit_seed_hi,custom_paintkit_seed_hi
+custom_paintkit_seed_lo,custom_paintkit_seed_lo
+damage_all_connected,damage all connected
+damage_applies_to_sappers,damage applies to sappers
+damage_blast_push,damage blast push
+damage_bonus,damage bonus
+damage_bonus_HIDDEN,damage bonus HIDDEN
+damage_bonus_bullet_vs_sentry_target,damage bonus bullet vs sentry target
+damage_bonus_vs_burning,damage bonus vs burning
+damage_bonus_while_disguised,damage bonus while disguised
+damage_causes_airblast,damage causes airblast
+damage_force_increase,damage force increase
+damage_force_increase_hidden,damage force increase hidden
+damage_force_increase_text,damage force increase text
+damage_force_reduction,damage force reduction
+damage_penalty,damage penalty
+damage_penalty_on_bodyshot,damage penalty on bodyshot
+deactive_date,deactive date
+decapitate_type,decapitate type
+decoded_by_itemdefindex,decoded by itemdefindex
+deflection_size_multiplier,deflection size multiplier
+deploy_time_decreased,deploy time decreased
+deploy_time_increased,deploy time increased
+disable_fancy_class_select_anim,disable fancy class select anim
+disable_weapon_hiding_for_animations,disable weapon hiding for animations
+disable_weapon_switch,disable weapon switch
+disguise_damage_reduction,disguise damage reduction
+disguise_no_burn,disguise no burn
+disguise_on_backstab,disguise on backstab
+disguise_speed_penalty,disguise speed penalty
+display_duck_leaderboard,display duck leaderboard
+dmg_bonus_vs_buildings,dmg bonus vs buildings
+dmg_bonus_while_half_dead,dmg bonus while half dead
+dmg_falloff_decreased,dmg falloff decreased
+dmg_falloff_increased,dmg falloff increased
+dmg_from_melee_increased,dmg from melee increased
+dmg_from_ranged_reduced,dmg from ranged reduced
+dmg_penalty_vs_buildings,dmg penalty vs buildings
+dmg_penalty_vs_nonburning,dmg penalty vs nonburning
+dmg_penalty_vs_nonstunned,dmg penalty vs nonstunned
+dmg_penalty_vs_players,dmg penalty vs players
+dmg_penalty_while_half_alive,dmg penalty while half alive
+dmg_pierces_resists_absorbs,dmg pierces resists absorbs
+dmg_taken_from_blast_increased,dmg taken from blast increased
+dmg_taken_from_blast_reduced,dmg taken from blast reduced
+dmg_taken_from_bullets_increased,dmg taken from bullets increased
+dmg_taken_from_bullets_reduced,dmg taken from bullets reduced
+dmg_taken_from_crit_increased,dmg taken from crit increased
+dmg_taken_from_crit_reduced,dmg taken from crit reduced
+dmg_taken_from_fire_increased,dmg taken from fire increased
+dmg_taken_from_fire_reduced,dmg taken from fire reduced
+dmg_taken_from_fire_reduced_on_active,dmg taken from fire reduced on active
+dmg_taken_increased,dmg taken increased
+dragons_fury_negative_properties,dragons fury negative properties
+dragons_fury_neutral_properties,dragons fury neutral properties
+dragons_fury_positive_properties,dragons fury positive properties
+drop_health_pack_on_kill,drop health pack on kill
+duck_badge_level,duck badge level
+duck_rating,duck rating
+duckstreaks_active,duckstreaks active
+duel_loser_account_id,duel loser account id
+effect_bar_recharge_rate_increased,effect bar recharge rate increased
+electrical_airblast_DISPLAY_ONLY,electrical airblast DISPLAY ONLY
+elevate_quality,elevate quality
+elevate_to_unusual_if_applicable,elevate to unusual if applicable
+enables_aoe_heal,enables aoe heal
+end_drop_date,end drop date
+energy_buff_dmg_taken_multiplier,energy buff dmg taken multiplier
+energy_weapon_charged_shot,energy weapon charged shot
+energy_weapon_no_ammo,energy weapon no ammo
+energy_weapon_no_deflect,energy weapon no deflect
+energy_weapon_no_drain,energy weapon no drain
+energy_weapon_no_hurt_building,energy weapon no hurt building
+energy_weapon_penetration,energy weapon penetration
+engineer_building_teleporting_pickup,engineer building teleporting pickup
+engineer_rage_on_dmg,engineer rage on dmg
+engineer_sentry_build_rate_multiplier,engineer sentry build rate multiplier
+engineer_teleporter_build_rate_multiplier,engineer teleporter build rate multiplier
+engy_building_health_bonus,engy building health bonus
+engy_dispenser_radius_increased,engy dispenser radius increased
+engy_disposable_sentries,engy disposable sentries
+engy_sentry_damage_bonus,engy sentry damage bonus
+engy_sentry_fire_rate_increased,engy sentry fire rate increased
+engy_sentry_radius_increased,engy sentry radius increased
+event_date,event date
+expiration_date,expiration date
+explode_on_ignite,explode_on_ignite
+explosive_sniper_shot,explosive sniper shot
+extinguish_earns_revenge_crits,extinguish earns revenge crits
+extinguish_reduces_cooldown,extinguish reduces cooldown
+extinguish_restores_health,extinguish restores health
+falling_impact_radius_pushback,falling_impact_radius_pushback
+falling_impact_radius_stun,falling_impact_radius_stun
+faster_reload_rate,faster reload rate
+fire_particle_blue,fire particle blue
+fire_particle_blue_crit,fire particle blue crit
+fire_particle_red,fire particle red
+fire_particle_red_crit,fire particle red crit
+fire_rate_bonus,fire rate bonus
+fire_rate_bonus_HIDDEN,fire rate bonus HIDDEN
+fire_rate_bonus_with_reduced_health,fire rate bonus with reduced health
+fire_rate_penalty,fire rate penalty
+fire_rate_penalty_HIDDEN,fire rate penalty HIDDEN
+fire_retardant,fire retardant
+fish_damage_override,fish damage override
+fists_have_radial_buff,fists have radial buff
+fixed_shot_pattern,fixed_shot_pattern
+flame_ammopersec_decreased,flame ammopersec decreased
+flame_ammopersec_increased,flame ammopersec increased
+flame_life_bonus,flame life bonus
+flame_life_penalty,flame life penalty
+flame_size_bonus,flame size bonus
+flame_size_penalty,flame size penalty
+flame_drag,flame_drag
+flame_gravity,flame_gravity
+flame_ignore_player_velocity,flame_ignore_player_velocity
+flame_lifetime,flame_lifetime
+flame_random_life_time_offset,flame_random_life_time_offset
+flame_reflect_on_collision,flame_reflect_on_collision
+flame_reflection_add_life_time,flame_reflection_add_life_time
+flame_speed,flame_speed
+flame_spread_degree,flame_spread_degree
+flame_up_speed,flame_up_speed
+force_center_wrap,force center wrap
+force_level_display,force level display
+force_weapon_switch,force weapon switch
+freaky_fair_ammo_potion,freaky fair ammo potion
+freaky_fair_buster_potion,freaky fair buster potion
+freaky_fair_extra_attrib1,freaky fair extra attrib1
+freaky_fair_extra_attrib2,freaky fair extra attrib2
+freaky_fair_ghost_potion,freaky fair ghost potion
+freaky_fair_giant_potion,freaky fair giant potion
+freaky_fair_healing_potion,freaky fair healing potion
+freaky_fair_kritz_potion,freaky fair kritz potion
+freaky_fair_relentless_potion,freaky fair relentless potion
+freaky_fair_rtd_potion,freaky fair rtd potion
+freaky_fair_uber_potion,freaky fair uber potion
+freeze_backstab_victim,freeze backstab victim
+full_charge_turn_control,full charge turn control
+fuse_bonus,fuse bonus
+generate_rage_on_damage,generate rage on damage
+generate_rage_on_heal,generate rage on heal
+gesture_speed_increase,gesture speed increase
+gifter_account_id,gifter account id
+grenade_damage_reduction_on_world_contact,grenade damage reduction on world contact
+grenade_detonation_damage_penalty,grenade detonation damage penalty
+grenade_launcher_mortar_mode,grenade launcher mortar mode
+grenade_no_bounce,grenade no bounce
+grenade_no_spin,grenade no spin
+grenade_not_explode_on_impact,grenade not explode on impact
+grenades1_resupply_denied,grenades1_resupply_denied
+grenades2_resupply_denied,grenades2_resupply_denied
+grenades3_resupply_denied,grenades3_resupply_denied
+gunslinger_punch_combo,gunslinger punch combo
+halloween_fire_rate_bonus,halloween fire rate bonus
+halloween_increased_jump_height,halloween increased jump height
+halloween_item,halloween item
+halloween_reload_time_decreased,halloween reload time decreased
+halloweenvision_filter_DISPLAY_ONLY,halloweenvision filter DISPLAY ONLY
+halloweenvision_opt_in_DISPLAY_ONLY,halloweenvision opt in DISPLAY ONLY
+hand_scale,hand scale
+has_pipboy_build_interface,has pipboy build interface
+has_team_color_paintkit,has team color paintkit
+hat_only_unusual_effect,hat only unusual effect
+head_scale,head scale
+headshot_damage_increase,headshot damage increase
+heal_on_hit_for_rapidfire,heal on hit for rapidfire
+heal_on_hit_for_slowfire,heal on hit for slowfire
+heal_on_kill,heal on kill
+heal_rate_bonus,heal rate bonus
+heal_rate_penalty,heal rate penalty
+healing_mastery,healing mastery
+healing_received_bonus,healing received bonus
+healing_received_penalty,healing received penalty
+health_drain,health drain
+health_drain_medic,health drain medic
+health_from_healers_increased,health from healers increased
+health_from_healers_reduced,health from healers reduced
+health_from_packs_decreased,health from packs decreased
+health_from_packs_increased,health from packs increased
+health_on_radius_damage,health on radius damage
+health_regen,health regen
+hidden_maxhealth_non_buffed,hidden maxhealth non buffed
+hidden_primary_max_ammo_bonus,hidden primary max ammo bonus
+hidden_secondary_max_ammo_penalty,hidden secondary max ammo penalty
+hide_crate_series_number,hide crate series number
+hide_enemy_health,hide enemy health
+hide_strange_prefix,hide_strange_prefix
+hit_self_on_miss,hit self on miss
+holster_anim_time,holster_anim_time
+honorbound,honorbound
+hype_decays_over_time,hype decays over time
+hype_on_damage,hype on damage
+hype_resets_on_jump,hype resets on jump
+increase_buff_duration,increase buff duration
+increase_buff_duration_HIDDEN,increase buff duration HIDDEN
+increase_player_capture_value,increase player capture value
+increased_air_control,increased air control
+increased_jump_height,increased jump height
+increased_jump_height_from_weapon,increased jump height from weapon
+inspect_viewmodel_offset,inspect_viewmodel_offset
+is_australium_item,is australium item
+is_commodity,is commodity
+is_giger_counter,is giger counter
+is_marketable,is marketable
+is_throwable_chargeable,is throwable chargeable
+is_throwable_primable,is throwable primable
+is_winter_case,is winter case
+is_a_sword,is_a_sword
+is_festivized,is_festivized
+is_operation_pass,is_operation_pass
+is_passive_weapon,is_passive_weapon
+item_drop_wave,item drop wave
+item_in_slot_1,item in slot 1
+item_in_slot_2,item in slot 2
+item_in_slot_3,item in slot 3
+item_in_slot_4,item in slot 4
+item_in_slot_5,item in slot 5
+item_in_slot_6,item in slot 6
+item_in_slot_7,item in slot 7
+item_in_slot_8,item in slot 8
+item_name_text_override,item name text override
+item_slot_criteria_1,item slot criteria 1
+item_slot_criteria_2,item slot criteria 2
+item_slot_criteria_3,item slot criteria 3
+item_slot_criteria_4,item slot criteria 4
+item_slot_criteria_5,item slot criteria 5
+item_slot_criteria_6,item slot criteria 6
+item_slot_criteria_7,item slot criteria 7
+item_slot_criteria_8,item slot criteria 8
+item_style_override,item style override
+item_meter_charge_rate,item_meter_charge_rate
+item_meter_charge_type,item_meter_charge_type
+item_meter_charge_type_3_DISPLAY_ONLY,item_meter_charge_type_3_DISPLAY_ONLY
+item_meter_damage_for_full_charge,item_meter_damage_for_full_charge
+item_meter_resupply_denied,item_meter_resupply_denied
+item_meter_starts_empty_DISPLAY_ONLY,item_meter_starts_empty_DISPLAY_ONLY
+items_traded_in_for,items traded in for
+jarate_backstabber,jarate backstabber
+jarate_description,jarate description
+jarate_duration,jarate duration
+kill_eater,kill eater
+kill_eater_2,kill eater 2
+kill_eater_3,kill eater 3
+kill_eater_kill_type,kill eater kill type
+kill_eater_score_type,kill eater score type
+kill_eater_score_type_2,kill eater score type 2
+kill_eater_score_type_3,kill eater score type 3
+kill_eater_user_1,kill eater user 1
+kill_eater_user_2,kill eater user 2
+kill_eater_user_3,kill eater user 3
+kill_eater_user_score_type_1,kill eater user score type 1
+kill_eater_user_score_type_2,kill eater user score type 2
+kill_eater_user_score_type_3,kill eater user score type 3
+kill_forces_attacker_to_laugh,kill forces attacker to laugh
+kill_refills_meter,kill refills meter
+killstreak_effect,killstreak effect
+killstreak_idleeffect,killstreak idleeffect
+killstreak_tier,killstreak tier
+limited_quantity_item,limited quantity item
+loot_list_name,loot list name
+loot_rarity,loot rarity
+lose_demo_charge_on_damage_when_charging,lose demo charge on damage when charging
+lose_hype_on_take_damage,lose hype on take damage
+lose_revenge_crits_on_death_DISPLAY_ONLY,lose revenge crits on death DISPLAY ONLY
+lunchbox_adds_maxhealth_bonus,lunchbox adds maxhealth bonus
+lunchbox_adds_minicrits,lunchbox adds minicrits
+lunchbox_healing_decreased,lunchbox healing decreased
+mad_milk_syringes,mad milk syringes
+major_increased_jump_height,major increased jump height
+major_move_speed_bonus,major move speed bonus
+makers_mark_id,makers mark id
+mark_for_death,mark for death
+mark_for_death_on_building_pickup,mark for death on building pickup
+max_health_additive_bonus,max health additive bonus
+max_health_additive_penalty,max health additive penalty
+max_pipebombs_decreased,max pipebombs decreased
+max_pipebombs_increased,max pipebombs increased
+max_flame_reflection_count,max_flame_reflection_count
+maxammo_grenades1_increased,maxammo grenades1 increased
+maxammo_metal_increased,maxammo metal increased
+maxammo_metal_reduced,maxammo metal reduced
+maxammo_primary_increased,maxammo primary increased
+maxammo_primary_reduced,maxammo primary reduced
+maxammo_secondary_increased,maxammo secondary increased
+maxammo_secondary_reduced,maxammo secondary reduced
+medic_regen_bonus,medic regen bonus
+medic_regen_penalty,medic regen penalty
+medigun_blast_resist_deployed,medigun blast resist deployed
+medigun_blast_resist_passive,medigun blast resist passive
+medigun_bullet_resist_deployed,medigun bullet resist deployed
+medigun_bullet_resist_passive,medigun bullet resist passive
+medigun_charge_is_crit_boost,medigun charge is crit boost
+medigun_charge_is_megaheal,medigun charge is megaheal
+medigun_charge_is_resists,medigun charge is resists
+medigun_crit_blast_percent_bar_deplete,medigun crit blast percent bar deplete
+medigun_crit_bullet_percent_bar_deplete,medigun crit bullet percent bar deplete
+medigun_crit_fire_percent_bar_deplete,medigun crit fire percent bar deplete
+medigun_fire_resist_deployed,medigun fire resist deployed
+medigun_fire_resist_passive,medigun fire resist passive
+melee_attack_rate_bonus,melee attack rate bonus
+melee_bounds_multiplier,melee bounds multiplier
+melee_range_multiplier,melee range multiplier
+melts_in_fire,melts in fire
+merasmus_hat_level_display_ONLY,merasmus hat level display ONLY
+metal_regen,metal regen
+metal_pickup_decreased,metal_pickup_decreased
+meter_label,meter_label
+min_viewmodel_offset,min_viewmodel_offset
+mini_rockets,mini rockets
+minicrit_vs_burning_player,minicrit vs burning player
+minicrit_boost_charge_rate,minicrit_boost_charge_rate
+minicrit_boost_when_charged,minicrit_boost_when_charged
+minicritboost_on_kill,minicritboost on kill
+minicrits_become_crits,minicrits become crits
+minigun_no_spin_sounds,minigun no spin sounds
+minigun_spinup_time_decreased,minigun spinup time decreased
+minigun_spinup_time_increased,minigun spinup time increased
+mod_ammo_per_shot,mod ammo per shot
+mod_ammo_per_shot_missed_DISPLAY_ONLY,mod ammo per shot missed DISPLAY ONLY
+mod_bat_launches_balls,mod bat launches balls
+mod_bat_launches_ornaments,mod bat launches ornaments
+mod_crit_while_airborne,mod crit while airborne
+mod_demo_buff_type,mod demo buff type
+mod_flamethrower_back_crit,mod flamethrower back crit
+mod_flamethrower_push,mod flamethrower push
+mod_flaregun_fires_pellets_with_knockback,mod flaregun fires pellets with knockback
+mod_max_primary_clip_override,mod max primary clip override
+mod_medic_healed_damage_bonus,mod medic healed damage bonus
+mod_medic_healed_deploy_time_penalty,mod medic healed deploy time penalty
+mod_medic_killed_marked_for_death,mod medic killed marked for death
+mod_medic_killed_minicrit_boost,mod medic killed minicrit boost
+mod_medic_killed_revenge,mod medic killed revenge
+mod_mini-crit_airborne,mod mini-crit airborne
+mod_mini-crit_airborne_deploy,mod mini-crit airborne deploy
+mod_no_reload_DISPLAY_ONLY,mod no reload DISPLAY ONLY
+mod_rage_damage_boost,mod rage damage boost
+mod_rage_on_hit_bonus,mod rage on hit bonus
+mod_rage_on_hit_penalty,mod rage on hit penalty
+mod_see_enemy_health,mod see enemy health
+mod_sentry_killed_revenge,mod sentry killed revenge
+mod_shovel_damage_boost,mod shovel damage boost
+mod_shovel_speed_boost,mod shovel speed boost
+mod_soldier_buff_type,mod soldier buff type
+mod_stun_waist_high_airborne,mod stun waist high airborne
+mod_teleporter_cost,mod teleporter cost
+mod_use_metal_ammo_type,mod use metal ammo type
+mod_weapon_blocks_healing,mod weapon blocks healing
+mod_wrench_builds_minisentry,mod wrench builds minisentry
+mod_air_control_blast_jump,mod_air_control_blast_jump
+mod_cloak_no_regen_from_items,mod_cloak_no_regen_from_items
+mod_disguise_consumes_cloak,mod_disguise_consumes_cloak
+mod_mark_attacker_for_death,mod_mark_attacker_for_death
+mod_maxhealth_drain_rate,mod_maxhealth_drain_rate
+move_speed_bonus,move speed bonus
+move_speed_bonus_resource_level,move speed bonus resource level
+move_speed_bonus_shield_required,move speed bonus shield required
+move_speed_penalty,move speed penalty
+mult_airblast_refire_time,mult airblast refire time
+mult_charge_turn_control,mult charge turn control
+mult_cloak_meter_consume_rate,mult cloak meter consume rate
+mult_cloak_meter_regen_rate,mult cloak meter regen rate
+mult_cloak_rate,mult cloak rate
+mult_decloak_rate,mult decloak rate
+mult_sniper_charge_after_bodyshot,mult sniper charge after bodyshot
+mult_sniper_charge_after_headshot,mult sniper charge after headshot
+mult_sniper_charge_after_miss,mult sniper charge after miss
+mult_sniper_charge_penalty_DISPLAY_ONLY,mult sniper charge penalty DISPLAY ONLY
+mult_dmgtaken_active,mult_dmgtaken_active
+mult_end_flame_size,mult_end_flame_size
+mult_health_fromhealers_penalty_active,mult_health_fromhealers_penalty_active
+mult_item_meter_charge_rate,mult_item_meter_charge_rate
+mult_patient_overheal_penalty_active,mult_patient_overheal_penalty_active
+mult_player_movespeed_active,mult_player_movespeed_active
+mult_spread_scale_first_shot,mult_spread_scale_first_shot
+mult_spread_scales_consecutive,mult_spread_scales_consecutive
+multiple_sentries,multiple sentries
+mvm_completed_challenges_bitmask,mvm completed challenges bitmask
+never_craftable,never craftable
+no_charge_impact_range,no charge impact range
+no_crit_boost,no crit boost
+no_crit_vs_nonburning,no crit vs nonburning
+no_double_jump,no double jump
+no_metal_from_dispensers_while_active,no metal from dispensers while active
+no_primary_ammo_from_dispensers_while_active,no primary ammo from dispensers while active
+no_self_blast_dmg,no self blast dmg
+no_attack,no_attack
+no_duck,no_duck
+no_jump,no_jump
+noise_maker,noise maker
+non_economy,non economy
+obsolete_ammo_penalty,obsolete ammo penalty
+overheal_bonus,overheal bonus
+overheal_decay_bonus,overheal decay bonus
+overheal_decay_disabled,overheal decay disabled
+overheal_decay_penalty,overheal decay penalty
+overheal_expert,overheal expert
+overheal_fill_rate_reduced,overheal fill rate reduced
+overheal_penalty,overheal penalty
+override_footstep_sound_set,override footstep sound set
+override_item_level_desc_string,override item level desc string
+override_projectile_type,override projectile type
+paint_decal_enum,paint decal enum
+paintkit_proto_def_index,paintkit_proto_def_index
+panic_attack,panic_attack
+panic_attack_negative,panic_attack_negative
+parachute_attribute,parachute attribute
+particle_effect_use_head_origin,particle effect use head origin
+particle_effect_vertical_offset,particle effect vertical offset
+patient_overheal_penalty,patient overheal penalty
+player_skin_override,player skin override
+powerup_charges,powerup charges
+powerup_duration,powerup duration
+powerup_max_charges,powerup max charges
+preserve_ubercharge,preserve ubercharge
+projectile_entity_name,projectile entity name
+projectile_particle_name,projectile particle name
+projectile_penetration,projectile penetration
+projectile_penetration_heavy,projectile penetration heavy
+projectile_spread_angle_penalty,projectile spread angle penalty
+provide_on_active,provide on active
+purchased,purchased
+pyro_year_number,pyro year number
+pyrovision_only_DISPLAY_ONLY,pyrovision only DISPLAY ONLY
+pyrovision_opt_in_DISPLAY_ONLY,pyrovision opt in DISPLAY ONLY
+quality_text_override,quality text override
+quest_earned_bonus_points,quest earned bonus points
+quest_earned_standard_points,quest earned standard points
+quest_loaner_id_hi,quest loaner id hi
+quest_loaner_id_low,quest loaner id low
+ragdolls_become_ash,ragdolls become ash
+ragdolls_plasma_effect,ragdolls plasma effect
+rage_giving_scale,rage giving scale
+rage_on_assists,rage on assists
+rage_on_kill,rage on kill
+random_drop_line_item_0,random drop line item 0
+random_drop_line_item_1,random drop line item 1
+random_drop_line_item_2,random drop line item 2
+random_drop_line_item_3,random drop line item 3
+random_drop_line_item_footer_desc,random drop line item footer desc
+random_drop_line_item_unusual_chance,random drop line item unusual chance
+random_drop_line_item_unusual_list,random drop line item unusual list
+recall,recall
+recipe_component_defined_item_1,recipe component defined item 1
+recipe_component_defined_item_10,recipe component defined item 10
+recipe_component_defined_item_2,recipe component defined item 2
+recipe_component_defined_item_3,recipe component defined item 3
+recipe_component_defined_item_4,recipe component defined item 4
+recipe_component_defined_item_5,recipe component defined item 5
+recipe_component_defined_item_6,recipe component defined item 6
+recipe_component_defined_item_7,recipe component defined item 7
+recipe_component_defined_item_8,recipe component defined item 8
+recipe_component_defined_item_9,recipe component defined item 9
+recipe_no_partial_complete,recipe no partial complete
+redirected_flame_size_mult,redirected_flame_size_mult
+reduced_healing_from_medics,reduced_healing_from_medics
+referenced_item_def_UPDATED,referenced item def UPDATED
+referenced_item_id_high,referenced item id high
+referenced_item_id_low,referenced item id low
+refill_ammo,refill_ammo
+reflected_flame_dmg_reduction,reflected_flame_dmg_reduction
+reload_time_decreased_while_healed,reload time decreased while healed
+reload_time_increased_hidden,reload time increased hidden
+repair_health_to_metal_ratio_DISPLAY_ONLY,repair health to metal ratio DISPLAY ONLY
+restore_health_on_kill,restore health on kill
+reveal_cloaked_victim_on_hit,reveal cloaked victim on hit
+reveal_disguised_victim_on_hit,reveal disguised victim on hit
+revive,revive
+revolver_use_hit_locations,revolver use hit locations
+ring_of_fire_while_aiming,ring of fire while aiming
+rj_air_bombardment,rj air bombardment
+robo_sapper,robo sapper
+rocket_jump_damage_reduction,rocket jump damage reduction
+rocket_jump_damage_reduction_HIDDEN,rocket jump damage reduction HIDDEN
+rocket_launch_impulse,rocket launch impulse
+rocket_specialist,rocket specialist
+rocketjump_attackrate_bonus,rocketjump attackrate bonus
+sanguisuge,sanguisuge
+sapper_damage_bonus,sapper damage bonus
+sapper_damage_leaches_health,sapper damage leaches health
+sapper_damage_penalty,sapper damage penalty
+sapper_damage_penalty_hidden,sapper damage penalty hidden
+sapper_degenerates_buildings,sapper degenerates buildings
+sapper_health_bonus,sapper health bonus
+sapper_health_penalty,sapper health penalty
+sapper_kills_collect_crits,sapper kills collect crits
+sapper_voice_pak,sapper voice pak
+sapper_voice_pak_idle_wait,sapper voice pak idle wait
+saxxy_award_category,saxxy award category
+scattergun_has_knockback,scattergun has knockback
+scattergun_knockback_mult,scattergun knockback mult
+scattergun_no_reload_single,scattergun no reload single
+self_dmg_push_force_decreased,self dmg push force decreased
+self_dmg_push_force_increased,self dmg push force increased
+self_mark_for_death,self mark for death
+selfdmg_on_hit_for_rapidfire,selfdmg on hit for rapidfire
+selfdmg_on_hit_for_slowfire,selfdmg on hit for slowfire
+selfmade_description,selfmade description
+series_number,series number
+set_cloak_is_feign_death,set cloak is feign death
+set_cloak_is_movement_based,set cloak is movement based
+set_icicle_knife_mode,set icicle knife mode
+set_item_tint_RGB,set item tint RGB
+set_item_tint_RGB_2,set item tint RGB 2
+set_supply_crate_series,set supply crate series
+set_throwable_type,set throwable type
+set_item_texture_wear,set_item_texture_wear
+share_consumable_with_patient,share consumable with patient
+shot_penetrate_all_players,shot penetrate all players
+show_paint_description,show paint description
+shuffle_crate_item_def_max,shuffle crate item def max
+shuffle_crate_item_def_min,shuffle crate item def min
+silent_killer,silent killer
+single_wep_deploy_time_decreased,single wep deploy time decreased
+single_wep_deploy_time_increased,single wep deploy time increased
+single_wep_holster_time_increased,single wep holster time increased
+slow_enemy_on_hit,slow enemy on hit
+slow_enemy_on_hit_major,slow enemy on hit major
+sniper_aiming_movespeed_decreased,sniper aiming movespeed decreased
+sniper_charge_per_sec,sniper charge per sec
+sniper_crit_no_scope,sniper crit no scope
+sniper_fires_tracer,sniper fires tracer
+sniper_fires_tracer_HIDDEN,sniper fires tracer HIDDEN
+sniper_full_charge_damage_bonus,sniper full charge damage bonus
+sniper_independent_zoom_DISPLAY_ONLY,sniper independent zoom DISPLAY ONLY
+sniper_no_charge,sniper no charge
+sniper_no_headshot_without_full_charge,sniper no headshot without full charge
+sniper_no_headshots,sniper no headshots
+sniper_only_fire_zoomed,sniper only fire zoomed
+sniper_penetrate_players_when_charged,sniper penetrate players when charged
+sniper_rage_DISPLAY_ONLY,sniper rage DISPLAY ONLY
+sniper_zoom_penalty,sniper zoom penalty
+soldier_model_index,soldier model index
+spawn_with_physics_toy,spawn with physics toy
+special_taunt,special taunt
+speed_boost_when_active,speed boost when active
+speed_buff_ally,speed buff ally
+speed_boost_on_hit,speed_boost_on_hit
+speed_boost_on_hit_enemy,speed_boost_on_hit_enemy
+speed_boost_on_kill,speed_boost_on_kill
+spellbook_page_attr_id,spellbook page attr id
+spread_penalty,spread penalty
+spunup_damage_resistance,spunup_damage_resistance
+spunup_push_force_immunity,spunup_push_force_immunity
+start_drop_date,start drop date
+stickies_detonate_stickies,stickies detonate stickies
+sticky_air_burst_mode,sticky air burst mode
+sticky_arm_time_bonus,sticky arm time bonus
+sticky_arm_time_penalty,sticky arm time penalty
+sticky_detonate_mode,sticky detonate mode
+stickybomb_charge_rate,stickybomb charge rate
+stickybomb_fizzle_time,stickybomb fizzle time
+stickybomb_charge_damage_increase,stickybomb_charge_damage_increase
+strange_part_new_counter_ID,strange part new counter ID
+strange_restriction_type_1,strange restriction type 1
+strange_restriction_type_2,strange restriction type 2
+strange_restriction_type_3,strange restriction type 3
+strange_restriction_user_type_1,strange restriction user type 1
+strange_restriction_user_type_2,strange restriction user type 2
+strange_restriction_user_type_3,strange restriction user type 3
+strange_restriction_user_value_1,strange restriction user value 1
+strange_restriction_user_value_2,strange restriction user value 2
+strange_restriction_user_value_3,strange restriction user value 3
+strange_restriction_value_1,strange restriction value 1
+strange_restriction_value_2,strange restriction value 2
+strange_restriction_value_3,strange restriction value 3
+strange_score_selector,strange score selector
+stun_enemies_wielding_same_weapon,stun enemies wielding same weapon
+style_changes_on_strange_level,style changes on strange level
+subtract_victim_cloak_on_hit,subtract victim cloak on hit
+subtract_victim_medigun_charge_on_hit,subtract victim medigun charge on hit
+switch_from_wep_deploy_time_decreased,switch from wep deploy time decreased
+tag__eotlearlysupport,tag__eotlearlysupport
+tag__summer2014,tag__summer2014
+taunt_attach_particle_index,taunt attach particle index
+taunt_attack_name,taunt attack name
+taunt_attack_time,taunt attack time
+taunt_force_move_forward,taunt force move forward
+taunt_force_weapon_slot,taunt force weapon slot
+taunt_is_highfive,taunt is highfive
+taunt_is_press_and_hold,taunt is press and hold
+taunt_mimic,taunt mimic
+taunt_move_acceleration_time,taunt move acceleration time
+taunt_move_speed,taunt move speed
+taunt_only_unusual_effect,taunt only unusual effect
+taunt_success_sound,taunt success sound
+taunt_success_sound_loop,taunt success sound loop
+taunt_success_sound_loop_offset,taunt success sound loop offset
+taunt_success_sound_offset,taunt success sound offset
+taunt_turn_acceleration_time,taunt turn acceleration time
+taunt_turn_speed,taunt turn speed
+taunt_attr_player_invis_percent,taunt_attr_player_invis_percent
+texture_wear_default,texture_wear_default
+thermal_thruster,thermal_thruster
+thermal_thruster_air_launch,thermal_thruster_air_launch
+throwable_damage,throwable damage
+throwable_detonation_time,throwable detonation time
+throwable_fire_speed,throwable fire speed
+throwable_healing,throwable healing
+throwable_particle_trail_only,throwable particle trail only
+throwable_recharge_time,throwable recharge time
+tickle_enemies_wielding_same_weapon,tickle enemies wielding same weapon
+tmp_dmgbuff_on_hit,tmp dmgbuff on hit
+tool_escrow_until_date,tool escrow until date
+tool_needs_giftwrap,tool needs giftwrap
+tool_target_item,tool target item
+tool_target_item_icon_offset,tool_target_item_icon_offset
+torso_scale,torso scale
+tradable_after_date,tradable after date
+turn_to_gold,turn to gold
+uber_duration_bonus,uber duration bonus
+ubercharge,ubercharge
+ubercharge_overheal_rate_penalty,ubercharge overheal rate penalty
+ubercharge_rate_bonus,ubercharge rate bonus
+ubercharge_rate_bonus_for_healer,ubercharge rate bonus for healer
+ubercharge_rate_penalty,ubercharge rate penalty
+ubercharge_preserved_on_spawn_max,ubercharge_preserved_on_spawn_max
+unique_craft_index,unique craft index
+unlimited_quantity,unlimited quantity
+unlimited_quantity_hidden,unlimited quantity hidden
+unusualifier_attribute_template_name,unusualifier_attribute_template_name
+upgrade_rate_decrease,upgrade rate decrease
+use_large_smoke_explosion,use large smoke explosion
+use_model_cache_icon,use_model_cache_icon
+uses_ammo_while_aiming,uses ammo while aiming
+vision_opt_in_flags,vision opt in flags
+voice_pitch_scale,voice pitch scale
+weapon_burn_dmg_increased,weapon burn dmg increased
+weapon_burn_dmg_reduced,weapon burn dmg reduced
+weapon_burn_time_increased,weapon burn time increased
+weapon_burn_time_reduced,weapon burn time reduced
+weapon_spread_bonus,weapon spread bonus
+weapon_allow_inspect,weapon_allow_inspect
+weapon_stattrak_module_scale,weapon_stattrak_module_scale
+weapon_uses_stattrak_module,weapon_uses_stattrak_module
+wide_item_level,wide item level
+zombiezombiezombiezombie,zombiezombiezombiezombie
+zoom_speed_mod_disabled,zoom speed mod disabled
