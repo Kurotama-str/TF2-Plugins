@@ -1,6 +1,3 @@
-// Hyper Upgrades - Version 0.21
-// Author: Kuro + OpenAI
-
 #pragma semicolon 1
 #pragma newdecls required
 
@@ -12,13 +9,23 @@
 #include <tf2attributes>
 #include <tf_econ_data>
 
+#include <stocksoup/handles>
+#include <stocksoup/memory>
+
+
+#define TF_ITEMDEF_DEFAULT -1
+
+
+
 #define PLUGIN_NAME "Hyper Upgrades"
-#define PLUGIN_VERSION "0.03"
+#define PLUGIN_VERSION "0.30"
 #define CONFIG_ATTR "hu_attributes.cfg"
 #define CONFIG_UPGR "hu_upgrades.cfg"
 #define CONFIG_WEAP "hu_weapons_list.txt"
 #define CONFIG_ALIAS "hu_alias_list.txt"
 #define TRANSLATION_FILE "hu_translations.txt"
+
+
 //#define IN_DUCK (1 << 2)     // Crouch key already defined
 //#define IN_RELOAD (1 << 13)  // Reload key already defined
 
@@ -33,6 +40,7 @@ Handle g_hMoneyPool;
 int g_iMoneySpent[MAXPLAYERS + 1];
 
 Handle g_hPlayerUpgrades[MAXPLAYERS + 1];
+int g_iPlayerBrowsingSlot[MAXPLAYERS + 1];
 ConVar g_hResetMoneyPoolOnMapStart;
 
 Handle g_hRefreshTimer[MAXPLAYERS + 1] = { INVALID_HANDLE, ... };
@@ -91,6 +99,7 @@ public void OnPluginStart()
     GenerateConfigFiles();
 
     RegAdminCmd("sm_reloadweapons", Command_ReloadWeaponAliases, ADMFLAG_GENERIC, "Reload the weapon aliases.");
+    RegAdminCmd("sm_reloadattalias", Command_ReloadAttributesAliases, ADMFLAG_GENERIC, "Reload the attributes aliases.");
 
     g_weaponAliases = new ArrayList(sizeof(WeaponAlias));
     LoadWeaponAliases();
@@ -237,7 +246,15 @@ public Action Command_ReloadWeaponAliases(int client, int args)
 {
     g_weaponAliases.Clear();
     LoadWeaponAliases();
-    PrintToChatAll("[Hyper Upgrades] Weapon aliases reloaded.");
+    PrintToServer("[Hyper Upgrades] Weapon aliases reloaded.");
+    return Plugin_Handled;
+}
+// Reload Aliases for Attributes
+public Action Command_ReloadAttributesAliases(int client, int args)
+{
+    g_attributeMappings.Clear();
+    LoadAttributeMappings();
+    PrintToServer("[Hyper Upgrades] Attributes aliases reloaded.");
     return Plugin_Handled;
 }
 
@@ -542,6 +559,22 @@ void ShowCategoryMenu(int client, const char[] category)
     strcopy(g_sPlayerAlias[client], sizeof(g_sPlayerAlias[]), alias);
     g_bPlayerBrowsing[client] = true;
 
+    int weaponSlot = -1;
+
+    if (StrEqual(category, "Body Upgrades"))
+    {
+        weaponSlot = -1; // Body upgrades tracked as slot -1
+    }
+    else if (StrEqual(category, "Primary Upgrades"))
+        weaponSlot = 0;
+    else if (StrEqual(category, "Secondary Upgrades"))
+        weaponSlot = 1;
+    else if (StrEqual(category, "Melee Upgrades"))
+        weaponSlot = 2;
+
+    g_iPlayerBrowsingSlot[client] = weaponSlot;
+
+
     PrintToServer("[Debug] Showing upgrades for category: %s | alias: %s", g_sPlayerCategory[client], g_sPlayerAlias[client]);
 
     if (!kv.JumpToKey(category, false))
@@ -630,8 +663,22 @@ public int MenuHandler_UpgradeMenu(Menu menu, MenuAction action, int client, int
     }
     else if (action == MenuAction_Select)
     {
+        char itemData[64];
+        menu.GetItem(item, itemData, sizeof(itemData));
+
+        char parts[3][64];
+        int count = ExplodeString(itemData, "|", parts, sizeof(parts), sizeof(parts[]));
+        if (count != 3)
+        {
+            PrintToChat(client, "[Hyper Upgrades] Failed to parse item string.");
+            return 0;
+        }
+
+        int weaponSlot = StringToInt(parts[0]); // Extract weapon slot
         char upgradeAlias[64];
-        menu.GetItem(item, upgradeAlias, sizeof(upgradeAlias));
+        strcopy(upgradeAlias, sizeof(upgradeAlias), parts[1]); // Extract upgrade alias
+        char upgradeGroup[64];
+        strcopy(upgradeGroup, sizeof(upgradeGroup), parts[2]); // Extract upgrade group
 
         char upgradesFile[PLATFORM_MAX_PATH];
         BuildPath(Path_SM, upgradesFile, sizeof(upgradesFile), "configs/hu_upgrades.cfg");
@@ -656,7 +703,7 @@ public int MenuHandler_UpgradeMenu(Menu menu, MenuAction action, int client, int
         float increment = kvUpgrades.GetFloat("Increment", 0.1);
 
         int upgradeMultiplier = GetUpgradeMultiplier(client);
-        float currentLevel = GetPlayerUpgradeLevel(client, upgradeAlias);
+        float currentLevel = GetPlayerUpgradeLevelForSlot(client, weaponSlot, upgradeAlias);
 
         // Calculate how many times the upgrade was purchased so far
         int purchases = RoundToFloor(currentLevel / increment);
@@ -677,7 +724,22 @@ public int MenuHandler_UpgradeMenu(Menu menu, MenuAction action, int client, int
 
         // Apply the upgrade
         float newLevel = currentLevel + (increment * upgradeMultiplier);
-        KvSetNum(g_hPlayerUpgrades[client], upgradeAlias, RoundToNearest(newLevel * 1000.0)); // Store as int * 1000
+
+        char slotPath[8];
+
+        if (weaponSlot == -1) // Body upgrades
+        {
+            strcopy(slotPath, sizeof(slotPath), "body");
+        }
+        else
+        {
+            Format(slotPath, sizeof(slotPath), "slot%d", weaponSlot);
+        }
+
+        KvJumpToKey(g_hPlayerUpgrades[client], slotPath, true);
+        KvSetNum(g_hPlayerUpgrades[client], upgradeAlias, RoundToNearest(newLevel * 1000.0)); // Store flat
+        KvRewind(g_hPlayerUpgrades[client]);
+
 
         ApplyPlayerUpgrades(client);
 
@@ -688,8 +750,7 @@ public int MenuHandler_UpgradeMenu(Menu menu, MenuAction action, int client, int
         PrintToConsole(client, "[Hyper Upgrades] Purchased upgrade: %s (+%.2f x%d). Total Cost: %.0f$", upgradeAlias, increment, upgradeMultiplier, totalCost);
 
         // Reload menu to refresh display
-        ShowUpgradeListMenu(client, g_sPlayerUpgradeGroup[client]);
-
+        ShowUpgradeListMenu(client, upgradeGroup);
         delete kvUpgrades;
     }
     else if (action == MenuAction_Cancel)
@@ -701,6 +762,7 @@ public int MenuHandler_UpgradeMenu(Menu menu, MenuAction action, int client, int
     }
     return 0;
 }
+
 
 public Action Timer_CheckMenuRefresh(Handle timer, any client)
 {
@@ -789,7 +851,7 @@ void ShowUpgradeListMenu(int client, const char[] upgradeGroup)
             float costMultiplier = kvUpgrades.GetFloat("CostMultiplier", 1.5);
             float increment = kvUpgrades.GetFloat("Increment", 0.1);
 
-            float currentLevel = GetPlayerUpgradeLevel(client, upgradeAlias);
+            float currentLevel = GetPlayerUpgradeLevelForSlot(client, g_iPlayerBrowsingSlot[client], upgradeAlias);
 
             // Calculate how many times the upgrade was purchased
             int purchases = RoundToFloor(currentLevel / increment);
@@ -805,7 +867,13 @@ void ShowUpgradeListMenu(int client, const char[] upgradeGroup)
             char display[128];
             Format(display, sizeof(display), "%s (%.2f) %.0f$ (x%d)", upgradeName, currentLevel, totalCost, multiplier);
 
-            upgradeMenu.AddItem(upgradeAlias, display);
+            char slotPath[8];
+            Format(slotPath, sizeof(slotPath), "slot%d", g_iPlayerBrowsingSlot[client]);
+
+            char itemData[64];
+            Format(itemData, sizeof(itemData), "%d|%s|%s", g_iPlayerBrowsingSlot[client], upgradeAlias, upgradeGroup);
+
+            upgradeMenu.AddItem(itemData, display);
             bFoundUpgrades = true;
         }
 
@@ -836,16 +904,33 @@ void ShowUpgradeListMenu(int client, const char[] upgradeGroup)
 }
 
 
-float GetPlayerUpgradeLevel(int client, const char[] alias)
+float GetPlayerUpgradeLevelForSlot(int client, int slot, const char[] alias)
 {
     if (g_hPlayerUpgrades[client] == null)
         return 0.0;
 
     KvRewind(g_hPlayerUpgrades[client]);
+
+    char slotPath[8];
+    if (slot == -1)
+    {
+        strcopy(slotPath, sizeof(slotPath), "body");
+    }
+    else
+    {
+        Format(slotPath, sizeof(slotPath), "slot%d", slot);
+    }
+
+    if (!KvJumpToKey(g_hPlayerUpgrades[client], slotPath, false))
+        return 0.0;
+
     int storedLevel = KvGetNum(g_hPlayerUpgrades[client], alias, 0);
+
+    KvRewind(g_hPlayerUpgrades[client]);
 
     return float(storedLevel) / 1000.0;
 }
+
 
 bool GetAttributeName(const char[] alias, char[] attributeName, int maxlen)
 {
@@ -890,76 +975,107 @@ void ApplyPlayerUpgrades(int client)
     if (g_hPlayerUpgrades[client] == null)
         return;
 
+    // Clear all upgrades first
+    TF2Attrib_RemoveAll(client);
+    for (int slot = 0; slot <= 5; slot++)
+    {
+        int weapon = GetPlayerWeaponSlot(client, slot);
+        if (IsValidEntity(weapon))
+        {
+            TF2Attrib_RemoveAll(weapon);
+        }
+    }
+
     KvRewind(g_hPlayerUpgrades[client]);
 
+    // Go to the first top-level key (body, slot0, slot1, etc.)
     if (!KvGotoFirstSubKey(g_hPlayerUpgrades[client], false))
         return;
 
     do
     {
-        char upgradeAlias[64];
-        KvGetSectionName(g_hPlayerUpgrades[client], upgradeAlias, sizeof(upgradeAlias));
+        char slotName[8];
+        KvGetSectionName(g_hPlayerUpgrades[client], slotName, sizeof(slotName));
 
-        // Retrieve the upgrade level (stored as int * 1000)
-        int storedLevel = KvGetNum(g_hPlayerUpgrades[client], NULL_STRING, 0);
-        float level = float(storedLevel) / 1000.0;
+        int weapon = -1;
+        bool isBody = StrEqual(slotName, "body");
 
-        // Load the upgrade definition
-        char upgradesFile[PLATFORM_MAX_PATH];
-        BuildPath(Path_SM, upgradesFile, sizeof(upgradesFile), "configs/hu_upgrades.cfg");
-
-        KeyValues kvUpgrades = new KeyValues("Upgrades");
-        if (!kvUpgrades.ImportFromFile(upgradesFile))
+        if (!isBody)
         {
-            delete kvUpgrades;
-            continue;
-        }
+            // Extract slot number from slot name (e.g., "slot0" → 0)
+            int slot = StringToInt(slotName[4]);
+            weapon = GetPlayerWeaponSlot(client, slot);
+            if (!IsValidEntity(weapon))
+                continue;
 
-        if (!kvUpgrades.JumpToKey(upgradeAlias, false))
-        {
-            delete kvUpgrades;
-            continue;
-        }
-
-        // Load initial value from config (default to 0.0 if not present)
-        float initValue = KvGetFloat(kvUpgrades, "InitValue", 0.0);
-
-        // Final value to apply
-        float flevel = initValue + level;
-
-        int weaponSlot = KvGetNum(kvUpgrades, "Slot", -1); // -1 for body upgrades
-        bool isBodyUpgrade = (weaponSlot == -1);
-
-        delete kvUpgrades;
-
-        // Lookup the attribute name using the alias mapping
-        char attributeName[128];
-        if (!GetAttributeName(upgradeAlias, attributeName, sizeof(attributeName)))
-        {
-            PrintToServer("[Hyper Upgrades] Could not find attribute name for alias: %s", upgradeAlias);
-            continue;
-        }
-
-        // Apply the attribute to the player or weapon
-        if (isBodyUpgrade)
-        {
-            TF2Attrib_SetByName(client, attributeName, flevel);
+            PrintToConsole(client, "[Debug] Applying upgrades to weapon slot %d", slot);
         }
         else
         {
-            int weapon = GetPlayerWeaponSlot(client, weaponSlot);
-            if (IsValidEntity(weapon))
+            PrintToConsole(client, "[Debug] Applying body upgrades");
+        }
+
+        if (!KvGotoFirstSubKey(g_hPlayerUpgrades[client], false))
+        {
+            KvGoBack(g_hPlayerUpgrades[client]);
+            continue;
+        }
+
+        do
+        {
+            char upgradeAlias[64];
+            KvGetSectionName(g_hPlayerUpgrades[client], upgradeAlias, sizeof(upgradeAlias));
+
+            int storedLevel = KvGetNum(g_hPlayerUpgrades[client], NULL_STRING, 0);
+            float level = float(storedLevel) / 1000.0;
+
+            PrintToConsole(client, "[Debug] Applying upgrade: %s with stored level %d (parsed level %.2f)", upgradeAlias, storedLevel, level);
+
+            char upgradesFile[PLATFORM_MAX_PATH];
+            BuildPath(Path_SM, upgradesFile, sizeof(upgradesFile), "configs/hu_upgrades.cfg");
+
+            KeyValues kvUpgrades = new KeyValues("Upgrades");
+            if (!kvUpgrades.ImportFromFile(upgradesFile))
+            {
+                delete kvUpgrades;
+                continue;
+            }
+
+            if (!kvUpgrades.JumpToKey(upgradeAlias, false))
+            {
+                delete kvUpgrades;
+                continue;
+            }
+
+            float initValue = KvGetFloat(kvUpgrades, "InitValue", 0.0);
+            float flevel = initValue + level;
+
+            delete kvUpgrades;
+
+            char attributeName[128];
+            if (!GetAttributeName(upgradeAlias, attributeName, sizeof(attributeName)))
+                continue;
+
+            if (isBody)
+            {
+                TF2Attrib_SetByName(client, attributeName, flevel);
+            }
+            else
             {
                 TF2Attrib_SetByName(weapon, attributeName, flevel);
             }
-        }
+
+        } while (KvGotoNextKey(g_hPlayerUpgrades[client], false));
+
+        KvGoBack(g_hPlayerUpgrades[client]); // Go back to the slot level
 
     } while (KvGotoNextKey(g_hPlayerUpgrades[client], false));
 
     KvRewind(g_hPlayerUpgrades[client]);
 
-    PrintToConsole(client, "[Hyper Upgrades] Your upgrades have been applied.");
+    PrintToConsole(client, "[Hyper Upgrades] All upgrades have been applied.");
 }
+
 
 
 public Action Command_AddMoney(int client, int args)
@@ -1009,169 +1125,9 @@ void GenerateConfigFiles()
 {
     char filePath[PLATFORM_MAX_PATH];
 
-    // Generate hu_alias_list.txt
-    BuildPath(Path_SM, filePath, sizeof(filePath), "configs/%s", CONFIG_ALIAS);
-    if (!FileExists(filePath))
-    {
-        Handle file = OpenFile(filePath, "w");
-        if (file != null)
-        {
-            // alias,attribute name
-            
-            WriteFileLine(file, "health_upgrade,max health additive bonus");
-            WriteFileLine(file, "health_regen,health regen");
-            WriteFileLine(file, "damage_reduction_fire,damage vulnerability multiplier: fire");
-            WriteFileLine(file, "damage_reduction_crit,damage vulnerability multiplier: crit");
-            WriteFileLine(file, "damage_reduction_blast,damage vulnerability multiplier: blast");
-            WriteFileLine(file, "damage_reduction_bullet,damage vulnerability multiplier: bullet");
-            WriteFileLine(file, "damage_reduction_melee,damage vulnerability multiplier: melee");
-            WriteFileLine(file, "damage_reduction_sentry,damage from sentry reduced");
-            WriteFileLine(file, "damage_reduction_ranged,damage vulnerability multiplier: ranged");
-            WriteFileLine(file, "damage_reduction_all,damage vulnerability multiplier");
-            WriteFileLine(file, "backstab_resistance,backstab vulnerability multiplier");
-            WriteFileLine(file, "headshot_resistance,headshot vulnerability multiplier");
-            WriteFileLine(file, "healthpack_bonus,increased health from healers");
-            WriteFileLine(file, "healing_received_bonus,mult healing received");
-            WriteFileLine(file, "movement_speed,move speed bonus");
-            WriteFileLine(file, "jump_height,mod jump height");
-            WriteFileLine(file, "air_dash,increased jump air dash count");
-            WriteFileLine(file, "deploy_speed,deploy time decreased");
-            WriteFileLine(file, "knockback_resistance,damage force reduction");
-            WriteFileLine(file, "airblast_resistance,airblast vulnerability multiplier");
-            WriteFileLine(file, "fall_damage_resistance,fall damage reduction");
-            WriteFileLine(file, "gesture_speed,gesture speed increase");
-            WriteFileLine(file, "parachute,parachute attribute");
-            WriteFileLine(file, "redeploy_parachute,parachute redeploy attribute");
-            WriteFileLine(file, "air_control,air control bonus");
-            WriteFileLine(file, "capture_value,capture value bonus");
-            WriteFileLine(file, "see_enemy_health,see enemy health");
-            WriteFileLine(file, "primary_ammo,maxammo primary increased");
-            WriteFileLine(file, "secondary_ammo,maxammo secondary increased");
-            WriteFileLine(file, "metal_max,maxammo metal increased");
-            WriteFileLine(file, "ammo_regen,ammoregen");
-            WriteFileLine(file, "metal_regen,metal regen");
-            WriteFileLine(file, "cloak_consume,cloak consume rate decreased");
-            WriteFileLine(file, "cloak_rate,cloak regen rate increased");
-            WriteFileLine(file, "decloak_rate,decloak rate increased");
-            WriteFileLine(file, "disguise_speed,disguise speed increased");
-            WriteFileLine(file, "damage_bonus,damage bonus");
-            WriteFileLine(file, "heal_on_hit,add onhit addhealth");
-            WriteFileLine(file, "heal_on_kill,add onkill addhealth");
-            WriteFileLine(file, "slow_enemy,slow enemy on hit");
-            WriteFileLine(file, "minicrits_become_crits,minicrits become crits");
-            WriteFileLine(file, "minicrits_airborn,mod mini-crit airborne deploy");
-            WriteFileLine(file, "reveal_cloak,reveal cloaked victim");
-            WriteFileLine(file, "reveal_disguise,reveal disguised victim");
-            WriteFileLine(file, "damage_vs_building,damage bonus vs buildings");
-            WriteFileLine(file, "damage_vs_sapper,damage versus sappers");
-            WriteFileLine(file, "attack_speed,fire rate bonus");
-            WriteFileLine(file, "reload_speed,reload time decreased");
-            WriteFileLine(file, "melee_range,melee bounds multiplier");
-            WriteFileLine(file, "crit_on_kill,crit on kill");
-            WriteFileLine(file, "crit_from_behind,crit from behind");
-            WriteFileLine(file, "speed_buff_ally,speed buff ally on hit");
-            WriteFileLine(file, "mark_for_death,mark for death on hit");
-            WriteFileLine(file, "repair_rate,repair rate bonus");
-            WriteFileLine(file, "sentry_fire_rate,sentry fire rate bonus");
-            WriteFileLine(file, "sentry_damage,sentry damage bonus");
-            WriteFileLine(file, "sentry_ammo,sentry max ammo bonus");
-            WriteFileLine(file, "sentry_radius,sentry radius bonus");
-            WriteFileLine(file, "building_deploy_speed,building deploy time decreased");
-            WriteFileLine(file, "teleporter_bidirectional,bidirectional teleporter");
-            WriteFileLine(file, "dispenser_range,dispenser radius increased");
-            WriteFileLine(file, "dispenser_metal,dispenser ammo bonus");
-            WriteFileLine(file, "damage_falloff,damage falloff reduced");
-            WriteFileLine(file, "self_push_bonus,self blast impulse scale");
-            WriteFileLine(file, "clip_size,clip size bonus");
-            WriteFileLine(file, "projectile_speed,projectile speed bonus");
-            WriteFileLine(file, "self_blast_immunity,self blast dmg reduced");
-            WriteFileLine(file, "rocket_jump_reduction,rocket jump damage reduction");
-            WriteFileLine(file, "blast_radius,blast radius increased");
-            WriteFileLine(file, "blast_push,blast force increase");
-            WriteFileLine(file, "grenades_no_bounce,grenades no bounce");
-            WriteFileLine(file, "damage_causes_airblast,damage causes airblast");
-            WriteFileLine(file, "remove_hit_self,remove hit self on miss");
-            WriteFileLine(file, "bleed_duration,bleed duration bonus");
-            WriteFileLine(file, "ignite_on_hit,ignite on hit");
-            WriteFileLine(file, "afterburn_damage,afterburn damage bonus");
-            WriteFileLine(file, "afterburn_duration,afterburn duration bonus");
-            WriteFileLine(file, "accurate_damage_bonus,accurate damage bonus");
-            WriteFileLine(file, "weapon_spread,weapon spread bonus");
-            WriteFileLine(file, "attack_projectile,attack projectiles");
-            WriteFileLine(file, "projectile_penetration,projectile penetration");
-            WriteFileLine(file, "bullets_per_shot,bullets per shot bonus");
-            WriteFileLine(file, "minigun_spinup,minigun spinup time reduced");
-            WriteFileLine(file, "rage_on_damage,rage on damage");
-            WriteFileLine(file, "rage_duration,rage duration bonus");
-            WriteFileLine(file, "banner_duration,banner duration bonus");
-            WriteFileLine(file, "uber_on_hit,add uber on hit");
-            WriteFileLine(file, "heal_rate_bonus,heal rate bonus");
-            WriteFileLine(file, "overheal_bonus,overheal bonus");
-            WriteFileLine(file, "uber_rate_bonus,ubercharge rate bonus");
-            WriteFileLine(file, "uber_duration,uber duration bonus");
-            WriteFileLine(file, "shield_level,shield level");
-            WriteFileLine(file, "shield_duration,shield duration bonus");
-            WriteFileLine(file, "flame_life_bonus,flame life bonus");
-            WriteFileLine(file, "airblast_refire,airblast refire time decreased");
-            WriteFileLine(file, "airblast_push_force,airblast pushback scale");
-            WriteFileLine(file, "airblast_size,airblast size bonus");
-            WriteFileLine(file, "airblast_ammo_cost,airblast ammo cost reduced");
-            WriteFileLine(file, "flame_ammo_cost,flame ammo cost reduced");
-            WriteFileLine(file, "rage_from_flames,add rage on flame hit");
-            WriteFileLine(file, "full_charge_damage,full charge damage bonus");
-            WriteFileLine(file, "headshot_damage_bonus,headshot damage bonus");
-            WriteFileLine(file, "explosive_headshots,explosive headshot");
-            WriteFileLine(file, "sniper_charge_rate,sniper charge rate bonus");
-            WriteFileLine(file, "charge_multiplier_headshot,charge multiplier after headshot");
-            WriteFileLine(file, "disable_flinch,disable flinch");
-            WriteFileLine(file, "aiming_movespeed,aiming move speed bonus");
-            WriteFileLine(file, "minicrit_headshot,minicrit on headshot");
-            WriteFileLine(file, "crit_headshot,crit on headshot");
-            WriteFileLine(file, "sapper_health,sapper health bonus");
-            WriteFileLine(file, "sapper_damage,sapper damage bonus");
-            WriteFileLine(file, "sapper_heal,add health on sapper attach");
-            WriteFileLine(file, "rocket_speed,rocket speed");
-            WriteFileLine(file, "grenade_speed,grenade speed");
-            WriteFileLine(file, "stickybomb_speed,stickybomb speed");
-            WriteFileLine(file, "syringe_speed,syringe speed");
-            WriteFileLine(file, "arrow_speed,arrow speed");
-            WriteFileLine(file, "energy_ball_speed,energy ball speed");
-            WriteFileLine(file, "charge_rate,shield charge rate bonus");
-            WriteFileLine(file, "charge_damage,shield charge impact damage bonus");
-            WriteFileLine(file, "charge_turn_rate,shield charge turn control bonus");
-            WriteFileLine(file, "hit_speedboost,speed boost on hit");
-            WriteFileLine(file, "lunchbox_heal_bonus,lunchbox heal amount bonus");
-            WriteFileLine(file, "lunchbox_recharge,lunchbox recharge rate bonus");
-            WriteFileLine(file, "slow_on_hit,slow enemy on hit");
-            WriteFileLine(file, "liquid_duration,milk / jarate duration bonus");
-            WriteFileLine(file, "gas_passer_explosion,gas passer explosion on ignite");
-            WriteFileLine(file, "silent_killer,silent killer");
-            WriteFileLine(file, "silent_uncloak,silent uncloak");
-            WriteFileLine(file, "mad_milk_on_hit,mad milk on hit");
-            WriteFileLine(file, "sanguisuge,backstab healing bonus");
-            WriteFileLine(file, "thermal_thruster_airlaunch,thermal thruster air launch");
-            WriteFileLine(file, "impact_pushback,impact pushback radius");
-            WriteFileLine(file, "impact_stun,impact stun radius");
-            WriteFileLine(file, "dragon_fury_recharge,dragon fury recharge rate");
-            WriteFileLine(file, "building_heal_rate,building heal rate bonus");
-            WriteFileLine(file, "sentry_bullet_resistance,sentry bullet resistance");
-            WriteFileLine(file, "sentry_rocket_resistance,sentry rocket resistance");
-            WriteFileLine(file, "sentry_flame_resistance,sentry flame resistance");
-            WriteFileLine(file, "sentry_damage_resistance,sentry damage resistance");
-            WriteFileLine(file, "dispenser_damage_resistance,dispenser damage resistance");
-            WriteFileLine(file, "teleporter_damage_resistance,teleporter damage resistance");
-            WriteFileLine(file, "bat_ball_speed,mod bat launches balls faster");
-            WriteFileLine(file, "slow_on_hit_building,slow enemy on hit building");
-            WriteFileLine(file, "damage_force_reduction_on_hit,damage force reduction on hit");
-            WriteFileLine(file, "snare_on_hit,snare on hit");
+    
 
-
-
-            CloseHandle(file);
-        }
-    }
-
-    // Generate hu_weapons_list.txt
+    // Generate hu_weapons_list.txt - Will need to be kept up to date
     BuildPath(Path_SM, filePath, sizeof(filePath), "configs/%s", CONFIG_WEAP);
     if (!FileExists(filePath))
     {
@@ -1767,1493 +1723,8 @@ void GenerateConfigFiles()
         }
     }
 
-    // Generate hu_upgrades.cfg
-    BuildPath(Path_SM, filePath, sizeof(filePath), "configs/%s", CONFIG_UPGR);
-    if (!FileExists(filePath))
-    {
-        Handle file = OpenFile(filePath, "w");
-        if (file != null)
-        {
-            WriteFileLine(file, "\"Upgrades\"");
-            WriteFileLine(file, "{");
-
-            WriteFileLine(file, "\t\"health_upgrade\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"25.0\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"200\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Health Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"damage_bonus\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.1\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"5\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Damage Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"movement_speed\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.05\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"2\"");
-            WriteFileLine(file, "\t\t\"InitValue\" \"1\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Speed Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"health_regen\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"1.0\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"50\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Health Regen\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"damage_reduction_fire\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"-0.05\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"0\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Fire Damage Reduction\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"damage_reduction_crit\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"-0.05\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"0\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Crit Damage Reduction\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"damage_reduction_blast\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"-0.05\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"0\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Blast Damage Reduction\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"damage_reduction_bullet\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"-0.05\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"0\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Bullet Damage Reduction\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"damage_reduction_melee\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"-0.05\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"0\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Melee Damage Reduction\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"damage_reduction_sentry\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"-0.05\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"0\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Sentry Damage Reduction\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"damage_reduction_ranged\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"-0.05\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"0\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Ranged Damage Reduction\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"damage_reduction_all\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"-0.05\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"0\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Global Damage Reduction\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"backstab_resistance\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"-0.25\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"0\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Backstab Resistance\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"headshot_resistance\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"-0.25\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"0\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Headshot Resistance\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"healthpack_bonus\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.1\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"3\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Healthpack Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"healing_received_bonus\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.1\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"5\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Healing Received Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"jump_height\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.1\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"2\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Jump Height Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"air_dash\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"1.0\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"5\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Extra Air Dashes\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"deploy_speed\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.1\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"3\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Deploy Speed Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"knockback_resistance\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.1\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"5\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Knockback Resistance\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"airblast_resistance\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.1\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"5\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Airblast Resistance\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"fall_damage_resistance\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"-0.25\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"0\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Fall Damage Reduction\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"gesture_speed\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.1\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"3\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Gesture Speed Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"parachute\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"1.0\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"1\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Parachute\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"redeploy_parachute\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"1.0\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"1\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Redeploy Parachute\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"air_control\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.1\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"5\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Air Control Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"capture_value\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"1.0\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"3\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Capture Value Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"see_enemy_health\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"1.0\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"1\"");
-            WriteFileLine(file, "\t\t\"Name\" \"See Enemy Health\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"primary_ammo\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.1\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"5\"");
-            WriteFileLine(file, "\t\t\"InitValue\" \"1\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Primary Ammo Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"secondary_ammo\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.1\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"5\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Secondary Ammo Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"metal_max\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"25.0\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"300\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Max Metal Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"ammo_regen\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.5\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"5\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Ammo Regeneration\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"metal_regen\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.5\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"5\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Metal Regeneration\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"cloak_consume\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"-0.05\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"0\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Cloak Consumption Reduction\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"cloak_rate\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.05\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"2\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Cloak Recharge Rate Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"decloak_rate\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.05\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"2\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Decloak Speed Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"disguise_speed\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.05\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"2\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Disguise Speed Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"heal_on_hit\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"5.0\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"50\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Heal on Hit\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"heal_on_kill\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"20.0\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"100\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Heal on Kill\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"slow_enemy\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.1\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"3\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Slow Enemy on Hit\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"minicrits_become_crits\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"1.0\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"1\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Minicrits Become Crits\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"minicrits_airborn\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"1.0\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"1\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Minicrits vs Airborne Targets\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"reveal_cloak\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"1.0\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"1\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Reveal Cloaked Victim\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"reveal_disguise\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"1.0\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"1\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Reveal Disguised Victim\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"damage_vs_building\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.1\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"5\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Damage vs Buildings\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"damage_vs_sapper\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.1\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"5\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Damage vs Sappers\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"attack_speed\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.05\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"2\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Attack Speed Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"reload_speed\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.05\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"2\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Reload Speed Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"melee_range\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.1\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"3\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Melee Range Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"crit_on_kill\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"1.0\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"1\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Crits on Kill\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"crit_from_behind\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"1.0\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"1\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Crit from Behind\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"speed_buff_ally\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.5\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"5\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Speed Buff to Allies\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"mark_for_death\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"1.0\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"1\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Mark for Death on Hit\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"repair_rate\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.1\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"3\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Repair Rate Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"sentry_fire_rate\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.1\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"3\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Sentry Fire Rate Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"sentry_damage\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.1\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"3\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Sentry Damage Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"sentry_ammo\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.1\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"3\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Sentry Max Ammo Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"sentry_radius\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.1\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"3\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Sentry Radius Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"building_deploy_speed\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.1\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"3\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Building Deploy Speed Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"teleporter_bidirectional\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"1.0\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"1\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Bidirectional Teleporter\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"dispenser_range\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.1\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"3\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Dispenser Radius Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"dispenser_metal\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"25.0\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"300\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Dispenser Metal Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"damage_falloff\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"-0.05\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"0\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Damage Falloff Reduction\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"self_push_bonus\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.1\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"5\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Self Blast Push Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"clip_size\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"1.0\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"5\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Clip Size Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"projectile_speed\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.1\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"5\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Projectile Speed Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"self_blast_immunity\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"1.0\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"1\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Self Blast Damage Immunity\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"rocket_jump_reduction\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"-0.25\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"0\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Rocket Jump Damage Reduction\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"blast_radius\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.1\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"3\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Blast Radius Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"blast_push\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.1\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"3\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Blast Push Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"grenades_no_bounce\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"1.0\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"1\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Grenades No Bounce\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"damage_causes_airblast\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"1.0\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"1\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Damage Causes Airblast\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"remove_hit_self\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"1.0\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"1\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Remove Self Damage on Miss\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"bleed_duration\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"1.0\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"5\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Bleed Duration Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"ignite_on_hit\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"1.0\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"1\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Ignite on Hit\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"afterburn_damage\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.1\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"5\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Afterburn Damage Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"afterburn_duration\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"1.0\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"5\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Afterburn Duration Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"accurate_damage_bonus\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.1\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"5\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Accurate Damage Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"weapon_spread\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"-0.05\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"0\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Weapon Spread Reduction\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"attack_projectile\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"1.0\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"1\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Attack Destroys Projectiles\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"projectile_penetration\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"1.0\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"1\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Projectile Penetration\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"bullets_per_shot\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"1.0\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"3\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Bullets per Shot Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"minigun_spinup\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"-0.05\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"0\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Minigun Spinup Time Reduction\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"rage_on_damage\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.1\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"5\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Rage on Damage\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"rage_duration\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"1.0\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"5\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Rage Duration Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"banner_duration\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"1.0\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"5\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Banner Duration Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"uber_on_hit\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.5\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"5\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Uber on Hit\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"heal_rate_bonus\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.1\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"5\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Heal Rate Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"overheal_bonus\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.1\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"5\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Overheal Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"uber_rate_bonus\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.05\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"2\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Ubercharge Rate Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"uber_duration\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"1.0\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"5\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Uber Duration Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"shield_level\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"1.0\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"3\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Shield Level Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"shield_duration\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"1.0\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"5\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Shield Duration Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"flame_life_bonus\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.1\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"3\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Flame Life Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"airblast_refire\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"-0.05\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"0\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Airblast Refire Speed Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"airblast_push_force\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.1\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"3\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Airblast Push Force Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"airblast_size\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.1\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"3\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Airblast Size Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"airblast_ammo_cost\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"-0.05\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"0\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Airblast Ammo Cost Reduction\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"flame_ammo_cost\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"-0.05\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"0\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Flame Ammo Cost Reduction\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"rage_from_flames\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.1\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"5\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Rage from Flames Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"full_charge_damage\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.1\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"5\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Full Charge Damage Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"headshot_damage_bonus\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.1\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"5\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Headshot Damage Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"explosive_headshots\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"1.0\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"1\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Explosive Headshots\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"sniper_charge_rate\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.05\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"2\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Sniper Charge Rate Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"charge_multiplier_headshot\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.1\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"3\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Charge Multiplier after Headshot\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"disable_flinch\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"1.0\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"1\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Disable Flinch\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"aiming_movespeed\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.05\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"2\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Aiming Move Speed Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"minicrit_headshot\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"1.0\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"1\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Minicrit on Headshot\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"crit_headshot\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"1.0\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"1\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Crit on Headshot\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"sapper_health\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.1\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"3\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Sapper Health Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"sapper_damage\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.1\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"3\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Sapper Damage Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"sapper_heal\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"10.0\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"100\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Sapper Heal on Attach\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"rocket_speed\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.1\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"5\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Rocket Speed Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"grenade_speed\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.1\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"5\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Grenade Speed Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"stickybomb_speed\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.1\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"5\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Stickybomb Speed Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"syringe_speed\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.1\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"5\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Syringe Speed Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"arrow_speed\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.1\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"5\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Arrow Speed Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"energy_ball_speed\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.1\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"5\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Energy Ball Speed Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"charge_rate\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.05\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"2\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Shield Charge Rate Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"charge_damage\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.1\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"3\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Shield Charge Impact Damage Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"charge_turn_rate\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.1\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"3\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Shield Charge Turn Control Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"hit_speedboost\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.1\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"3\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Speed Boost on Hit\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"lunchbox_heal_bonus\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.1\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"3\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Lunchbox Heal Amount Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"lunchbox_recharge\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"-0.05\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"0\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Lunchbox Recharge Rate Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"slow_on_hit\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.1\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"3\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Slow Enemy on Hit\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"liquid_duration\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"1.0\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"5\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Milk / Jarate Duration Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"gas_passer_explosion\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"1.0\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"1\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Gas Passer Explosion on Ignite\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"silent_killer\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"1.0\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"1\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Silent Killer\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"silent_uncloak\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"1.0\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"1\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Silent Uncloak\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"mad_milk_on_hit\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"1.0\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"1\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Mad Milk on Hit\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"sanguisuge\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"10.0\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"100\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Backstab Healing Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"thermal_thruster_airlaunch\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"1.0\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"1\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Thermal Thruster Air Launch\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"impact_pushback\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.1\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"3\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Impact Pushback Radius\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"impact_stun\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.1\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"3\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Impact Stun Radius\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"dragon_fury_recharge\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.1\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"3\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Dragon Fury Recharge Rate\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"building_heal_rate\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.1\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"3\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Building Heal Rate Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"sentry_bullet_resistance\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"-0.05\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"0\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Sentry Bullet Resistance\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"sentry_rocket_resistance\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"-0.05\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"0\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Sentry Rocket Resistance\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"sentry_flame_resistance\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"-0.05\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"0\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Sentry Flame Resistance\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"sentry_damage_resistance\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"-0.05\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"0\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Sentry General Damage Resistance\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"dispenser_damage_resistance\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"-0.05\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"0\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Dispenser General Damage Resistance\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"teleporter_damage_resistance\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"-0.05\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"0\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Teleporter General Damage Resistance\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"bat_ball_speed\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.1\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"3\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Bat Ball Speed Bonus\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"slow_on_hit_building\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.1\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"3\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Slow Enemy on Hit Building\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"damage_force_reduction_on_hit\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.1\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"3\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Damage Force Reduction on Hit\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "\t\"snare_on_hit\"");
-            WriteFileLine(file, "\t{");
-            WriteFileLine(file, "\t\t\"Cost\" \"100\"");
-            WriteFileLine(file, "\t\t\"Ratio\" \"1.5\"");
-            WriteFileLine(file, "\t\t\"Increment\" \"0.1\"");
-            WriteFileLine(file, "\t\t\"Limit\" \"3\"");
-            WriteFileLine(file, "\t\t\"Name\" \"Snare on Hit\"");
-            WriteFileLine(file, "\t}");
-
-            WriteFileLine(file, "}");
-
-            CloseHandle(file);
-        }
-    }
-
-    // Generate hu_attributes.cfg
-    BuildPath(Path_SM, filePath, sizeof(filePath), "configs/%s", CONFIG_ATTR);
-    if (!FileExists(filePath))
-    {
-        Handle file = OpenFile(filePath, "w");
-        if (file != null)
-        {
-            WriteFileLine(file, "\"Upgrades\"");
-            WriteFileLine(file, "{");
-
-            WriteFileLine(file, "\t\"Body Upgrades\"");
-            WriteFileLine(file, "\t{");
-
-            WriteFileLine(file, "\t\t\"body_scout\"");
-            WriteFileLine(file, "\t\t{");
-
-            WriteFileLine(file, "\t\t\t\"Protection Upgrades\"");
-            WriteFileLine(file, "\t\t\t{");
-            WriteFileLine(file, "\t\t\t\t\"1\"\t\"health_upgrade\"");
-            WriteFileLine(file, "\t\t\t\t\"2\"\t\"health_regen\"");
-            WriteFileLine(file, "\t\t\t\t\"3\"\t\"damage_reduction_fire\"");
-            WriteFileLine(file, "\t\t\t\t\"4\"\t\"damage_reduction_crit\"");
-            WriteFileLine(file, "\t\t\t\t\"5\"\t\"damage_reduction_blast\"");
-            WriteFileLine(file, "\t\t\t\t\"6\"\t\"damage_reduction_bullet\"");
-            WriteFileLine(file, "\t\t\t\t\"7\"\t\"damage_reduction_melee\"");
-            WriteFileLine(file, "\t\t\t\t\"8\"\t\"damage_reduction_sentry\"");
-            WriteFileLine(file, "\t\t\t\t\"9\"\t\"damage_reduction_ranged\"");
-            WriteFileLine(file, "\t\t\t\t\"10\"\t\"damage_reduction_all\"");
-            WriteFileLine(file, "\t\t\t\t\"11\"\t\"backstab_resistance\"");
-            WriteFileLine(file, "\t\t\t\t\"12\"\t\"headshot_resistance\"");
-            WriteFileLine(file, "\t\t\t\t\"13\"\t\"knockback_resistance\"");
-            WriteFileLine(file, "\t\t\t\t\"14\"\t\"airblast_resistance\"");
-            WriteFileLine(file, "\t\t\t\t\"15\"\t\"healthpack_bonus\"");
-            WriteFileLine(file, "\t\t\t\t\"16\"\t\"healing_received_bonus\"");
-            WriteFileLine(file, "\t\t\t}");
-
-            WriteFileLine(file, "\t\t\t\"Physical Upgrades\"");
-            WriteFileLine(file, "\t\t\t{");
-            WriteFileLine(file, "\t\t\t\t\"1\"\t\"movement_speed\"");
-            WriteFileLine(file, "\t\t\t\t\"2\"\t\"jump_height\"");
-            WriteFileLine(file, "\t\t\t\t\"3\"\t\"air_control\"");
-            WriteFileLine(file, "\t\t\t\t\"4\"\t\"air_dash\"");
-            WriteFileLine(file, "\t\t\t\t\"5\"\t\"capture_value\"");
-            WriteFileLine(file, "\t\t\t\t\"6\"\t\"fall_damage_resistance\"");
-            WriteFileLine(file, "\t\t\t\t\"7\"\t\"parachute\"");
-            WriteFileLine(file, "\t\t\t\t\"8\"\t\"redeploy_parachute\"");
-            WriteFileLine(file, "\t\t\t}");
-
-            WriteFileLine(file, "\t\t\t\"Ammo Upgrades\"");
-            WriteFileLine(file, "\t\t\t{");
-            WriteFileLine(file, "\t\t\t\t\"1\"\t\"primary_ammo\"");
-            WriteFileLine(file, "\t\t\t\t\"2\"\t\"secondary_ammo\"");
-            WriteFileLine(file, "\t\t\t\t\"3\"\t\"ammo_regen\"");
-            WriteFileLine(file, "\t\t\t}");
-
-            WriteFileLine(file, "\t\t}"); // body_scout
-            WriteFileLine(file, "\t}");   // Body Upgrades
-
-
-            WriteFileLine(file, "\t\"Primary Upgrades\"");
-            WriteFileLine(file, "\t{");
-
-            WriteFileLine(file, "\t\t\"tf_weapon_scattergun\"");
-            WriteFileLine(file, "\t\t{");
-
-            WriteFileLine(file, "\t\t\t\"Damage Upgrades\"");
-            WriteFileLine(file, "\t\t\t{");
-            WriteFileLine(file, "\t\t\t\t\"1\"\t\"damage_bonus\"");
-            WriteFileLine(file, "\t\t\t\t\"2\"\t\"heal_on_kill\"");
-            WriteFileLine(file, "\t\t\t\t\"2\"\t\"heal_on_hit\"");
-            WriteFileLine(file, "\t\t\t\t\"3\"\t\"slow_enemy\"");
-            WriteFileLine(file, "\t\t\t\t\"4\"\t\"reveal_cloak\"");
-            WriteFileLine(file, "\t\t\t\t\"5\"\t\"reveal_disguise\"");
-            WriteFileLine(file, "\t\t\t}");
-
-            WriteFileLine(file, "\t\t\t\"Specific Upgrades\"");
-            WriteFileLine(file, "\t\t\t{");
-            WriteFileLine(file, "\t\t\t\t\"1\"\t\"attack_speed\"");
-            WriteFileLine(file, "\t\t\t\t\"2\"\t\"reload_speed\"");
-            WriteFileLine(file, "\t\t\t\t\"3\"\t\"clip_size\"");
-            WriteFileLine(file, "\t\t\t\t\"4\"\t\"bullets_per_shot\"");
-            WriteFileLine(file, "\t\t\t\t\"5\"\t\"weapon_spread\"");
-            WriteFileLine(file, "\t\t\t\t\"6\"\t\"projectile_penetration\"");
-            WriteFileLine(file, "\t\t\t}");
-
-            WriteFileLine(file, "\t\t}"); // tf_weapon_scattergun
-
-            WriteFileLine(file, "\t}");   // Primary Upgrades
-
-
-            WriteFileLine(file, "\t\"Secondary Upgrades\"");
-            WriteFileLine(file, "\t{");
-
-            WriteFileLine(file, "\t\t\"tf_weapon_pistol\"");
-            WriteFileLine(file, "\t\t{");
-
-            WriteFileLine(file, "\t\t\t\"Damage Upgrades\"");
-            WriteFileLine(file, "\t\t\t{");
-            WriteFileLine(file, "\t\t\t\t\"1\"\t\"damage_bonus\"");
-            WriteFileLine(file, "\t\t\t\t\"2\"\t\"heal_on_hit\"");
-            WriteFileLine(file, "\t\t\t\t\"3\"\t\"heal_on_kill\"");
-            WriteFileLine(file, "\t\t\t\t\"4\"\t\"slow_enemy\"");
-            WriteFileLine(file, "\t\t\t}");
-
-            WriteFileLine(file, "\t\t\t\"Specific Upgrades\"");
-            WriteFileLine(file, "\t\t\t{");
-            WriteFileLine(file, "\t\t\t\t\"1\"\t\"attack_speed\"");
-            WriteFileLine(file, "\t\t\t\t\"2\"\t\"reload_speed\"");
-            WriteFileLine(file, "\t\t\t\t\"3\"\t\"clip_size\"");
-            WriteFileLine(file, "\t\t\t\t\"4\"\t\"weapon_spread\"");
-            WriteFileLine(file, "\t\t\t\t\"5\"\t\"projectile_penetration\"");
-            WriteFileLine(file, "\t\t\t}");
-
-            WriteFileLine(file, "\t\t}"); // tf_weapon_pistol
-
-            WriteFileLine(file, "\t}");   // Secondary Upgrades
-
-
-            WriteFileLine(file, "\t\"Melee Upgrades\"");
-            WriteFileLine(file, "\t{");
-
-            WriteFileLine(file, "\t\t\"tf_weapon_bat\"");
-            WriteFileLine(file, "\t\t{");
-
-            WriteFileLine(file, "\t\t\t\"Damage Upgrades\"");
-            WriteFileLine(file, "\t\t\t{");
-            WriteFileLine(file, "\t\t\t\t\"1\"\t\"damage_bonus\"");
-            WriteFileLine(file, "\t\t\t\t\"2\"\t\"heal_on_hit\"");
-            WriteFileLine(file, "\t\t\t\t\"3\"\t\"heal_on_kill\"");
-            WriteFileLine(file, "\t\t\t\t\"4\"\t\"slow_enemy\"");
-            WriteFileLine(file, "\t\t\t\t\"5\"\t\"bleed_duration\"");
-            WriteFileLine(file, "\t\t\t}");
-
-            WriteFileLine(file, "\t\t\t\"Specific Upgrades\"");
-            WriteFileLine(file, "\t\t\t{");
-            WriteFileLine(file, "\t\t\t\t\"1\"\t\"attack_speed\"");
-            WriteFileLine(file, "\t\t\t\t\"2\"\t\"melee_range\"");
-            WriteFileLine(file, "\t\t\t\t\"3\"\t\"crit_on_kill\"");
-            WriteFileLine(file, "\t\t\t\t\"4\"\t\"crit_from_behind\"");
-            WriteFileLine(file, "\t\t\t\t\"5\"\t\"speed_buff_ally\"");
-            WriteFileLine(file, "\t\t\t\t\"6\"\t\"mark_for_death\"");
-            WriteFileLine(file, "\t\t\t}");
-
-            WriteFileLine(file, "\t\t}"); // tf_weapon_bat
-            WriteFileLine(file, "\t}");   // Melee Upgrades
-
-            WriteFileLine(file, "}");     // Upgrades
-
-
-
-            CloseHandle(file);
-        }
-    }
-
-    // Generate hu_translations.txt
+    
+    // Generate hu_translations.txt - Not yet implemented
     BuildPath(Path_SM, filePath, sizeof(filePath), "translations/%s", TRANSLATION_FILE);
     if (!FileExists(filePath))
     {
