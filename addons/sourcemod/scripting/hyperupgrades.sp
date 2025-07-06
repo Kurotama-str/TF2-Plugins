@@ -18,7 +18,7 @@
 
 
 #define PLUGIN_NAME "Hyper Upgrades"
-#define PLUGIN_VERSION "0.30"
+#define PLUGIN_VERSION "0.40"
 #define CONFIG_ATTR "hu_attributes.cfg"
 #define CONFIG_UPGR "hu_upgrades.cfg"
 #define CONFIG_WEAP "hu_weapons_list.txt"
@@ -334,8 +334,7 @@ public int MenuHandler_MainMenu(Menu menu, MenuAction action, int client, int pa
         }
         else if (StrEqual(info, "refund"))
         {
-            // You can build the refund menu here later
-            PrintToChat(client, "[Hyper Upgrades] Refund menu is not implemented yet.");
+            ShowRefundSlotMenu(client); // ✅ Launch the refund menu
         }
     }
     else if (action == MenuAction_Cancel)
@@ -357,18 +356,222 @@ public int MenuHandler_MainMenu(Menu menu, MenuAction action, int client, int pa
     return 0;
 }
 
-//void StrExtract(char[] dest, int destLen, const char[] src, int length)
-//{
-//    // Make sure we don't copy more than dest can hold
-//    if (length >= destLen)
-//        length = destLen - 1;
-//
-//    for (int i = 0; i < length; i++)
-//    {
-//        dest[i] = src[i];
-//    }
-//    dest[length] = '\0'; // Null-terminate
-//}
+void ShowRefundSlotMenu(int client)
+{
+    Menu menu = new Menu(MenuHandler_RefundSlotMenu);
+    menu.SetTitle("Select Upgrade Group to Refund");
+
+    KvRewind(g_hPlayerUpgrades[client]);
+
+    if (!KvGotoFirstSubKey(g_hPlayerUpgrades[client], false))
+    {
+        PrintToChat(client, "[Hyper Upgrades] No upgrades to refund.");
+        delete menu;
+        return;
+    }
+
+    do
+    {
+        char slotName[64];
+        KvGetSectionName(g_hPlayerUpgrades[client], slotName, sizeof(slotName));
+
+        if (StrEqual(slotName, "body"))
+        {
+            menu.AddItem("body", "Body Upgrades");
+        }
+        else if (StrEqual(slotName, "slot0"))
+        {
+            menu.AddItem("slot0", "Primary Upgrades");
+        }
+        else if (StrEqual(slotName, "slot1"))
+        {
+            menu.AddItem("slot1", "Secondary Upgrades");
+        }
+        else if (StrEqual(slotName, "slot2"))
+        {
+            menu.AddItem("slot2", "Melee Upgrades");
+        }
+        else
+        {
+            char label[64];
+            int slotNum = StringToInt(slotName[4]); // Extract number from 'slotX'
+            Format(label, sizeof(label), "Other Upgrades (%d)", slotNum);
+            menu.AddItem(slotName, label);
+        }
+
+    } while (KvGotoNextKey(g_hPlayerUpgrades[client], false));
+
+    KvRewind(g_hPlayerUpgrades[client]);
+
+    menu.ExitBackButton = true;
+    menu.Display(client, MENU_TIME_FOREVER);
+}
+
+// Slot Menu Handler
+public int MenuHandler_RefundSlotMenu(Menu menu, MenuAction action, int client, int item)
+{
+    if (action == MenuAction_Select)
+    {
+        char slotKey[64];
+        menu.GetItem(item, slotKey, sizeof(slotKey));
+
+        ShowRefundUpgradeMenu(client, slotKey);
+    }
+    else if (action == MenuAction_Cancel)
+    {
+        if (item == MenuCancel_ExitBack)
+        {
+            ShowMainMenu(client);
+        }
+    }
+    return 0;
+}
+
+// Upgrade List for the Slot
+void ShowRefundUpgradeMenu(int client, const char[] slotKey)
+{
+    Menu menu = new Menu(MenuHandler_RefundUpgradeMenu);
+    char title[128];
+    Format(title, sizeof(title), "Refund Upgrades - %s", slotKey);
+    menu.SetTitle(title);
+
+    if (!KvJumpToKey(g_hPlayerUpgrades[client], slotKey, false))
+    {
+        PrintToChat(client, "[Hyper Upgrades] No upgrades found in this group.");
+        delete menu;
+        return;
+    }
+
+    if (!KvGotoFirstSubKey(g_hPlayerUpgrades[client], false))
+    {
+        KvGoBack(g_hPlayerUpgrades[client]);
+        PrintToChat(client, "[Hyper Upgrades] No upgrades found in this group.");
+        return;
+    }
+
+    do
+    {
+        char upgradeAlias[64];
+        KvGetSectionName(g_hPlayerUpgrades[client], upgradeAlias, sizeof(upgradeAlias));
+        char upgradesFile[PLATFORM_MAX_PATH];
+        BuildPath(Path_SM, upgradesFile, sizeof(upgradesFile), "configs/hu_upgrades.cfg");
+
+        KeyValues kvUpgrades = new KeyValues("Upgrades");
+        if (kvUpgrades.ImportFromFile(upgradesFile) && kvUpgrades.JumpToKey(upgradeAlias, false))
+        {
+            char upgradeName[64];
+            kvUpgrades.GetString("Name", upgradeName, sizeof(upgradeName));
+            menu.AddItem(upgradeAlias, upgradeName);
+        }
+        else
+        {
+            menu.AddItem(upgradeAlias, upgradeAlias); // Fallback to alias if name not found
+        }
+        delete kvUpgrades;
+
+    } while (KvGotoNextKey(g_hPlayerUpgrades[client], false));
+
+    KvGoBack(g_hPlayerUpgrades[client]);
+    KvRewind(g_hPlayerUpgrades[client]);
+
+    menu.ExitBackButton = true;
+    menu.Display(client, MENU_TIME_FOREVER);
+}
+
+// Handle Refund Action
+public int MenuHandler_RefundUpgradeMenu(Menu menu, MenuAction action, int client, int item)
+{
+    if (action == MenuAction_Select)
+    {
+        char upgradeAlias[64];
+        menu.GetItem(item, upgradeAlias, sizeof(upgradeAlias));
+
+        RefundSpecificUpgrade(client, upgradeAlias);
+
+        ApplyPlayerUpgrades(client);
+        ShowRefundSlotMenu(client);
+    }
+    else if (action == MenuAction_Cancel)
+    {
+        if (item == MenuCancel_ExitBack)
+        {
+            ShowRefundSlotMenu(client);
+        }
+    }
+    return 0;
+}
+
+// Refund Logic
+void RefundSpecificUpgrade(int client, const char[] upgradeAlias)
+{
+    KvRewind(g_hPlayerUpgrades[client]);
+
+    if (!KvGotoFirstSubKey(g_hPlayerUpgrades[client], false))
+        return;
+
+    do
+    {
+        if (KvJumpToKey(g_hPlayerUpgrades[client], NULL_STRING, false))
+        {
+            int storedLevel = KvGetNum(g_hPlayerUpgrades[client], upgradeAlias, 0);
+            float level = float(storedLevel) / 1000.0;
+
+            if (storedLevel > 0)
+            {
+                float refundAmount = CalculateRefundAmount(upgradeAlias, level);
+
+                // Perform the refund
+                g_iMoneySpent[client] -= RoundToNearest(refundAmount);
+
+                if (g_iMoneySpent[client] < 0)
+                {
+                    g_iMoneySpent[client] = 0; // Prevent negative spent money
+                }
+
+                // Remove the upgrade
+                if (KvDeleteKey(g_hPlayerUpgrades[client], upgradeAlias))
+                {
+                    PrintToConsole(client, "[Hyper Upgrades] Refunded upgrade: %s. Amount refunded: %.0f$", upgradeAlias, refundAmount);
+                    break;
+                }
+            }
+
+            KvGoBack(g_hPlayerUpgrades[client]);
+        }
+    } while (KvGotoNextKey(g_hPlayerUpgrades[client], false));
+
+    KvRewind(g_hPlayerUpgrades[client]);
+}
+
+// I like explicit names. Just to be clear, this calculates it for one specific upgrade.
+float CalculateRefundAmount(const char[] upgradeAlias, float currentLevel)
+{
+    char upgradesFile[PLATFORM_MAX_PATH];
+    BuildPath(Path_SM, upgradesFile, sizeof(upgradesFile), "configs/hu_upgrades.cfg");
+
+    KeyValues kvUpgrades = new KeyValues("Upgrades");
+    if (!kvUpgrades.ImportFromFile(upgradesFile) || !kvUpgrades.JumpToKey(upgradeAlias, false))
+    {
+        delete kvUpgrades;
+        return 0.0;
+    }
+
+    float baseCost = kvUpgrades.GetFloat("BaseCost", 100.0);
+    float costMultiplier = kvUpgrades.GetFloat("CostMultiplier", 1.5);
+    float increment = kvUpgrades.GetFloat("Increment", 0.1);
+
+    delete kvUpgrades;
+
+    int purchases = RoundToFloor(currentLevel / increment);
+    float totalCost = 0.0;
+
+    for (int i = 0; i < purchases; i++)
+    {
+        totalCost += baseCost + (baseCost * costMultiplier * float(i));
+    }
+
+    return totalCost;
+}
 
 void LoadWeaponAliases()
 {
@@ -1127,7 +1330,7 @@ void GenerateConfigFiles()
 
     
 
-    // Generate hu_weapons_list.txt - Will need to be kept up to date
+    // Generate hu_weapons_list.txt
     BuildPath(Path_SM, filePath, sizeof(filePath), "configs/%s", CONFIG_WEAP);
     if (!FileExists(filePath))
     {
@@ -1724,7 +1927,7 @@ void GenerateConfigFiles()
     }
 
     
-    // Generate hu_translations.txt - Not yet implemented
+    // Generate hu_translations.txt
     BuildPath(Path_SM, filePath, sizeof(filePath), "translations/%s", TRANSLATION_FILE);
     if (!FileExists(filePath))
     {
