@@ -18,7 +18,7 @@
 
 
 #define PLUGIN_NAME "Hyper Upgrades"
-#define PLUGIN_VERSION "0.40"
+#define PLUGIN_VERSION "0.50"
 #define CONFIG_ATTR "hu_attributes.cfg"
 #define CONFIG_UPGR "hu_upgrades.cfg"
 #define CONFIG_WEAP "hu_weapons_list.txt"
@@ -556,8 +556,8 @@ float CalculateRefundAmount(const char[] upgradeAlias, float currentLevel)
         return 0.0;
     }
 
-    float baseCost = kvUpgrades.GetFloat("BaseCost", 100.0);
-    float costMultiplier = kvUpgrades.GetFloat("CostMultiplier", 1.5);
+    float baseCost = kvUpgrades.GetFloat("Cost", 100.0);
+    float costMultiplier = kvUpgrades.GetFloat("Ratio", 1.5);
     float increment = kvUpgrades.GetFloat("Increment", 0.1);
 
     delete kvUpgrades;
@@ -901,32 +901,63 @@ public int MenuHandler_UpgradeMenu(Menu menu, MenuAction action, int client, int
             return 0;
         }
 
-        float baseCost = kvUpgrades.GetFloat("BaseCost", 100.0);
-        float costMultiplier = kvUpgrades.GetFloat("CostMultiplier", 1.5);
+        float baseCost = kvUpgrades.GetFloat("Cost", 100.0);
+        float costMultiplier = kvUpgrades.GetFloat("Ratio", 1.5);
         float increment = kvUpgrades.GetFloat("Increment", 0.1);
+        float initValue = kvUpgrades.GetFloat("InitValue", 0.0);
 
         int upgradeMultiplier = GetUpgradeMultiplier(client);
         float currentLevel = GetPlayerUpgradeLevelForSlot(client, weaponSlot, upgradeAlias);
+        int maxPurchasable = upgradeMultiplier;
+
+        char temp[8];
+        kvUpgrades.GetString("Limit", temp, sizeof(temp), "");
+        bool hasLimit = temp[0] != '\0';
+        float limit = hasLimit ? kvUpgrades.GetFloat("Limit") : 0.0;
+
+        if (hasLimit)
+        {
+            float appliedCurrent = initValue + currentLevel;
+            float appliedPotential = appliedCurrent + (increment * upgradeMultiplier);
+
+            if (increment > 0.0 && appliedPotential > limit)
+            {
+                float room = limit - appliedCurrent;
+                maxPurchasable = RoundToFloor(room / increment);
+            }
+            else if (increment < 0.0 && appliedPotential < limit)
+            {
+                float room = appliedCurrent - limit;
+                maxPurchasable = RoundToFloor(room / (-increment));
+            }
+
+            if (maxPurchasable <= 0)
+            {
+                PrintToChat(client, "[Hyper Upgrades] Cannot purchase: would exceed upgrade limit.");
+                delete kvUpgrades;
+                return 0;
+            }
+        }
 
         // Calculate how many times the upgrade was purchased so far
         int purchases = RoundToFloor(currentLevel / increment);
 
         // 🔸 Linear cost calculation
         float totalCost = 0.0;
-        for (int i = 0; i < upgradeMultiplier; i++)
+        for (int i = 0; i < maxPurchasable; i++)
         {
             totalCost += baseCost + (baseCost * costMultiplier * float(purchases + i));
         }
 
         if (g_iMoneySpent[client] + RoundToNearest(totalCost) > GetConVarInt(g_hMoneyPool))
         {
-            PrintToChat(client, "[Hyper Upgrades] Not enough money to buy %d levels of this upgrade.", upgradeMultiplier);
+            PrintToChat(client, "[Hyper Upgrades] Not enough money to buy %d levels of this upgrade.", maxPurchasable);
             delete kvUpgrades;
             return 0;
         }
 
         // Apply the upgrade
-        float newLevel = currentLevel + (increment * upgradeMultiplier);
+        float newLevel = currentLevel + (increment * maxPurchasable);
 
         char slotPath[8];
 
@@ -950,7 +981,7 @@ public int MenuHandler_UpgradeMenu(Menu menu, MenuAction action, int client, int
         g_iMoneySpent[client] += RoundToNearest(totalCost);
 
         // Feedback
-        PrintToConsole(client, "[Hyper Upgrades] Purchased upgrade: %s (+%.2f x%d). Total Cost: %.0f$", upgradeAlias, increment, upgradeMultiplier, totalCost);
+        PrintToConsole(client, "[Hyper Upgrades] Purchased upgrade: %s (+%.2f x%d). Total Cost: %.0f$", upgradeAlias, increment, maxPurchasable, totalCost);
 
         // Reload menu to refresh display
         ShowUpgradeListMenu(client, upgradeGroup);
@@ -1050,9 +1081,15 @@ void ShowUpgradeListMenu(int client, const char[] upgradeGroup)
             char upgradeName[64];
             kvUpgrades.GetString("Name", upgradeName, sizeof(upgradeName));
 
-            float baseCost = kvUpgrades.GetFloat("BaseCost", 100.0);
-            float costMultiplier = kvUpgrades.GetFloat("CostMultiplier", 1.5);
+            float baseCost = kvUpgrades.GetFloat("Cost", 100.0);
+            float costMultiplier = kvUpgrades.GetFloat("Ratio", 1.5);
             float increment = kvUpgrades.GetFloat("Increment", 0.1);
+            float initValue = kvUpgrades.GetFloat("InitValue", 0.0);
+            char temp[8];
+            kvUpgrades.GetString("Limit", temp, sizeof(temp), "");
+            bool hasLimit = temp[0] != '\0';
+            float limit = hasLimit ? kvUpgrades.GetFloat("Limit") : 0.0;
+
 
             float currentLevel = GetPlayerUpgradeLevelForSlot(client, g_iPlayerBrowsingSlot[client], upgradeAlias);
 
@@ -1061,14 +1098,42 @@ void ShowUpgradeListMenu(int client, const char[] upgradeGroup)
 
             // 🔸 New linear cost formula with multiplier
             float totalCost = 0.0;
-            for (int i = 0; i < multiplier; i++)
+
+            // Determine legal multiplier within limits
+            int legalMultiplier = multiplier;
+
+            if (hasLimit)
+            {
+                float appliedCurrent = initValue + currentLevel;
+                float appliedPotential = appliedCurrent + (increment * multiplier);
+
+                if (increment > 0.0 && appliedPotential > limit)
+                {
+                    float room = limit - appliedCurrent;
+                    legalMultiplier = RoundToFloor(room / increment);
+                }
+                else if (increment < 0.0 && appliedPotential < limit)
+                {
+                    float room = appliedCurrent - limit;
+                    legalMultiplier = RoundToFloor(room / (-increment));
+                }
+            }
+
+            for (int i = 0; i < legalMultiplier; i++)
             {
                 totalCost += baseCost + (baseCost * costMultiplier * float(purchases + i));
             }
 
             // Build display string with multiplier
             char display[128];
-            Format(display, sizeof(display), "%s (%.2f) %.0f$ (x%d)", upgradeName, currentLevel, totalCost, multiplier);
+            if (legalMultiplier <= 0)
+            {
+                Format(display, sizeof(display), "%s (%.2f) [MAX]", upgradeName, currentLevel);
+            }
+            else
+            {
+                Format(display, sizeof(display), "%s (%.2f) %.0f$ (x%d)", upgradeName, currentLevel, totalCost, legalMultiplier);
+            }
 
             char slotPath[8];
             Format(slotPath, sizeof(slotPath), "slot%d", g_iPlayerBrowsingSlot[client]);
