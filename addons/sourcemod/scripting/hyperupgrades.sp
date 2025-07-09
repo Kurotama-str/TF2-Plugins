@@ -14,10 +14,10 @@
 
 
 #define TF_ITEMDEF_DEFAULT -1
-
+#define MAX_EDICTS 2048
 
 #define PLUGIN_NAME "Hyper Upgrades"
-#define PLUGIN_VERSION "0.52"
+#define PLUGIN_VERSION "0.53"
 #define CONFIG_ATTR "hu_attributes.cfg"
 #define CONFIG_UPGR "hu_upgrades.cfg"
 #define CONFIG_WEAP "hu_weapons_list.txt"
@@ -26,7 +26,7 @@
 
 //#define IN_DUCK (1 << 2)     // Crouch key already defined
 //#define IN_RELOAD (1 << 13)  // Reload key already defined
-
+bool g_bBossRewarded[MAX_EDICTS + 1];
 bool g_bMenuPressed[MAXPLAYERS + 1];
 bool g_bPlayerBrowsing[MAXPLAYERS + 1];
 
@@ -1474,19 +1474,75 @@ public Action Command_SubtractMoney(int client, int args)
 public void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 {
     int attacker = GetClientOfUserId(event.GetInt("attacker"));
-    if (attacker <= 0 || !IsClientInGame(attacker)) return;
+    int victim = GetClientOfUserId(event.GetInt("userid"));
 
-    int money = GetConVarInt(FindConVar("hu_money_per_kill"));
-    SetConVarInt(g_hMoneyPool, GetConVarInt(g_hMoneyPool) + money);
+    if (attacker <= 0 || !IsClientInGame(attacker)) return;
+    if (victim <= 0 || !IsClientInGame(victim)) return;
+    if (attacker == victim) return; // Ignore self-kills (e.g., killbind)
+
+    int reward = GetConVarInt(FindConVar("hu_money_per_kill"));
+    SetConVarInt(g_hMoneyPool, GetConVarInt(g_hMoneyPool) + reward);
 }
+
 
 public void Event_ObjectiveComplete(Event event, const char[] name, bool dontBroadcast)
 {
+    if (StrEqual(name, "teamplay_flag_event"))
+    {
+        int eventType = event.GetInt("eventtype");
+
+        if (eventType != TF_FLAGEVENT_CAPTURED) // defined in tf2_stocks
+            return;
+    }
+
     int money = GetConVarInt(FindConVar("hu_money_per_objective"));
     SetConVarInt(g_hMoneyPool, GetConVarInt(g_hMoneyPool) + money);
 }
 
+public void OnEntityCreated(int entity, const char[] classname)
+{
+    if (StrEqual(classname, "headless_hatman") ||
+        StrEqual(classname, "eyeball_boss") ||
+        StrEqual(classname, "merasmus") ||
+        StrEqual(classname, "tf_zombie") ||
+        StrEqual(classname, "tank_boss"))
+    {
+        SDKHook(entity, SDKHook_OnTakeDamagePost, OnBossDamaged);
+        g_bBossRewarded[entity] = false;
+        PrintToServer("[Hyper Upgrades] Hooked boss entity: %s (entindex: %d)", classname, entity);
+    }
+}
 
+public void OnEntityDestroyed(int entity)
+{
+    if (entity > 0 && entity <= MAX_EDICTS)
+    {
+        g_bBossRewarded[entity] = false;
+    }
+}
+
+public void OnBossDamaged(int entity, int attacker, int inflictor, float damage, int damagetype)
+{
+    if (!IsValidEntity(entity) || g_bBossRewarded[entity])
+        return;
+
+    int health = GetEntProp(entity, Prop_Data, "m_iHealth");
+    if (health > 0)
+        return; // Boss still alive
+
+    g_bBossRewarded[entity] = true; // Mark boss as rewarded
+
+    if (attacker <= 0 || attacker > MaxClients || !IsClientInGame(attacker))
+        return;
+
+    int baseReward = GetConVarInt(FindConVar("hu_money_per_kill"));
+    float multiplier = GetConVarFloat(FindConVar("hu_money_boss_multiplier"));
+    int reward = RoundToNearest(baseReward * multiplier);
+
+    SetConVarInt(g_hMoneyPool, GetConVarInt(g_hMoneyPool) + reward);
+
+    PrintToChatAll("[Hyper Upgrades] %N has slain a boss and earned $%d!", attacker, reward);
+}
 
 void GenerateConfigFiles()
 {
