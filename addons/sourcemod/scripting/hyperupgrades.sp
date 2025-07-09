@@ -17,7 +17,7 @@
 #define MAX_EDICTS 2048
 
 #define PLUGIN_NAME "Hyper Upgrades"
-#define PLUGIN_VERSION "0.53"
+#define PLUGIN_VERSION "0.54"
 #define CONFIG_ATTR "hu_attributes.cfg"
 #define CONFIG_UPGR "hu_upgrades.cfg"
 #define CONFIG_WEAP "hu_weapons_list.txt"
@@ -1535,13 +1535,31 @@ public void OnBossDamaged(int entity, int attacker, int inflictor, float damage,
     if (attacker <= 0 || attacker > MaxClients || !IsClientInGame(attacker))
         return;
 
+    int maxHealth = GetEntProp(entity, Prop_Data, "m_iMaxHealth");
+    int healthMultiplier = CalculateBossHealthMultiplier(maxHealth);
+
     int baseReward = GetConVarInt(FindConVar("hu_money_per_kill"));
-    float multiplier = GetConVarFloat(FindConVar("hu_money_boss_multiplier"));
-    int reward = RoundToNearest(baseReward * multiplier);
+    float staticMultiplier = GetConVarFloat(FindConVar("hu_money_boss_multiplier"));
+    int reward = RoundToNearest(baseReward * staticMultiplier * float(healthMultiplier));
 
     SetConVarInt(g_hMoneyPool, GetConVarInt(g_hMoneyPool) + reward);
 
-    PrintToChatAll("[Hyper Upgrades] %N has slain a boss and earned $%d!", attacker, reward);
+    PrintToChatAll("[Hyper Upgrades] %N has slain a boss and earned $%d! (×%d health multiplier)", attacker, reward, healthMultiplier);
+}
+
+int CalculateBossHealthMultiplier(int maxHealth)
+{
+    if (maxHealth < 401)
+        return 1; // x1 below threshold
+
+    int tier = 0;
+    while (maxHealth >= 401 && tier < 12) // 10 tiers max (x2 to x20)
+    {
+        maxHealth /= 6;
+        tier++;
+    }
+
+    return 2 + (tier * 2); // Starts at x2, adds +2 per tier
 }
 
 void GenerateConfigFiles()
