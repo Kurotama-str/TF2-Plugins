@@ -17,7 +17,7 @@
 #define MAX_EDICTS 2048
 
 #define PLUGIN_NAME "Hyper Upgrades"
-#define PLUGIN_VERSION "0.54"
+#define PLUGIN_VERSION "0.60"
 #define CONFIG_ATTR "hu_attributes.cfg"
 #define CONFIG_UPGR "hu_upgrades.cfg"
 #define CONFIG_WEAP "hu_weapons_list.txt"
@@ -29,6 +29,7 @@
 bool g_bBossRewarded[MAX_EDICTS + 1];
 bool g_bMenuPressed[MAXPLAYERS + 1];
 bool g_bPlayerBrowsing[MAXPLAYERS + 1];
+bool g_bShowMoneyHud[MAXPLAYERS + 1];
 
 char g_sPlayerCategory[MAXPLAYERS + 1][64];
 char g_sPlayerAlias[MAXPLAYERS + 1][64];
@@ -43,6 +44,10 @@ ConVar g_hResetMoneyPoolOnMapStart;
 
 Handle g_hRefreshTimer[MAXPLAYERS + 1] = { INVALID_HANDLE, ... };
 int g_iPlayerLastMultiplier[MAXPLAYERS + 1];
+
+Handle g_hHudMoneySync;
+
+Database g_hSettingsDB;
 
 public Plugin myinfo =
 {
@@ -84,6 +89,15 @@ enum struct UpgradeData
 ArrayList g_upgrades; // Each entry is an UpgradeDat
 StringMap g_upgradeIndex; // key = name, value = index into g_upgrades
 
+enum HudCorner
+{
+    HUD_TOP_LEFT,
+    HUD_TOP_RIGHT,
+    HUD_BOTTOM_LEFT,
+    HUD_BOTTOM_RIGHT
+};
+HudCorner g_iHudCorner[MAXPLAYERS + 1];
+
 public void OnPluginStart()
 {
     RegConsoleCmd("sm_buy", Command_OpenMenu);
@@ -121,6 +135,10 @@ public void OnPluginStart()
     g_upgradeIndex = new StringMap();
     LoadUpgradeData();
 
+    // Settings stuff
+    g_hHudMoneySync = CreateHudSynchronizer();
+    InitSettingsDatabase();
+
     // Reset upgrades for all connected players
     ResetAllPlayerUpgrades();
 
@@ -140,6 +158,7 @@ public void OnPluginEnd()
 public void OnClientPutInServer(int client)
 {
     RefundPlayerUpgrades(client, false); // No message on join
+    LoadPlayerSettings(client);
 }
 
 public void OnClientDisconnect(int client)
@@ -170,6 +189,30 @@ public void OnMapStart()
                 RefundPlayerUpgrades(i,false);
             }
         }
+    }
+    // Money_HUD_Handler
+    CreateTimer(1.0, Timer_DisplayMoneyHUD, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
+}
+
+public void OnSettingsQueryResult(Database db, DBResultSet results, const char[] error, any client)
+{
+    if (results != null && results.FetchRow())
+    {
+        g_bShowMoneyHud[client] = results.FetchInt(0) != 0;
+
+        // NEW: Read hud_position from column index 1
+        char pos[32];
+        results.FetchString(1, pos, sizeof(pos));
+        g_iHudCorner[client] = ParseHudPosition(pos); // Use helper function
+    }
+    else
+    {
+        // Defaults if no row exists
+        g_bShowMoneyHud[client] = true;
+        g_iHudCorner[client] = HUD_BOTTOM_RIGHT;
+
+        // Create default row in DB
+        SavePlayerSettings(client);
     }
 }
 
@@ -238,6 +281,203 @@ void LoadUpgradeData()
     PrintToServer("[Hyper Upgrades] Loaded %d upgrades into memory.", g_upgrades.Length);
 }
 
+void LoadPlayerSettings(int client)
+{
+    if (g_hSettingsDB == null || !IsClientAuthorized(client))
+        return;
+
+    char steamid[32];
+    GetClientAuthId(client, AuthId_Steam2, steamid, sizeof(steamid), true);
+
+    char query[128];
+    Format(query, sizeof(query), "SELECT show_money_hud, hud_position FROM settings WHERE steamid = '%s'", steamid);
+
+    g_hSettingsDB.Query(OnSettingsQueryResult, query, client);
+}
+
+
+// Settings
+
+void InitSettingsDatabase()
+{
+    char error[256];
+    g_hSettingsDB = SQLite_UseDatabase("hyperupgrades_settings", error, sizeof(error));
+
+    if (g_hSettingsDB == null)
+    {
+        SetFailState("Could not connect to database: %s", error);
+    }
+
+    SQL_LockDatabase(g_hSettingsDB);
+    SQL_FastQuery(g_hSettingsDB, "CREATE TABLE IF NOT EXISTS settings (steamid TEXT PRIMARY KEY, show_money_hud INTEGER, hud_position TEXT DEFAULT 'bottom-right');");
+    SQL_UnlockDatabase(g_hSettingsDB);
+}
+
+public int MenuHandler_SettingsMenu(Menu menu, MenuAction action, int client, int param)
+{
+    if (action == MenuAction_Select)
+    {
+        char info[32];
+        menu.GetItem(param, info, sizeof(info));
+
+        if (StrEqual(info, "toggle_money_hud"))
+        {
+            ToggleHudSetting(client);
+        }
+        else if (StrEqual(info, "hud_position"))
+        {
+            ShowHudPositionMenu(client);
+        }
+    }
+    else if (action == MenuAction_Cancel && param == MenuCancel_ExitBack)
+    {
+        ShowMainMenu(client);
+    }
+    return 0;
+}
+
+void SavePlayerSettings(int client)
+{
+    if (g_hSettingsDB == null || !IsClientAuthorized(client))
+        return;
+
+    char steamid[32];
+    GetClientAuthId(client, AuthId_Steam2, steamid, sizeof(steamid), true);
+
+    char posStr[32];
+    HudPositionToString(g_iHudCorner[client], posStr, sizeof(posStr));
+
+    char query[256];
+
+    Format(query, sizeof(query),
+        "REPLACE INTO settings (steamid, show_money_hud, hud_position) VALUES ('%s', %d, '%s')",
+        steamid,
+        g_bShowMoneyHud[client] ? 1 : 0,
+        posStr
+    );
+
+    SQL_FastQuery(g_hSettingsDB, query);
+}
+
+void ToggleHudSetting(int client)
+{
+    g_bShowMoneyHud[client] = !g_bShowMoneyHud[client];
+    SavePlayerSettings(client);
+    PrintToChat(client, "[Settings] Money HUD is now %s.", g_bShowMoneyHud[client] ? "enabled" : "disabled");
+}
+
+void ShowHudPositionMenu(int client)
+{
+    Menu menu = new Menu(MenuHandler_HudPositionMenu);
+    menu.SetTitle("Select HUD Position");
+
+    menu.AddItem("top-left", "Top Left");
+    menu.AddItem("top-right", "Top Right");
+    menu.AddItem("bottom-left", "Bottom Left");
+    menu.AddItem("bottom-right", "Bottom Right");
+
+    menu.ExitBackButton = true;
+    menu.Display(client, MENU_TIME_FOREVER);
+}
+
+public int MenuHandler_HudPositionMenu(Menu menu, MenuAction action, int client, int param)
+{
+    if (action == MenuAction_Select)
+    {
+        char pos[32];
+        menu.GetItem(param, pos, sizeof(pos));
+        g_iHudCorner[client] = ParseHudPosition(pos);
+        SavePlayerSettings(client);
+        PrintToChat(client, "[Settings] HUD position set to: %s", pos);
+    }
+    else if (action == MenuAction_Cancel && param == MenuCancel_ExitBack)
+    {
+        ShowSettingsMenu(client);
+    }
+
+    return 0;
+}
+
+HudCorner ParseHudPosition(const char[] input)
+{
+    if (StrEqual(input, "top-left")) return HUD_TOP_LEFT;
+    if (StrEqual(input, "top-right")) return HUD_TOP_RIGHT;
+    if (StrEqual(input, "bottom-left")) return HUD_BOTTOM_LEFT;
+    return HUD_BOTTOM_RIGHT;
+}
+
+public Action Timer_DisplayMoneyHUD(Handle timer)
+{
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        if (!IsClientInGame(i) || !IsPlayerAlive(i) || !g_bShowMoneyHud[i])
+            continue;
+
+        int balance = GetPlayerBalance(i);
+        char buffer[64];
+        Format(buffer, sizeof(buffer), "$%d", balance);
+
+        SetHudPositionByCorner(g_iHudCorner[i]);
+        ShowSyncHudText(i, g_hHudMoneySync, buffer);
+    }
+    return Plugin_Continue;
+}
+
+void SetHudPositionByCorner(HudCorner corner)
+{
+    float x = 0.0, y = 0.0;
+
+    switch (corner)
+    {
+        case HUD_TOP_LEFT:
+        {
+            x = 0.01;
+            y = 0.01;
+        }
+        case HUD_TOP_RIGHT:
+        {
+            x = 0.85;
+            y = 0.01;
+        }
+        case HUD_BOTTOM_LEFT:
+        {
+            x = 0.01;
+            y = 0.90;
+        }
+        case HUD_BOTTOM_RIGHT:
+        {
+            x = 0.85;
+            y = 0.90;
+        }
+    }
+
+    SetHudTextParams(x, y, 1.1, 255, 255, 255, 255, 0, 6.0, 0.1, 0.2);
+}
+
+void HudPositionToString(HudCorner pos, char[] buffer, int maxlen)
+{
+    switch (pos)
+    {
+        case HUD_TOP_LEFT:
+        {
+            strcopy(buffer, maxlen, "top-left");
+            return;
+        }
+        case HUD_TOP_RIGHT:
+        {
+            strcopy(buffer, maxlen, "top-right");
+            return;
+        }
+        case HUD_BOTTOM_LEFT:
+        {
+            strcopy(buffer, maxlen, "bottom-left");
+            return;
+        }
+    }
+
+    // Default fallback
+    strcopy(buffer, maxlen, "bottom-right");
+}
 
 // Money handler for players
 void RefundPlayerUpgrades(int client, bool bShowMessage = true)
@@ -372,8 +612,20 @@ void ShowMainMenu(int client)
     menu.AddItem("primary", "Primary Upgrades");
     menu.AddItem("secondary", "Secondary Upgrades");
     menu.AddItem("melee", "Melee Upgrades");
-    menu.AddItem("refund", "Upgrades List / Refund");
 
+    // Add class-specific upgrades only for applicable classes
+    //TFClassType class = TF2_GetPlayerClass(client);
+    //if (class == TFClass_Spy)
+    //{
+    //    menu.AddItem("spy", "Spy Upgrades");
+    //}
+    //else if (class == TFClass_Engineer)
+    //{
+    //    menu.AddItem("engineer", "Engineer Upgrades");
+    //}
+
+    menu.AddItem("refund", "Upgrades List / Refund");
+    menu.AddItem("settings", "Settings");
     menu.ExitButton = true;
     menu.Display(client, MENU_TIME_FOREVER);
 }
@@ -409,6 +661,20 @@ public int MenuHandler_MainMenu(Menu menu, MenuAction action, int client, int pa
         else if (StrEqual(info, "refund"))
         {
             ShowRefundSlotMenu(client); // ✅ Launch the refund menu
+        }
+        //  else if (StrEqual(info, "engineer"))
+        // {
+        //     ShowCategoryMenu(client, "Engineer Upgrades");
+        //     // PrintToServer("[Debug] Showing class-specific upgrades: %s", info);
+        // }
+        // else if (StrEqual(info, "spy"))
+        // {
+        //     ShowCategoryMenu(client, "Spy Upgrades");
+        //     PrintToServer("[Debug] Showing class-specific upgrades: %s", info);
+        // }
+        else if (StrEqual(info, "settings"))
+        {
+            ShowSettingsMenu(client);
         }
     }
     else if (action == MenuAction_Cancel)
@@ -476,6 +742,18 @@ void ShowRefundSlotMenu(int client)
     } while (KvGotoNextKey(g_hPlayerUpgrades[client], false));
 
     KvRewind(g_hPlayerUpgrades[client]);
+
+    menu.ExitBackButton = true;
+    menu.Display(client, MENU_TIME_FOREVER);
+}
+
+void ShowSettingsMenu(int client)
+{
+    Menu menu = new Menu(MenuHandler_SettingsMenu);
+    menu.SetTitle("Settings");
+
+    menu.AddItem("toggle_money_hud", "Toggle Money Display HUD");
+    menu.AddItem("hud_position", "Money Display HUD Position");
 
     menu.ExitBackButton = true;
     menu.Display(client, MENU_TIME_FOREVER);
@@ -549,7 +827,7 @@ void ShowRefundUpgradeMenu(int client, const char[] slotKey)
             menu.AddItem(upgradeName, upgradeName);
         }
 
-        PrintToConsole(client, "[Debug] Added upgrade to refund menu: %s", upgradeName);
+        // PrintToConsole(client, "[Debug] Added upgrade to refund menu: %s", upgradeName);
 
     } while (KvGotoNextKey(g_hPlayerUpgrades[client], false));
 
@@ -784,7 +1062,7 @@ bool GetWeaponAlias(int defindex, char[] alias, int maxlen)
         if (weapon.defindex == defindex)
         {
             strcopy(alias, maxlen, weapon.alias);
-            PrintToServer("[Debug] Retrieved alias: %s", alias);
+            // PrintToServer("[Debug] Retrieved alias: %s", alias);
             return true;
         }
     }
@@ -799,6 +1077,8 @@ int GetPlayerBalance(int client)
 
 void ShowCategoryMenu(int client, const char[] category)
 {
+    int weaponSlot = -1; // ✅ Declare once at the top to avoid undefined symbol errors
+
     char filePath[PLATFORM_MAX_PATH];
     BuildPath(Path_SM, filePath, sizeof(filePath), "configs/hu_attributes.cfg");
 
@@ -817,6 +1097,13 @@ void ShowCategoryMenu(int client, const char[] category)
     {
         GetBodyAlias(client, alias, sizeof(alias));
         aliasFound = true; // We assume body upgrades always resolve to a valid alias
+        weaponSlot = -1;   // Body upgrades tracked as slot -1
+    }
+    else if (StrEqual(category, "Engineer Upgrades"))
+    {
+        strcopy(alias, sizeof(alias), "buildings"); // Hardcoded special alias
+        aliasFound = true;
+        weaponSlot = -2; // ✅ Special marker for non-slot items like buildings
     }
     else if (StrEqual(category, "Primary Upgrades"))
     {
@@ -825,6 +1112,7 @@ void ShowCategoryMenu(int client, const char[] category)
         {
             int defindex = GetEntProp(weapon, Prop_Send, "m_iItemDefinitionIndex");
             aliasFound = GetWeaponAlias(defindex, alias, sizeof(alias));
+            weaponSlot = 0;
         }
     }
     else if (StrEqual(category, "Secondary Upgrades"))
@@ -834,6 +1122,7 @@ void ShowCategoryMenu(int client, const char[] category)
         {
             int defindex = GetEntProp(weapon, Prop_Send, "m_iItemDefinitionIndex");
             aliasFound = GetWeaponAlias(defindex, alias, sizeof(alias));
+            weaponSlot = 1;
         }
     }
     else if (StrEqual(category, "Melee Upgrades"))
@@ -843,6 +1132,7 @@ void ShowCategoryMenu(int client, const char[] category)
         {
             int defindex = GetEntProp(weapon, Prop_Send, "m_iItemDefinitionIndex");
             aliasFound = GetWeaponAlias(defindex, alias, sizeof(alias));
+            weaponSlot = 2;
         }
     }
 
@@ -856,23 +1146,8 @@ void ShowCategoryMenu(int client, const char[] category)
     // Store selections immediately after alias selection
     strcopy(g_sPlayerCategory[client], sizeof(g_sPlayerCategory[]), category);
     strcopy(g_sPlayerAlias[client], sizeof(g_sPlayerAlias[]), alias);
-    g_bPlayerBrowsing[client] = true;
-
-    int weaponSlot = -1;
-
-    if (StrEqual(category, "Body Upgrades"))
-    {
-        weaponSlot = -1; // Body upgrades tracked as slot -1
-    }
-    else if (StrEqual(category, "Primary Upgrades"))
-        weaponSlot = 0;
-    else if (StrEqual(category, "Secondary Upgrades"))
-        weaponSlot = 1;
-    else if (StrEqual(category, "Melee Upgrades"))
-        weaponSlot = 2;
-
     g_iPlayerBrowsingSlot[client] = weaponSlot;
-
+    g_bPlayerBrowsing[client] = true;
 
     PrintToServer("[Debug] Showing upgrades for category: %s | alias: %s", g_sPlayerCategory[client], g_sPlayerAlias[client]);
 
@@ -1045,16 +1320,20 @@ public int MenuHandler_UpgradeMenu(Menu menu, MenuAction action, int client, int
         // Apply the upgrade
         float newLevel = currentLevel + (increment * maxPurchasable);
 
-        char slotPath[8];
+        char slotPath[16];
         if (weaponSlot == -1)
         {
             strcopy(slotPath, sizeof(slotPath), "body");
+        }
+        else if (weaponSlot == -2)
+        {
+            strcopy(slotPath, sizeof(slotPath), "buildings"); // special handling
         }
         else
         {
             Format(slotPath, sizeof(slotPath), "slot%d", weaponSlot);
         }
-
+        // PrintToServer("[DEBUG] Storing upgrade \"%s\" under slotPath = \"%s\"", upgradeName, slotPath);
         KvJumpToKey(g_hPlayerUpgrades[client], slotPath, true);
         KvSetNum(g_hPlayerUpgrades[client], upgradeName, RoundToNearest(newLevel * 1000.0)); // Store flat
         KvRewind(g_hPlayerUpgrades[client]);
@@ -1123,9 +1402,11 @@ void ShowUpgradeListMenu(int client, const char[] upgradeGroup)
     }
 
     // Jump to the correct location: Category -> Alias -> Group
-    if (!kv.JumpToKey(g_sPlayerCategory[client], false) ||
-        !kv.JumpToKey(g_sPlayerAlias[client], false) ||
-        !kv.JumpToKey(upgradeGroup, false))
+    bool foundPath = kv.JumpToKey(g_sPlayerCategory[client], false)
+                  && kv.JumpToKey(g_sPlayerAlias[client], false)
+                  && kv.JumpToKey(upgradeGroup, false);
+
+    if (!foundPath)
     {
         PrintToChat(client, "[Hyper Upgrades] No upgrades found for this item.");
         delete kv;
@@ -1181,6 +1462,7 @@ void ShowUpgradeListMenu(int client, const char[] upgradeGroup)
         bool hasLimit = upgrade.hadLimit;
 
         float currentLevel = GetPlayerUpgradeLevelForSlot(client, g_iPlayerBrowsingSlot[client], upgradeName);
+        //PrintToServer("[DEBUG] Upgrade Menu: Reading level %.3f for \"%s\" (slot = %d)", currentLevel, upgradeName, g_iPlayerBrowsingSlot[client]);
         int purchases = RoundToFloor(currentLevel / increment);
 
         // 🔸 New linear cost formula with multiplier
@@ -1251,7 +1533,6 @@ void ShowUpgradeListMenu(int client, const char[] upgradeGroup)
     }
 }
 
-
 float GetPlayerUpgradeLevelForSlot(int client, int slot, const char[] upgradeName)
 {
     if (g_hPlayerUpgrades[client] == null)
@@ -1259,10 +1540,14 @@ float GetPlayerUpgradeLevelForSlot(int client, int slot, const char[] upgradeNam
 
     KvRewind(g_hPlayerUpgrades[client]);
 
-    char slotPath[8];
+    char slotPath[16];
     if (slot == -1)
     {
         strcopy(slotPath, sizeof(slotPath), "body");
+    }
+    else if (slot == -2)
+    {
+        strcopy(slotPath, sizeof(slotPath), "buildings"); // ✅ Support building upgrades
     }
     else
     {
@@ -1270,7 +1555,13 @@ float GetPlayerUpgradeLevelForSlot(int client, int slot, const char[] upgradeNam
     }
 
     if (!KvJumpToKey(g_hPlayerUpgrades[client], slotPath, false))
+    {
+        // PrintToServer("[DEBUG] False Path");
         return 0.0;
+    }
+
+    // 🔍 Debug output to track where it's looking
+    // PrintToServer("[DEBUG] GetPlayerUpgradeLevelForSlot(): Looking in [%s] for \"%s\"", slotPath, upgradeName);
 
     int storedLevel = KvGetNum(g_hPlayerUpgrades[client], upgradeName, 0);
 
@@ -1368,11 +1659,11 @@ void ApplyPlayerUpgrades(int client)
             if (!IsValidEntity(weapon))
                 continue;
 
-            PrintToConsole(client, "[Debug] Applying upgrades to weapon slot %d", slot);
+            // PrintToConsole(client, "[Debug] Applying upgrades to weapon slot %d", slot);
         }
         else
         {
-            PrintToConsole(client, "[Debug] Applying body upgrades");
+            // PrintToConsole(client, "[Debug] Applying body upgrades");
         }
 
         // Go inside this slot section (e.g., body or slot0)
@@ -1391,7 +1682,7 @@ void ApplyPlayerUpgrades(int client)
             int storedLevel = KvGetNum(g_hPlayerUpgrades[client], NULL_STRING, 0);
             float level = float(storedLevel) / 1000.0;
 
-            PrintToConsole(client, "[Debug] Applying upgrade: %s with stored level %d (parsed level %.2f)", upgradeName, storedLevel, level);
+            // PrintToConsole(client, "[Debug] Applying upgrade: %s with stored level %d (parsed level %.2f)", upgradeName, storedLevel, level);
 
             // Lookup alias from name
             char upgradeAlias[64];
@@ -1511,6 +1802,13 @@ public void OnEntityCreated(int entity, const char[] classname)
         g_bBossRewarded[entity] = false;
         PrintToServer("[Hyper Upgrades] Hooked boss entity: %s (entindex: %d)", classname, entity);
     }
+    else if (StrEqual(classname, "obj_sentrygun") ||
+             StrEqual(classname, "obj_dispenser") ||
+             StrEqual(classname, "obj_teleporter"))
+    {
+        SDKHook(entity, SDKHook_SpawnPost, OnBuildingSpawned);
+        PrintToServer("[Hyper Upgrades] Hooked building entity: %s (entindex: %d)", classname, entity);
+    }
 }
 
 public void OnEntityDestroyed(int entity)
@@ -1560,6 +1858,90 @@ int CalculateBossHealthMultiplier(int maxHealth)
     }
 
     return 2 + (tier * 2); // Starts at x2, adds +2 per tier
+}
+
+public void OnBuildingSpawned(int entity)
+{
+    int builder = GetEntPropEnt(entity, Prop_Send, "m_hBuilder");
+
+    if (!IsClientInGame(builder) || !IsPlayerAlive(builder))
+        return;
+
+    char classname[64];
+    GetEntityClassname(entity, classname, sizeof(classname));
+
+    // Debug message
+    PrintToServer("[Hyper Upgrades] Building spawned: %s by %N", classname, builder);
+
+    ApplyBuildingUpgrades(builder, entity, classname);
+}
+
+void ApplyBuildingUpgrades(int client, int entity, const char[] classname)
+{
+    if (g_hPlayerUpgrades[client] == null)
+        return;
+
+    KvRewind(g_hPlayerUpgrades[client]);
+
+    // Decide which alias to use (used in hu_attributes.cfg)
+    char alias[64];
+    if (StrEqual(classname, "obj_sentrygun"))
+        strcopy(alias, sizeof(alias), "sentry");
+    else if (StrEqual(classname, "obj_dispenser"))
+        strcopy(alias, sizeof(alias), "dispenser");
+    else if (StrEqual(classname, "obj_teleporter"))
+        strcopy(alias, sizeof(alias), "teleporter");
+    else
+        return;
+
+    // Jump to the "buildings" section in the player upgrade data
+    if (!KvJumpToKey(g_hPlayerUpgrades[client], "buildings", false))
+        return;
+
+    // Loop through all upgrades stored directly under "buildings"
+    if (!KvGotoFirstSubKey(g_hPlayerUpgrades[client], false))
+        return;
+
+    do
+    {
+        char upgradeName[64];
+        KvGetSectionName(g_hPlayerUpgrades[client], upgradeName, sizeof(upgradeName));
+        int storedLevel = KvGetNum(g_hPlayerUpgrades[client], NULL_STRING, 0);
+        float level = float(storedLevel) / 1000.0;
+
+        // Get attribute alias from name
+        char upgradeAlias[64];
+        if (!GetUpgradeAliasFromName(upgradeName, upgradeAlias, sizeof(upgradeAlias)))
+            continue;
+
+        // Only apply upgrades meant for this building type
+        if (!StrContains(upgradeAlias, alias, false)) // Case-insensitive contains check
+            continue;
+
+        // Get attribute name from alias
+        char attrName[128];
+        if (!GetAttributeName(upgradeAlias, attrName, sizeof(attrName)))
+            continue;
+
+        // Retrieve initValue from upgrade data
+        float initValue = 0.0;
+        int idx;
+        if (g_upgradeIndex.GetValue(upgradeName, idx))
+        {
+            UpgradeData upgrade;
+            g_upgrades.GetArray(idx, upgrade);
+            initValue = upgrade.initValue;
+        }
+
+        float finalValue = initValue + level;
+
+        TF2Attrib_SetByName(entity, attrName, finalValue);
+
+        PrintToConsole(client, "[Hyper Upgrades] Applied to building: %s = %.3f (%s)", attrName, finalValue, alias);
+
+    } while (KvGotoNextKey(g_hPlayerUpgrades[client], false));
+
+    KvRewind(g_hPlayerUpgrades[client]);
 }
 
 void GenerateConfigFiles()
