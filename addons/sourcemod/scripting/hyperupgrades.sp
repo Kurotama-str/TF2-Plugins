@@ -1413,8 +1413,8 @@ void RefundSpecificUpgrade(int client, const char[] upgradeName, const char[] sl
 
     PrintToServer("[Debug] Refunding upgrade '%s' from slot '%s' with level %.6f", upgradeName, slotKey, level);
 
-    float refundAmount = CalculateRefundAmount(upgradeName, level);
-    g_iMoneySpent[client] -= RoundToNearest(refundAmount);
+    int refundAmount = CalculateRefundAmount(upgradeName, level);
+    g_iMoneySpent[client] -= refundAmount;
     if (g_iMoneySpent[client] < 0)
         g_iMoneySpent[client] = 0;
 
@@ -1424,41 +1424,46 @@ void RefundSpecificUpgrade(int client, const char[] upgradeName, const char[] sl
     PrintToConsole(client, "[Hyper Upgrades] Refunded upgrade: %s. Amount refunded: %.0f$", upgradeName, refundAmount);
 }
 
-
-
-
-
 // I like explicit names. Just to be clear, this calculates it for one specific upgrade.
-float CalculateRefundAmount(const char[] upgradeName, float currentLevel)
+int CalculateRefundAmount(const char[] upgradeName, float currentLevel)
 {
-    // Attempt to find the upgrade's index in our memory cache
     int idx;
     if (!g_upgradeIndex.GetValue(upgradeName, idx))
-        return 0.0; // Upgrade not found, return nothing
+        return 0;
 
-    // Retrieve the upgrade data from our in-memory array
     UpgradeData upgrade;
     g_upgrades.GetArray(idx, upgrade);
 
-    float baseCost = upgrade.cost;
-    float costMultiplier = upgrade.ratio;
+    int baseCost = RoundToNearest(upgrade.cost); // money is whole-number
+    int costMultiplier = RoundToNearest(upgrade.ratio * 1000); // keep precision in int math
     float increment = upgrade.increment;
 
-    // Figure out how many times this upgrade was purchased based on increment
-    int currentLevelInt = RoundToNearest(currentLevel * 1000.0); // float accuracy again, for int purchases
-    int incrementInt = RoundToNearest(increment * 1000.0);
-    int purchases = currentLevelInt / incrementInt; 
+    // Use scaling logic to align with purchase math
+    int scale = 1000000;
+    if (FloatAbs(currentLevel) > 2000.0)
+        scale = 1000;
 
-    // 🔸 Apply the same linear cost formula in reverse to get total refund
-    float totalCost = 0.0;
+    int IntCurrentLevel = RoundToNearest(currentLevel * scale);
+    int IntIncrement = RoundToNearest(increment * scale);
+
+    if (IntIncrement == 0)
+    {
+        PrintToServer("[Hyper Upgrades] Warning: Refund for upgrade \"%s\" has increment = 0. Skipping.", upgradeName);
+        return 0;
+    }
+
+    int purchases = IntCurrentLevel / IntIncrement;
+    int totalCost = 0;
+
+    // Integer version of: baseCost + baseCost * costMultiplier * i
     for (int i = 0; i < purchases; i++)
     {
-        totalCost += baseCost + (baseCost * costMultiplier * float(i));
+        int scaledExtra = (baseCost * costMultiplier * i) / 1000; // scale back down
+        totalCost += baseCost + scaledExtra;
     }
 
     return totalCost;
 }
-
 
 void LoadWeaponAliases()
 {
@@ -1745,7 +1750,6 @@ void GetBodyAlias(int client, char[] alias, int maxlen)
 // This one also handles upgrade bought logic, like keybound multipliers.
 public int MenuHandler_UpgradeMenu(Menu menu, MenuAction action, int client, int item)
 {
-    
     if (action == MenuAction_End)
     {
         for (int i = 1; i <= MaxClients; i++)
@@ -1799,53 +1803,69 @@ public int MenuHandler_UpgradeMenu(Menu menu, MenuAction action, int client, int
         float costMultiplier = upgrade.ratio;
         float increment = upgrade.increment;
         float initValue = upgrade.initValue;
+        float limit = upgrade.limit;
+        bool hasLimit = upgrade.hadLimit;
 
         float currentLevel = GetPlayerUpgradeLevelForSlot(client, weaponSlot, upgradeName);
         int upgradeMultiplier = g_bInUpgradeList[client] ? GetUpgradeMultiplier(client) : 1;
-        int maxPurchasable = upgradeMultiplier;
 
-        // Handle limit enforcement if applicable
-        if (upgrade.hadLimit)
+        // --- Integer scaling for precision ---
+        int scale = 1000000;
+        if (FloatAbs(limit) > 2000.0 || FloatAbs(currentLevel) > 2000.0)
         {
-            float appliedCurrent = initValue + currentLevel;
-            float appliedPotential = appliedCurrent + (increment * (upgradeMultiplier + 0.0001));
+            scale = 1000;
+        }
 
-            if (increment > 0.0 && appliedPotential > upgrade.limit + 0.0001) // floaty flota
+        int IntCurrentLevel = RoundToNearest(currentLevel * scale);
+        int IntInitValue    = RoundToNearest(initValue * scale);
+        int IntIncrement    = RoundToNearest(increment * scale);
+
+        int purchases = (IntIncrement != 0) ? (IntCurrentLevel / IntIncrement) : 0;
+        int legalMultiplier = upgradeMultiplier;
+
+        // --- Limit enforcement using int scaling ---
+        if (hasLimit)
+        {
+            int IntAppliedCurrent   = IntInitValue + IntCurrentLevel;
+            int IntAppliedPotential = IntAppliedCurrent + (IntIncrement * upgradeMultiplier);
+            int IntLimit            = RoundToNearest(limit * scale);
+
+            if (IntIncrement > 0 && IntAppliedPotential > IntLimit)
             {
-                float room = upgrade.limit - appliedCurrent;
-                maxPurchasable = RoundToFloor(room / (increment + 0.0001)); // floaty flota 2
+                int room = IntLimit - IntAppliedCurrent;
+                legalMultiplier = room / IntIncrement;
             }
-            else if (increment < 0.0 && appliedPotential < upgrade.limit - 0.0001) // floaty flota 3
+            else if (IntIncrement < 0 && IntAppliedPotential < IntLimit)
             {
-                float room = appliedCurrent - upgrade.limit;
-                maxPurchasable = RoundToFloor(room / (-increment - 0.0001)); // floaty flota 4
+                int room = IntAppliedCurrent - IntLimit;
+                legalMultiplier = room / -IntIncrement;
             }
 
-            if (maxPurchasable <= 0)
+            if (legalMultiplier > upgradeMultiplier)
+                legalMultiplier = upgradeMultiplier;
+
+            if (legalMultiplier <= 0)
             {
                 PrintToChat(client, "[Hyper Upgrades] Cannot purchase: would exceed upgrade limit.");
                 return 0;
             }
         }
 
-        // Calculate how many times the upgrade was purchased so far
-        int purchases = RoundToFloor(currentLevel / (increment + 0.0001)); // floatatious
-
-        // 🔸 Linear cost calculation
+        // 🔸 Linear cost calculation (same formula as menu display)
         float totalCost = 0.0;
-        for (int i = 0; i < maxPurchasable; i++)
+        for (int i = 0; i < legalMultiplier; i++)
         {
             totalCost += baseCost + (baseCost * costMultiplier * float(purchases + i));
         }
 
         if (g_iMoneySpent[client] + RoundToNearest(totalCost) > GetConVarInt(g_hMoneyPool))
         {
-            PrintToChat(client, "[Hyper Upgrades] Not enough money to buy %d levels of this upgrade.", maxPurchasable);
+            PrintToChat(client, "[Hyper Upgrades] Not enough money to buy %d levels of this upgrade.", legalMultiplier);
             return 0;
         }
 
         // Apply the upgrade
-        float newLevel = currentLevel + (increment * maxPurchasable);
+        float newLevel = currentLevel + (increment * legalMultiplier);
 
         char slotPath[16];
         if (weaponSlot == -1)
@@ -1860,7 +1880,6 @@ public int MenuHandler_UpgradeMenu(Menu menu, MenuAction action, int client, int
         {
             Format(slotPath, sizeof(slotPath), "slot%d", weaponSlot);
         }
-        // PrintToServer("[DEBUG] Storing upgrade \"%s\" under slotPath = \"%s\"", upgradeName, slotPath);
 
         KvJumpToKey(g_hPlayerUpgrades[client], slotPath, true);
         KvSetFloat(g_hPlayerUpgrades[client], upgradeName, newLevel);
@@ -1873,7 +1892,7 @@ public int MenuHandler_UpgradeMenu(Menu menu, MenuAction action, int client, int
 
         // Feedback
         PrintToConsole(client, "[Hyper Upgrades] Purchased upgrade: %s (+%.2f x%d). Total Cost: %.0f$",
-            upgradeAlias, increment, maxPurchasable, totalCost);
+            upgradeAlias, increment, legalMultiplier, totalCost);
 
         // Refresh menu
         DataPack dp = new DataPack();
@@ -1884,7 +1903,7 @@ public int MenuHandler_UpgradeMenu(Menu menu, MenuAction action, int client, int
     else if (action == MenuAction_Cancel)
     {
         // Covers 'Back' and hard exits like slot10
-        PrintToServer("[Menu Cancel] client = %d, item = %d", client, item);
+        // PrintToServer("[Menu Cancel] client = %d, item = %d", client, item);
         g_bInUpgradeList[client] = false;
 
         if (item == MenuCancel_ExitBack)
@@ -1932,7 +1951,7 @@ public Action Timer_CheckMenuRefresh(Handle timer, any client)
     {
         g_iPlayerLastMultiplier[client] = currentMultiplier;
 
-        PrintToServer("[Timer Refresh] Client %d triggered refresh (multiplier change)", client);
+        // PrintToServer("[Timer Refresh] Client %d triggered refresh (multiplier change)", client);
         
         // Defer menu refresh
         DataPack dp = new DataPack();
@@ -2095,13 +2114,6 @@ void ShowUpgradeListMenu(int client, const char[] upgradeGroup)
         char display[128];
         if (legalMultiplier <= 0)
         {
-            PrintToServer("[HU DEBUG] MAX REACHED for \"%s\"", upgradeName);
-            PrintToServer("  currentLevel=%.3f, initValue=%.3f, increment=%.3f, limit=%.3f",
-                currentLevel, initValue, increment, limit);
-            PrintToServer("  IntCurrentLevel=%d, IntInitValue=%d, IntIncrement=%d, IntLimit=%d",
-                IntCurrentLevel, IntInitValue, IntIncrement, RoundToNearest(limit * scale));
-            PrintToServer("  scale=%d, legalMultiplier=%d", scale, legalMultiplier);
-
             Format(display, sizeof(display), "%s (%.2f) [MAX]", upgradeName, currentLevel);
         }
         else
