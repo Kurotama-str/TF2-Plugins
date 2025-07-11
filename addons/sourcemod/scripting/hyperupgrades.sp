@@ -26,6 +26,9 @@
 
 //#define IN_DUCK (1 << 2)     // Crouch key already defined
 //#define IN_RELOAD (1 << 13)  // Reload key already defined
+
+ConVar g_hMoneyBossMultiplier;
+
 bool g_bBossRewarded[MAX_EDICTS + 1];
 bool g_bMenuPressed[MAXPLAYERS + 1];
 bool g_bPlayerBrowsing[MAXPLAYERS + 1];
@@ -82,14 +85,14 @@ ArrayList g_attributeMappings = null;
 //init upgrades list
 enum struct UpgradeData
 {
-    char name[64];    // display name
-    char alias[64];   // internal alias
-    float cost;
-    float ratio;
+    char name[64];
+    char alias[64];
+    int cost;
+    int costIncrease;
     float increment;
     float limit;
     float initValue;
-    bool hadLimit;    // ✅ true if a limit was explicitly set in cfg
+    bool hadLimit;
 }
 ArrayList g_upgrades; // Each entry is an UpgradeDat
 StringMap g_upgradeIndex; // key = name, value = index into g_upgrades
@@ -148,9 +151,10 @@ public void OnPluginStart()
     HookEvent("player_changeclass", Event_PlayerChangeClass, EventHookMode_Post);
     HookEvent("player_spawn", Event_PlayerSpawn, EventHookMode_Post);
 
-    CreateConVar("hu_money_per_kill", "100", "Money gained per kill.");
-    CreateConVar("hu_money_per_objective", "300", "Money gained per objective.");
-    CreateConVar("hu_money_boss_multiplier", "5.0", "Multiplier for boss kills.");
+    CreateConVar("hu_money_per_kill", "10", "Money gained per kill.");
+    CreateConVar("hu_money_per_objective", "30", "Money gained per objective.");
+    CreateConVar("hu_money_boss_multiplier", "3", "Multiplier for boss kills."); // advise 3.5 for 130k on ultrarasmus
+    g_hMoneyBossMultiplier = FindConVar("hu_money_boss_multiplier");
 
     g_hMoneyPool = CreateConVar("hu_money_pool", "0", "Current money pool shared by all players.", FCVAR_NOTIFY);
 
@@ -381,13 +385,19 @@ void LoadUpgradeData()
 
         kv.GetSectionName(upgrade.name, sizeof(upgrade.name));
         kv.GetString("Alias", upgrade.alias, sizeof(upgrade.alias));
-        upgrade.cost = kv.GetFloat("Cost", 100.0);
-        upgrade.ratio = kv.GetFloat("Ratio", 1.5);
+
+        upgrade.cost = kv.GetNum("Cost", 20);
+
+        // Updated: Use "CostIncrease" instead of "Ratio"
+        upgrade.costIncrease = kv.GetNum("CostIncrease", 10); // Default 10
+
         upgrade.increment = kv.GetFloat("Increment", 0.1);
+
         char limitStr[32];
         kv.GetString("Limit", limitStr, sizeof(limitStr), "");
         upgrade.hadLimit = limitStr[0] != '\0';
         upgrade.limit = upgrade.hadLimit ? StringToFloat(limitStr) : 0.0;
+
         upgrade.initValue = kv.GetFloat("InitValue", 0.0);
 
         int index = g_upgrades.PushArray(upgrade);
@@ -398,6 +408,7 @@ void LoadUpgradeData()
     delete kv;
 
     PrintToServer("[Hyper Upgrades] Loaded %d upgrades into memory.", g_upgrades.Length);
+
     for (int i = 1; i <= MaxClients; i++)
     {
         if (IsClientInGame(i) && g_iResistanceHudMode[i] != 0)
@@ -406,6 +417,7 @@ void LoadUpgradeData()
         }
     }
 }
+
 
 
 // Settings
@@ -1434,11 +1446,10 @@ int CalculateRefundAmount(const char[] upgradeName, float currentLevel)
     UpgradeData upgrade;
     g_upgrades.GetArray(idx, upgrade);
 
-    int baseCost = RoundToNearest(upgrade.cost); // money is whole-number
-    int costMultiplier = RoundToNearest(upgrade.ratio * 1000); // keep precision in int math
+    int baseCost = upgrade.cost;
+    int costIncrease = upgrade.costIncrease;
     float increment = upgrade.increment;
 
-    // Use scaling logic to align with purchase math
     int scale = 1000000;
     if (FloatAbs(currentLevel) > 2000.0)
         scale = 1000;
@@ -1453,17 +1464,13 @@ int CalculateRefundAmount(const char[] upgradeName, float currentLevel)
     }
 
     int purchases = IntCurrentLevel / IntIncrement;
-    int totalCost = 0;
 
-    // Integer version of: baseCost + baseCost * costMultiplier * i
-    for (int i = 0; i < purchases; i++)
-    {
-        int scaledExtra = (baseCost * costMultiplier * i) / 1000; // scale back down
-        totalCost += baseCost + scaledExtra;
-    }
+    // Closed-form sum: total = n*baseCost + costIncrease * n*(n-1)/2
+    int totalCost = purchases * baseCost + (costIncrease * purchases * (purchases - 1)) / 2;
 
     return totalCost;
 }
+
 
 void LoadWeaponAliases()
 {
@@ -1799,8 +1806,8 @@ public int MenuHandler_UpgradeMenu(Menu menu, MenuAction action, int client, int
         char upgradeAlias[64];
         strcopy(upgradeAlias, sizeof(upgradeAlias), upgrade.alias);
 
-        float baseCost = upgrade.cost;
-        float costMultiplier = upgrade.ratio;
+        int baseCost = upgrade.cost;
+        int costIncrease = upgrade.costIncrease;
         float increment = upgrade.increment;
         float initValue = upgrade.initValue;
         float limit = upgrade.limit;
@@ -1851,14 +1858,13 @@ public int MenuHandler_UpgradeMenu(Menu menu, MenuAction action, int client, int
             }
         }
 
-        // 🔸 Linear cost calculation (same formula as menu display)
-        float totalCost = 0.0;
-        for (int i = 0; i < legalMultiplier; i++)
-        {
-            totalCost += baseCost + (baseCost * costMultiplier * float(purchases + i));
-        }
+        // 🔸 Linear cost calculation (integer, consistent with refund logic)
+        int b = baseCost;
+        int n = legalMultiplier;
+        int p = purchases;
+        int totalCost = n * b + (costIncrease * n * (2 * p + n - 1)) / 2;
 
-        if (g_iMoneySpent[client] + RoundToNearest(totalCost) > GetConVarInt(g_hMoneyPool))
+        if (g_iMoneySpent[client] + totalCost > GetConVarInt(g_hMoneyPool))
         {
             PrintToChat(client, "[Hyper Upgrades] Not enough money to buy %d levels of this upgrade.", legalMultiplier);
             return 0;
@@ -1888,10 +1894,10 @@ public int MenuHandler_UpgradeMenu(Menu menu, MenuAction action, int client, int
         ApplyPlayerUpgrades(client);
 
         // Deduct money
-        g_iMoneySpent[client] += RoundToNearest(totalCost);
+        g_iMoneySpent[client] += totalCost;
 
         // Feedback
-        PrintToConsole(client, "[Hyper Upgrades] Purchased upgrade: %s (+%.2f x%d). Total Cost: %.0f$",
+        PrintToConsole(client, "[Hyper Upgrades] Purchased upgrade: %s (+%.2f x%d). Total Cost: %d$",
             upgradeAlias, increment, legalMultiplier, totalCost);
 
         // Refresh menu
@@ -1902,7 +1908,6 @@ public int MenuHandler_UpgradeMenu(Menu menu, MenuAction action, int client, int
     }
     else if (action == MenuAction_Cancel)
     {
-        // Covers 'Back' and hard exits like slot10
         // PrintToServer("[Menu Cancel] client = %d, item = %d", client, item);
         g_bInUpgradeList[client] = false;
 
@@ -1914,6 +1919,7 @@ public int MenuHandler_UpgradeMenu(Menu menu, MenuAction action, int client, int
 
     return 0;
 }
+
 public Action Timer_DeferMenuReopen(Handle timer, DataPack dp)
 {
     dp.Reset();
@@ -2051,8 +2057,6 @@ void ShowUpgradeListMenu(int client, const char[] upgradeGroup)
         UpgradeData upgrade;
         g_upgrades.GetArray(idx, upgrade);
 
-        float baseCost = upgrade.cost;
-        float costMultiplier = upgrade.ratio;
         float increment = upgrade.increment;
         float initValue = upgrade.initValue;
         float limit = upgrade.limit;
@@ -2083,9 +2087,9 @@ void ShowUpgradeListMenu(int client, const char[] upgradeGroup)
             PrintToServer("[Hyper Upgrades] Warning: Upgrade \"%s\" has increment = 0. Skipping cost scaling.", upgradeName);
         }
 
-        float totalCost = 0.0;
         int legalMultiplier = multiplier;
 
+        // --- Limit enforcement using int scaling ---
         if (hasLimit)
         {
             int IntAppliedCurrent   = IntInitValue + IntCurrentLevel;
@@ -2106,10 +2110,13 @@ void ShowUpgradeListMenu(int client, const char[] upgradeGroup)
                 legalMultiplier = multiplier;
         }
 
-        for (int i = 0; i < legalMultiplier; i++)
-        {
-            totalCost += baseCost + (baseCost * costMultiplier * float(purchases + i));
-        }
+        // --- Cost calculation with base + flat increase ---
+        int baseCost = upgrade.cost;
+        int costIncrease = upgrade.costIncrease;
+
+        int n = legalMultiplier;
+        int p = purchases;
+        int totalCost = baseCost * n + (costIncrease * n * (2 * p + n - 1)) / 2;
 
         char display[128];
         if (legalMultiplier <= 0)
@@ -2118,7 +2125,7 @@ void ShowUpgradeListMenu(int client, const char[] upgradeGroup)
         }
         else
         {
-            Format(display, sizeof(display), "%s (%.2f) %.0f$ (x%d)", upgradeName, currentLevel, totalCost, legalMultiplier);
+            Format(display, sizeof(display), "%s (%.2f) %d$ (x%d)", upgradeName, currentLevel, totalCost, legalMultiplier);
         }
 
         char itemData[64];
@@ -2153,6 +2160,7 @@ void ShowUpgradeListMenu(int client, const char[] upgradeGroup)
         return;
     }
 }
+
 
 float GetPlayerUpgradeLevelForSlot(int client, int slot, const char[] upgradeName)
 {
@@ -2462,8 +2470,7 @@ public void OnBossDamaged(int entity, int attacker, int inflictor, float damage,
     int healthMultiplier = CalculateBossHealthMultiplier(maxHealth);
 
     int baseReward = GetConVarInt(FindConVar("hu_money_per_kill"));
-    float staticMultiplier = GetConVarFloat(FindConVar("hu_money_boss_multiplier"));
-    int reward = RoundToNearest(baseReward * staticMultiplier * float(healthMultiplier));
+    int reward = RoundToNearest(baseReward * float(healthMultiplier));
 
     SetConVarInt(g_hMoneyPool, GetConVarInt(g_hMoneyPool) + reward);
 
@@ -2472,17 +2479,17 @@ public void OnBossDamaged(int entity, int attacker, int inflictor, float damage,
 
 int CalculateBossHealthMultiplier(int maxHealth)
 {
-    if (maxHealth < 401)
+    if (maxHealth < 4001)
         return 1; // x1 below threshold
 
     int tier = 0;
-    while (maxHealth >= 401 && tier < 12) // 10 tiers max (x2 to x20)
+    while (maxHealth >= 4001 && tier < 50)
     {
-        maxHealth /= 6;
+        maxHealth /= 2;
         tier++;
     }
 
-    return 2 + (tier * 2); // Starts at x2, adds +2 per tier
+    return 1 + RoundToNearest(Pow(float(tier), GetConVarFloat(g_hMoneyBossMultiplier)));
 }
 
 public void OnBuildingSpawned(int entity)
