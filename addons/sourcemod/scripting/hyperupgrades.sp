@@ -10,14 +10,14 @@
 #include <tf_econ_data>
 
 #include <stocksoup/handles>
-#include <stocksoup/memory>
+//#include <stocksoup/memory>
 
 
 #define TF_ITEMDEF_DEFAULT -1
 #define MAX_EDICTS 2048
 
 #define PLUGIN_NAME "Hyper Upgrades"
-#define PLUGIN_VERSION "0.60"
+#define PLUGIN_VERSION "0.70"
 #define CONFIG_ATTR "hu_attributes.cfg"
 #define CONFIG_UPGR "hu_upgrades.cfg"
 #define CONFIG_WEAP "hu_weapons_list.txt"
@@ -30,10 +30,14 @@ bool g_bBossRewarded[MAX_EDICTS + 1];
 bool g_bMenuPressed[MAXPLAYERS + 1];
 bool g_bPlayerBrowsing[MAXPLAYERS + 1];
 bool g_bShowMoneyHud[MAXPLAYERS + 1];
+bool g_bInUpgradeList[MAXPLAYERS + 1];
 
 char g_sPlayerCategory[MAXPLAYERS + 1][64];
 char g_sPlayerAlias[MAXPLAYERS + 1][64];
 char g_sPlayerUpgradeGroup[MAXPLAYERS + 1][64];
+
+int g_MenuClient[MAXPLAYERS + 1];
+int g_iUpgradeMenuPage[MAXPLAYERS + 1];
 
 Handle g_hMoneyPool;
 int g_iMoneySpent[MAXPLAYERS + 1];
@@ -46,6 +50,7 @@ Handle g_hRefreshTimer[MAXPLAYERS + 1] = { INVALID_HANDLE, ... };
 int g_iPlayerLastMultiplier[MAXPLAYERS + 1];
 
 Handle g_hHudMoneySync;
+Handle g_hHudResistSync;
 
 Database g_hSettingsDB;
 
@@ -89,7 +94,7 @@ enum struct UpgradeData
 ArrayList g_upgrades; // Each entry is an UpgradeDat
 StringMap g_upgradeIndex; // key = name, value = index into g_upgrades
 
-enum HudCorner
+enum HudCorner // Currency Hud
 {
     HUD_TOP_LEFT,
     HUD_TOP_RIGHT,
@@ -97,6 +102,36 @@ enum HudCorner
     HUD_BOTTOM_RIGHT
 };
 HudCorner g_iHudCorner[MAXPLAYERS + 1];
+
+enum ResistanceHudPosition // Res Hud
+{
+    HUDPOS_LEFT,
+    HUDPOS_TOP,
+    HUDPOS_RIGHT
+};
+ResistanceHudPosition g_iResistHudCorner[MAXPLAYERS + 1];
+
+// --- Damage Types for HUD ---
+enum DamageType
+{
+    DAMAGE_FIRE,
+    DAMAGE_BULLET,
+    DAMAGE_BLAST,
+    DAMAGE_CRIT,
+    DAMAGE_MELEE,
+    DAMAGE_OTHER,
+    DAMAGE_COUNT
+};
+
+float g_fDamageTaken[MAXPLAYERS + 1][DAMAGE_COUNT];
+StringMap g_resistanceSources[MAXPLAYERS + 1][DAMAGE_COUNT];
+ArrayList g_resistanceMappings; 
+enum struct ResistanceMapping
+{
+    char upgradeName[64];
+    DamageType type;
+}
+int g_iResistanceHudMode[MAXPLAYERS + 1]; // 0 = off, 1 = standard, 2 = abridged
 
 public void OnPluginStart()
 {
@@ -137,7 +172,28 @@ public void OnPluginStart()
 
     // Settings stuff
     g_hHudMoneySync = CreateHudSynchronizer();
+    g_hHudResistSync = CreateHudSynchronizer();
     InitSettingsDatabase();
+    if (g_resistanceMappings != null)
+        g_resistanceMappings.Clear();
+    else
+        g_resistanceMappings = new ArrayList(sizeof(ResistanceMapping));
+
+    LoadResistanceMappingsFromFile();
+    for (int i = 1; i <= MaxClients; i++) // apply settings to players
+    {
+        if (IsClientInGame(i) && IsClientAuthorized(i))
+        {
+            LoadPlayerSettings(i);
+        }
+        if (IsClientInGame(i))
+        {
+            if (g_hRefreshTimer[i] == INVALID_HANDLE)
+            {
+                g_hRefreshTimer[i] = CreateTimer(0.2, Timer_CheckMenuRefresh, i, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
+            }
+        }
+    }
 
     // Reset upgrades for all connected players
     ResetAllPlayerUpgrades();
@@ -159,6 +215,8 @@ public void OnClientPutInServer(int client)
 {
     RefundPlayerUpgrades(client, false); // No message on join
     LoadPlayerSettings(client);
+    g_hRefreshTimer[client] = CreateTimer(0.2, Timer_CheckMenuRefresh, client, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
+
 }
 
 public void OnClientDisconnect(int client)
@@ -192,27 +250,86 @@ public void OnMapStart()
     }
     // Money_HUD_Handler
     CreateTimer(1.0, Timer_DisplayMoneyHUD, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
+    CreateTimer(1.0, Timer_DisplayResistanceHUD, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
 }
 
-public void OnSettingsQueryResult(Database db, DBResultSet results, const char[] error, any client)
+public void OnSafeSettingsQueryResult(Database db, DBResultSet results, const char[] error, any client)
 {
-    if (results != null && results.FetchRow())
+    if (results == null || error[0] != '\0')
     {
+        PrintToServer("[Warning] Failed to query settings for client %N: %s", client, error);
+        return;
+    }
+
+    if (results.FetchRow())
+    {
+        if (results.FieldCount < 4)
+        {
+            PrintToServer("[Warning] Settings row for client %N is missing columns. Using defaults.", client);
+            g_bShowMoneyHud[client] = true;
+            g_iHudCorner[client] = HUD_BOTTOM_RIGHT;
+            g_iResistanceHudMode[client] = 0;
+            g_iResistHudCorner[client] = HUDPOS_LEFT;
+            SavePlayerSettings(client);
+            return;
+        }
+
         g_bShowMoneyHud[client] = results.FetchInt(0) != 0;
 
-        // NEW: Read hud_position from column index 1
         char pos[32];
         results.FetchString(1, pos, sizeof(pos));
-        g_iHudCorner[client] = ParseHudPosition(pos); // Use helper function
+        g_iHudCorner[client] = ParseHudPosition(pos);
+
+        g_iResistanceHudMode[client] = results.FetchInt(2);
+
+        char resistPosStr[16];
+        results.FetchString(3, resistPosStr, sizeof(resistPosStr));
+        g_iResistHudCorner[client] = ParseResistanceHudPosition(resistPosStr);
+        // PrintToServer("[Debug] [%N] money_hud=%d, hud_pos=%s, resist_mode=%d, resist_pos=%s", client, g_bShowMoneyHud[client], pos, g_iResistanceHudMode[client], resistPosStr);
     }
     else
     {
-        // Defaults if no row exists
+        PrintToServer("[Info] No settings found for client %N. Applying defaults.", client);
         g_bShowMoneyHud[client] = true;
         g_iHudCorner[client] = HUD_BOTTOM_RIGHT;
-
-        // Create default row in DB
+        g_iResistanceHudMode[client] = 0;
+        g_iResistHudCorner[client] = HUDPOS_LEFT;
         SavePlayerSettings(client);
+    }
+}
+
+void EnsureSettingsSchemaUpToDate()
+{
+    if (g_hSettingsDB == null)
+        return;
+
+    Handle results = SQL_Query(g_hSettingsDB, "PRAGMA table_info(settings);");
+
+    bool hasResistHudMode = false;
+    bool hasResistHudPos = false;
+
+    while (SQL_FetchRow(results))
+    {
+        char columnName[64];
+        SQL_FetchString(results, 1, columnName, sizeof(columnName));
+
+        if (StrEqual(columnName, "resistance_hud_mode"))
+            hasResistHudMode = true;
+        else if (StrEqual(columnName, "resistance_hud_pos"))
+            hasResistHudPos = true;
+    }
+    delete results;
+
+    if (!hasResistHudMode)
+    {
+        PrintToServer("[Hyper Upgrades] Adding missing column 'resistance_hud_mode' to settings table...");
+        SQL_FastQuery(g_hSettingsDB, "ALTER TABLE settings ADD COLUMN resistance_hud_mode INTEGER DEFAULT 0;");
+    }
+
+    if (!hasResistHudPos)
+    {
+        PrintToServer("[Hyper Upgrades] Adding missing column 'resistance_hud_pos' to settings table...");
+        SQL_FastQuery(g_hSettingsDB, "ALTER TABLE settings ADD COLUMN resistance_hud_pos TEXT DEFAULT 'left';");
     }
 }
 
@@ -223,6 +340,7 @@ public void Event_PlayerChangeClass(Event event, const char[] name, bool dontBro
     if (IsClientInGame(client))
     {
         RefundPlayerUpgrades(client, false);
+        RefreshClientResistances(client);
     }
 }
 
@@ -234,6 +352,7 @@ public void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast
     if (IsClientInGame(client))
     {
         ApplyPlayerUpgrades(client);
+        RefreshClientResistances(client);
     }
 }
 
@@ -279,24 +398,18 @@ void LoadUpgradeData()
     delete kv;
 
     PrintToServer("[Hyper Upgrades] Loaded %d upgrades into memory.", g_upgrades.Length);
-}
-
-void LoadPlayerSettings(int client)
-{
-    if (g_hSettingsDB == null || !IsClientAuthorized(client))
-        return;
-
-    char steamid[32];
-    GetClientAuthId(client, AuthId_Steam2, steamid, sizeof(steamid), true);
-
-    char query[128];
-    Format(query, sizeof(query), "SELECT show_money_hud, hud_position FROM settings WHERE steamid = '%s'", steamid);
-
-    g_hSettingsDB.Query(OnSettingsQueryResult, query, client);
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        if (IsClientInGame(i) && g_iResistanceHudMode[i] != 0)
+        {
+            RefreshClientResistances(i);
+        }
+    }
 }
 
 
 // Settings
+
 
 void InitSettingsDatabase()
 {
@@ -310,7 +423,36 @@ void InitSettingsDatabase()
 
     SQL_LockDatabase(g_hSettingsDB);
     SQL_FastQuery(g_hSettingsDB, "CREATE TABLE IF NOT EXISTS settings (steamid TEXT PRIMARY KEY, show_money_hud INTEGER, hud_position TEXT DEFAULT 'bottom-right');");
+
+    EnsureSettingsSchemaUpToDate();
+
     SQL_UnlockDatabase(g_hSettingsDB);
+}
+
+void LoadPlayerSettings(int client)
+{
+    if (g_hSettingsDB == null || !IsClientAuthorized(client))
+        return;
+
+    char steamid[32], query[256];
+    GetClientAuthId(client, AuthId_Steam2, steamid, sizeof(steamid), true);
+    Format(query, sizeof(query), "SELECT show_money_hud, hud_position, resistance_hud_mode, resistance_hud_pos FROM settings WHERE steamid = '%s'", steamid);
+    g_hSettingsDB.Query(OnSafeSettingsQueryResult, query, client);
+}
+
+void ShowSettingsMenu(int client)
+{
+    Menu menu = new Menu(MenuHandler_SettingsMenu);
+    menu.SetTitle("Settings");
+
+    menu.AddItem("toggle_money_hud", "Toggle Money Display HUD");
+    menu.AddItem("money_hud_position", "Money Display HUD Position");
+    menu.AddItem("toggle_resistance_hud", "Toggle Resistance HUD");
+    menu.AddItem("resist_hud_position", "Resistance HUD Position");
+
+
+    menu.ExitBackButton = true;
+    menu.Display(client, MENU_TIME_FOREVER);
 }
 
 public int MenuHandler_SettingsMenu(Menu menu, MenuAction action, int client, int param)
@@ -324,13 +466,22 @@ public int MenuHandler_SettingsMenu(Menu menu, MenuAction action, int client, in
         {
             ToggleHudSetting(client);
         }
-        else if (StrEqual(info, "hud_position"))
+        else if (StrEqual(info, "money_hud_position"))
         {
-            ShowHudPositionMenu(client);
+            ShowMoneyHudPositionMenu(client);
+        }
+        else if (StrEqual(info, "toggle_resistance_hud"))
+        {
+            ToggleResistanceHudSetting(client);
+        }
+        else if (StrEqual(info, "resist_hud_position"))
+        {
+            ShowResistHudPositionMenu(client);
         }
     }
     else if (action == MenuAction_Cancel && param == MenuCancel_ExitBack)
     {
+        g_bInUpgradeList[client] = false;
         ShowMainMenu(client);
     }
     return 0;
@@ -345,16 +496,23 @@ void SavePlayerSettings(int client)
     GetClientAuthId(client, AuthId_Steam2, steamid, sizeof(steamid), true);
 
     char posStr[32];
-    HudPositionToString(g_iHudCorner[client], posStr, sizeof(posStr));
+    MoneyHudPositionToString(g_iHudCorner[client], posStr, sizeof(posStr));
+    char resistPosStr[32];
+    ResHudPositionToString(g_iResistHudCorner[client], resistPosStr, sizeof(resistPosStr));
 
     char query[256];
 
+    
+
     Format(query, sizeof(query),
-        "REPLACE INTO settings (steamid, show_money_hud, hud_position) VALUES ('%s', %d, '%s')",
+        "REPLACE INTO settings (steamid, show_money_hud, hud_position, resistance_hud_mode, resistance_hud_pos) VALUES ('%s', %d, '%s', %d, '%s')",
         steamid,
         g_bShowMoneyHud[client] ? 1 : 0,
-        posStr
+        posStr,
+        g_iResistanceHudMode[client],
+        resistPosStr
     );
+
 
     SQL_FastQuery(g_hSettingsDB, query);
 }
@@ -366,9 +524,9 @@ void ToggleHudSetting(int client)
     PrintToChat(client, "[Settings] Money HUD is now %s.", g_bShowMoneyHud[client] ? "enabled" : "disabled");
 }
 
-void ShowHudPositionMenu(int client)
+void ShowMoneyHudPositionMenu(int client)
 {
-    Menu menu = new Menu(MenuHandler_HudPositionMenu);
+    Menu menu = new Menu(MenuHandler_MoneyHudPositionMenu);
     menu.SetTitle("Select HUD Position");
 
     menu.AddItem("top-left", "Top Left");
@@ -380,7 +538,7 @@ void ShowHudPositionMenu(int client)
     menu.Display(client, MENU_TIME_FOREVER);
 }
 
-public int MenuHandler_HudPositionMenu(Menu menu, MenuAction action, int client, int param)
+public int MenuHandler_MoneyHudPositionMenu(Menu menu, MenuAction action, int client, int param)
 {
     if (action == MenuAction_Select)
     {
@@ -392,6 +550,43 @@ public int MenuHandler_HudPositionMenu(Menu menu, MenuAction action, int client,
     }
     else if (action == MenuAction_Cancel && param == MenuCancel_ExitBack)
     {
+        g_bInUpgradeList[client] = false;
+        ShowSettingsMenu(client);
+    }
+
+    return 0;
+}
+
+void ShowResistHudPositionMenu(int client)
+{
+    Menu menu = new Menu(MenuHandler_ResistHudPositionMenu);
+    menu.SetTitle("Select Resistance HUD Position");
+
+    menu.AddItem("left", "Left");
+    menu.AddItem("top", "Top");
+    menu.AddItem("right", "Right");
+
+    menu.ExitBackButton = true;
+    menu.Display(client, MENU_TIME_FOREVER);
+}
+
+public int MenuHandler_ResistHudPositionMenu(Menu menu, MenuAction action, int client, int param)
+{
+    if (action == MenuAction_Select)
+    {
+        char pos[16];
+        menu.GetItem(param, pos, sizeof(pos));
+
+        if (StrEqual(pos, "left")) g_iResistHudCorner[client] = HUDPOS_LEFT;
+        else if (StrEqual(pos, "top")) g_iResistHudCorner[client] = HUDPOS_TOP;
+        else g_iResistHudCorner[client] = HUDPOS_RIGHT;
+
+        SavePlayerSettings(client);
+        PrintToChat(client, "[Settings] Resistance HUD position set to: %s", pos);
+    }
+    else if (action == MenuAction_Cancel && param == MenuCancel_ExitBack)
+    {
+        g_bInUpgradeList[client] = false;
         ShowSettingsMenu(client);
     }
 
@@ -404,6 +599,13 @@ HudCorner ParseHudPosition(const char[] input)
     if (StrEqual(input, "top-right")) return HUD_TOP_RIGHT;
     if (StrEqual(input, "bottom-left")) return HUD_BOTTOM_LEFT;
     return HUD_BOTTOM_RIGHT;
+}
+
+ResistanceHudPosition ParseResistanceHudPosition(const char[] input)
+{
+    if (StrEqual(input, "left", false)) return HUDPOS_LEFT;
+    if (StrEqual(input, "top", false)) return HUDPOS_TOP;
+    return HUDPOS_LEFT; // default fallback
 }
 
 public Action Timer_DisplayMoneyHUD(Handle timer)
@@ -451,10 +653,10 @@ void SetHudPositionByCorner(HudCorner corner)
         }
     }
 
-    SetHudTextParams(x, y, 1.1, 255, 255, 255, 255, 0, 6.0, 0.1, 0.2);
+    SetHudTextParams(x, y, 1.0, 255, 255, 255, 255, 0, 0.0, 0.8, 0.8); 
 }
 
-void HudPositionToString(HudCorner pos, char[] buffer, int maxlen)
+void MoneyHudPositionToString(HudCorner pos, char[] buffer, int maxlen) // money
 {
     switch (pos)
     {
@@ -478,6 +680,330 @@ void HudPositionToString(HudCorner pos, char[] buffer, int maxlen)
     // Default fallback
     strcopy(buffer, maxlen, "bottom-right");
 }
+
+void ResHudPositionToString(ResistanceHudPosition pos, char[] buffer, int maxlen)
+{
+    switch (pos)
+    {
+        case HUDPOS_LEFT:
+        {
+            strcopy(buffer, maxlen, "left");
+            return;
+        }
+        case HUDPOS_TOP:
+        {
+            strcopy(buffer, maxlen, "top");
+            return;
+        }
+        case HUDPOS_RIGHT:
+        {
+            strcopy(buffer, maxlen, "right");
+            return;
+        }
+    }
+
+    // Fallback (shouldn't happen if enum is valid)
+    strcopy(buffer, maxlen, "left");
+}
+
+void ToggleResistanceHudSetting(int client)
+{
+    g_iResistanceHudMode[client] = (g_iResistanceHudMode[client] + 1) % 3;
+    SavePlayerSettings(client);
+
+    char modeName[16];
+
+    switch (g_iResistanceHudMode[client])
+    {
+        case 0:
+        {
+            strcopy(modeName, sizeof(modeName), "Off");
+        }
+        case 1:
+        {
+            strcopy(modeName, sizeof(modeName), "Standard");
+        }
+        case 2:
+        {
+            strcopy(modeName, sizeof(modeName), "Abridged");
+        }
+    }
+
+    PrintToChat(client, "[Settings] Resistance HUD mode set to: %s", modeName);
+}
+
+void FormatDamagePercentString(float value, char[] buffer, int maxlen)
+{
+    float pct = value * 100.0;
+    
+    if (pct > 99.5)
+        Format(buffer, maxlen, "%.4f%%", pct);
+    else
+        Format(buffer, maxlen, "%.2f%%", pct);
+    
+}
+
+public Action Timer_DisplayResistanceHUD(Handle timer)
+{
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        if (!IsClientInGame(i) || !IsPlayerAlive(i))
+            continue;
+
+        if (g_iResistanceHudMode[i] == 0)
+            continue;
+
+        char buffer[256];
+
+        char fireStr[16], bulletStr[16], blastStr[16], critStr[16], meleeStr[16], otherStr[16];
+        FormatDamagePercentString(1-g_fDamageTaken[i][DAMAGE_FIRE], fireStr, sizeof(fireStr));
+        FormatDamagePercentString(1-g_fDamageTaken[i][DAMAGE_BULLET], bulletStr, sizeof(bulletStr));
+        FormatDamagePercentString(1-g_fDamageTaken[i][DAMAGE_BLAST], blastStr, sizeof(blastStr));
+        FormatDamagePercentString(1-g_fDamageTaken[i][DAMAGE_CRIT], critStr, sizeof(critStr));
+        FormatDamagePercentString(1-g_fDamageTaken[i][DAMAGE_MELEE], meleeStr, sizeof(meleeStr));
+        FormatDamagePercentString(1-g_fDamageTaken[i][DAMAGE_OTHER], otherStr, sizeof(otherStr));
+
+        if (g_iResistanceHudMode[i] == 1) // Standard
+        {
+            Format(buffer, sizeof(buffer), "Fire : %s%%    Bullet : %s%%\nCrit : %s%%    Melee : %s%%\nBlast : %s%%   Other : %s%%",
+                fireStr, bulletStr, critStr, meleeStr, blastStr, otherStr);
+        }
+        else // Abridged
+        {
+            Format(buffer, sizeof(buffer), "f %s%%        • %s%%\nc %s%%        m %s%%\n# %s%%        o %s%%",
+                fireStr, bulletStr, critStr, meleeStr, blastStr, otherStr);
+        }
+
+        float x = 0.01, y = 0.3;
+        switch (g_iResistHudCorner[i])
+        {
+            case HUDPOS_LEFT:  { x = 0.01; y = 0.2; }
+            case HUDPOS_TOP:   { x = -1.0; y = 0.05; }
+            case HUDPOS_RIGHT: { x = 0.8; y = 0.2; }
+        }
+
+        SetHudTextParams(x, y, 1.0, 255, 255, 255, 255, 0, 0.0, 0.8, 0.8);
+        ShowSyncHudText(i, g_hHudResistSync, buffer);
+    }
+
+    return Plugin_Continue;
+}
+
+
+void SetPlayerResistanceSource(int client, DamageType type, const char[] sourceKey, float multiplier)
+{
+    if (g_resistanceSources[client][type] == null)
+        g_resistanceSources[client][type] = new StringMap();
+
+    g_resistanceSources[client][type].SetValue(sourceKey, multiplier);
+    RecalculateTotalResistance(client, type);
+}
+
+void RecalculateTotalResistance(int client, DamageType type)
+{
+    float total = 1.0;
+
+    if (g_resistanceSources[client][type] != null)
+    {
+        StringMapSnapshot snap = g_resistanceSources[client][type].Snapshot();
+        for (int i = 0; i < snap.Length; i++)
+        {
+            char key[64];
+            snap.GetKey(i, key, sizeof(key));
+            float value;
+            g_resistanceSources[client][type].GetValue(key, value);
+            total *= value;
+            // PrintToServer("[Debug] [%N] Resistance source '%s' → %.6f for type %d", client, key, value, type);
+        }
+        delete snap;
+    }
+
+    g_fDamageTaken[client][type] = total;
+    // PrintToServer("[Debug] [%N] Final resistance multiplier for type %d: %.6f", client, type, total);
+}
+
+void BuildResistanceKey(const char[] upgradeName, int slot, const char[] slotAlias, char[] buffer, int maxlen)
+{
+    if (slot == -1)
+    {
+        // Body upgrade
+        Format(buffer, maxlen, "%s%s", upgradeName, slotAlias); // e.g., "*Fire Resistancebody_demoman"
+    }
+    else
+    {
+        Format(buffer, maxlen, "%s_slot%d", upgradeName, slot); // e.g., "*Fire Resistance_slot1"
+    }
+}
+
+void LoadResistanceMappingsFromFile()
+{
+    char filePath[PLATFORM_MAX_PATH];
+    BuildPath(Path_SM, filePath, sizeof(filePath), "configs/hu_res_mappings.txt");
+
+    // If file doesn't exist, create a basic template
+    if (!FileExists(filePath))
+    {
+        Handle file = OpenFile(filePath, "w");
+        if (file != null)
+        {
+            WriteFileLine(file, "// Format: DAMAGE_TYPE,Upgrade Name");
+            WriteFileLine(file, "// Example: DAMAGE_FIRE,*Fire Resistance");
+            WriteFileLine(file, "");
+            WriteFileLine(file, "// Available damage types:");
+            WriteFileLine(file, "// DAMAGE_FIRE");
+            WriteFileLine(file, "// DAMAGE_BULLET");
+            WriteFileLine(file, "// DAMAGE_BLAST");
+            WriteFileLine(file, "// DAMAGE_CRIT");
+            WriteFileLine(file, "// DAMAGE_MELEE");
+            WriteFileLine(file, "// DAMAGE_OTHER");
+
+            CloseHandle(file);
+        }
+
+        PrintToServer("[Hyper Upgrades] Resistance mapping file not found. Created default template.");
+        return;
+    }
+
+    Handle file = OpenFile(filePath, "r");
+    if (file == null)
+    {
+        PrintToServer("[Hyper Upgrades] Failed to open hu_res_mappings.txt.");
+        return;
+    }
+
+    char line[256];
+    while (!IsEndOfFile(file) && ReadFileLine(file, line, sizeof(line)))
+    {
+        TrimString(line);
+
+        // Skip comments or empty lines
+        if (line[0] == '\0' || line[0] == '#' || StrContains(line, "//") == 0)
+            continue;
+
+        char parts[2][128];
+        int count = ExplodeString(line, ",", parts, sizeof(parts), sizeof(parts[]));
+        if (count != 2)
+        {
+            PrintToServer("[Hyper Upgrades] Skipping malformed line in hu_res_mappings.txt: %s", line);
+            continue;
+        }
+
+        TrimString(parts[0]);
+        TrimString(parts[1]);
+
+        DamageType type = ParseDamageType(parts[0]);
+        if (type == DAMAGE_COUNT)
+        {
+            PrintToServer("[Hyper Upgrades] Unknown damage type in mapping: %s", parts[0]);
+            continue;
+        }
+
+        ResistanceMapping entry;
+        strcopy(entry.upgradeName, sizeof(entry.upgradeName), parts[1]);
+        entry.type = type;
+        g_resistanceMappings.PushArray(entry);
+    }
+
+    CloseHandle(file);
+
+    PrintToServer("[Hyper Upgrades] Resistance upgrade mappings loaded.");
+}
+
+DamageType ParseDamageType(const char[] str)
+{
+    if (StrEqual(str, "DAMAGE_FIRE", false)) return DAMAGE_FIRE;
+    if (StrEqual(str, "DAMAGE_BULLET", false)) return DAMAGE_BULLET;
+    if (StrEqual(str, "DAMAGE_BLAST", false)) return DAMAGE_BLAST;
+    if (StrEqual(str, "DAMAGE_CRIT", false)) return DAMAGE_CRIT;
+    if (StrEqual(str, "DAMAGE_MELEE", false)) return DAMAGE_MELEE;
+    if (StrEqual(str, "DAMAGE_OTHER", false)) return DAMAGE_OTHER;
+    return DAMAGE_COUNT; // Invalid
+}
+
+void RefreshClientResistances(int client)
+{
+    // Reset all to 0.0
+    for (int i = 0; i < view_as<int>(DAMAGE_COUNT); i++)
+    {
+        DamageType type = view_as<DamageType>(i);
+
+        if (g_resistanceSources[client][type] != null)
+            g_resistanceSources[client][type].Clear();
+
+        g_fDamageTaken[client][type] = 0.0;
+    }
+
+    if (g_hPlayerUpgrades[client] == null)
+        return;
+
+    KvRewind(g_hPlayerUpgrades[client]);
+
+    if (!KvGotoFirstSubKey(g_hPlayerUpgrades[client], false))
+        return;
+
+    do
+    {
+        char slotName[32];
+        KvGetSectionName(g_hPlayerUpgrades[client], slotName, sizeof(slotName));
+
+        int slot = -1;
+        if (!StrEqual(slotName, "body"))
+        {
+            slot = StringToInt(slotName[4]); // slotX → X
+        }
+
+        if (!KvGotoFirstSubKey(g_hPlayerUpgrades[client], false))
+        {
+            KvGoBack(g_hPlayerUpgrades[client]);
+            continue;
+        }
+
+        do
+        {
+            char upgradeName[64];
+            KvGetSectionName(g_hPlayerUpgrades[client], upgradeName, sizeof(upgradeName));
+
+            float level = KvGetFloat(g_hPlayerUpgrades[client], NULL_STRING, 0.0);
+            // PrintToServer("[Debug] [Client %d] Upgrade '%s' has raw level %.6f", client, upgradeName, level);
+
+            // bool matched = false;
+
+            for (int j = 0; j < g_resistanceMappings.Length; j++)
+            {
+                ResistanceMapping map;
+                g_resistanceMappings.GetArray(j, map);
+
+                if (StrEqual(map.upgradeName, upgradeName))
+                {
+                    char key[64];
+                    BuildResistanceKey(upgradeName, slot, slot == -1 ? g_sPlayerAlias[client] : "", key, sizeof(key));
+
+                    float multiplier = 1 - FloatAbs(level);
+
+                    // PrintToServer("[Debug] [Client %d] Adding source '%s' with multiplier %.6f to damage type %d", client, key, multiplier, map.type);
+
+                    SetPlayerResistanceSource(client, map.type, key, multiplier);
+                    // matched = true;
+                }
+            }
+
+            // if (!matched)
+            // {
+            //     PrintToServer("[Debug] Upgrade '%s' is not mapped to any resistance type.", upgradeName);
+            // }
+        }
+        while (KvGotoNextKey(g_hPlayerUpgrades[client], false));
+
+        KvGoBack(g_hPlayerUpgrades[client]);
+
+    } while (KvGotoNextKey(g_hPlayerUpgrades[client], false));
+
+    KvRewind(g_hPlayerUpgrades[client]);
+}
+
+
+
+
 
 // Money handler for players
 void RefundPlayerUpgrades(int client, bool bShowMessage = true)
@@ -567,10 +1093,18 @@ public Action Command_ReloadUpgrades(int client, int args)
     // Reload upgrade definitions
     LoadUpgradeData();
 
+    // Reload resistance mappings from config file
+    if (g_resistanceMappings != null)
+        g_resistanceMappings.Clear();
+    else
+        g_resistanceMappings = new ArrayList(sizeof(ResistanceMapping));
+
+    LoadResistanceMappingsFromFile();
+
     PrintToConsole(client, "[Hyper Upgrades] Upgrade definitions reloaded from hu_upgrades.cfg.");
+    PrintToConsole(client, "[Hyper Upgrades] Resistance upgrade mappings reloaded from hu_res_mappings.txt.");
     return Plugin_Handled;
 }
-
 
 // Detect scoreboard key press
 public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3], float angles[3], int &weapon)
@@ -605,6 +1139,7 @@ public Action Command_OpenMenu(int client, int args)
 // Build the main menu
 void ShowMainMenu(int client)
 {
+    g_bInUpgradeList[client] = false;
     Menu menu = new Menu(MenuHandler_MainMenu);
     menu.SetTitle("Hyper Upgrades \nBalance: %d/%d$", GetPlayerBalance(client), GetConVarInt(g_hMoneyPool));
 
@@ -635,6 +1170,11 @@ public int MenuHandler_MainMenu(Menu menu, MenuAction action, int client, int pa
 {
     if (action == MenuAction_End)
     {
+        if (client > 0 && client < MAXPLAYERS+1)
+        {
+            g_bInUpgradeList[client] = false;
+        }
+        // PrintToServer("[Debug] MenuAction_End triggered for client %d", client);
         delete menu;
     }
     else if (action == MenuAction_Select)
@@ -682,13 +1222,7 @@ public int MenuHandler_MainMenu(Menu menu, MenuAction action, int client, int pa
         if (param == MenuCancel_ExitBack)
         {
             g_bPlayerBrowsing[client] = false;
-
-            // Stop refresh timer
-            if (g_hRefreshTimer[client] != INVALID_HANDLE)
-            {
-                CloseHandle(g_hRefreshTimer[client]);
-                g_hRefreshTimer[client] = INVALID_HANDLE;
-            }
+            g_bInUpgradeList[client] = false;
 
             ShowCategoryMenu(client, g_sPlayerCategory[client]);
         }
@@ -706,6 +1240,7 @@ void ShowRefundSlotMenu(int client)
     if (!KvGotoFirstSubKey(g_hPlayerUpgrades[client], false))
     {
         PrintToChat(client, "[Hyper Upgrades] No upgrades to refund.");
+        g_bInUpgradeList[client] = false;
         delete menu;
         return;
     }
@@ -747,17 +1282,6 @@ void ShowRefundSlotMenu(int client)
     menu.Display(client, MENU_TIME_FOREVER);
 }
 
-void ShowSettingsMenu(int client)
-{
-    Menu menu = new Menu(MenuHandler_SettingsMenu);
-    menu.SetTitle("Settings");
-
-    menu.AddItem("toggle_money_hud", "Toggle Money Display HUD");
-    menu.AddItem("hud_position", "Money Display HUD Position");
-
-    menu.ExitBackButton = true;
-    menu.Display(client, MENU_TIME_FOREVER);
-}
 
 // Slot Menu Handler
 public int MenuHandler_RefundSlotMenu(Menu menu, MenuAction action, int client, int item)
@@ -773,6 +1297,7 @@ public int MenuHandler_RefundSlotMenu(Menu menu, MenuAction action, int client, 
     {
         if (item == MenuCancel_ExitBack)
         {
+            g_bInUpgradeList[client] = false;
             ShowMainMenu(client);
         }
     }
@@ -782,22 +1307,19 @@ public int MenuHandler_RefundSlotMenu(Menu menu, MenuAction action, int client, 
 // Upgrade List for the Slot
 void ShowRefundUpgradeMenu(int client, const char[] slotKey)
 {
-    // PrintToChat(client, "[Debug] ShowRefundUpgradeMenu launched for slot: %s", slotKey);
-
     Menu menu = new Menu(MenuHandler_RefundUpgradeMenu);
     char title[128];
     Format(title, sizeof(title), "Refund Upgrades - %s", slotKey);
     menu.SetTitle(title);
 
-    // Attempt to jump into the slot node in the player's upgrade keyvalues
     if (!KvJumpToKey(g_hPlayerUpgrades[client], slotKey, false))
     {
         PrintToChat(client, "[Hyper Upgrades] No upgrades found in this group.");
+        g_bInUpgradeList[client] = false;
         delete menu;
         return;
     }
 
-    // If no upgrades exist in the slot
     if (!KvGotoFirstSubKey(g_hPlayerUpgrades[client], false))
     {
         KvGoBack(g_hPlayerUpgrades[client]);
@@ -805,33 +1327,29 @@ void ShowRefundUpgradeMenu(int client, const char[] slotKey)
         return;
     }
 
-    // Loop through each upgrade name stored under the slot
     do
     {
         char upgradeName[64];
         KvGetSectionName(g_hPlayerUpgrades[client], upgradeName, sizeof(upgradeName));
 
-        // Check if this upgrade exists in the upgrade index
         int idx;
         if (g_upgradeIndex.GetValue(upgradeName, idx))
         {
             UpgradeData upgrade;
             g_upgrades.GetArray(idx, upgrade);
-
-            // Use the known display name
-            menu.AddItem(upgrade.name, upgrade.name);
+            char itemData[128];
+            Format(itemData, sizeof(itemData), "%s|%s", upgrade.name, slotKey); // "upgradeName|slotKey"
+            menu.AddItem(itemData, upgrade.name);
         }
         else
         {
-            // Fallback if not found in index (shouldn't happen)
-            menu.AddItem(upgradeName, upgradeName);
+            char itemData[128];
+            Format(itemData, sizeof(itemData), "%s|%s", upgradeName, slotKey);
+            menu.AddItem(itemData, upgradeName);
         }
-
-        // PrintToConsole(client, "[Debug] Added upgrade to refund menu: %s", upgradeName);
 
     } while (KvGotoNextKey(g_hPlayerUpgrades[client], false));
 
-    // Restore keyvalue state
     KvGoBack(g_hPlayerUpgrades[client]);
     KvRewind(g_hPlayerUpgrades[client]);
 
@@ -839,17 +1357,24 @@ void ShowRefundUpgradeMenu(int client, const char[] slotKey)
     menu.Display(client, MENU_TIME_FOREVER);
 }
 
+
 // Handle Refund Action
 public int MenuHandler_RefundUpgradeMenu(Menu menu, MenuAction action, int client, int item)
 {
-    // PrintToChat(client, "[Debug] Refund menu handler triggered.");
-
     if (action == MenuAction_Select)
     {
-        char upgradeName[64];
-        menu.GetItem(item, upgradeName, sizeof(upgradeName));
-        RefundSpecificUpgrade(client, upgradeName);
+        char itemData[128];
+        menu.GetItem(item, itemData, sizeof(itemData));
 
+        // Split "upgradeName|slotKey" into two parts
+        char parts[2][64];
+        ExplodeString(itemData, "|", parts, sizeof(parts), sizeof(parts[]));
+
+        char upgradeName[64], slotKey[64];
+        strcopy(upgradeName, sizeof(upgradeName), parts[0]);
+        strcopy(slotKey, sizeof(slotKey), parts[1]);
+
+        RefundSpecificUpgrade(client, upgradeName, slotKey);  // Updated call
         ApplyPlayerUpgrades(client);
         ShowRefundSlotMenu(client);
     }
@@ -857,63 +1382,49 @@ public int MenuHandler_RefundUpgradeMenu(Menu menu, MenuAction action, int clien
     {
         if (item == MenuCancel_ExitBack)
         {
+            g_bInUpgradeList[client] = false;
             ShowRefundSlotMenu(client);
         }
     }
+
     return 0;
 }
 
 // Refund Logic
-void RefundSpecificUpgrade(int client, const char[] upgradeName)
+void RefundSpecificUpgrade(int client, const char[] upgradeName, const char[] slotKey)
 {
-    // PrintToChat(client, "[Debug] Refund Specific Upgrade handler triggered.");
-
     if (g_hPlayerUpgrades[client] == null)
+        return;
+
+    // Navigate directly to the upgrade slot section
+    KvRewind(g_hPlayerUpgrades[client]);
+    if (!KvJumpToKey(g_hPlayerUpgrades[client], slotKey, false))
     {
-        // PrintToChat(client, "[Hyper Upgrades] No upgrades exist to refund.");
+        PrintToServer("[Debug] Could not find slot '%s' for refunding upgrade '%s'", slotKey, upgradeName);
         return;
     }
 
-    KvRewind(g_hPlayerUpgrades[client]);
-
-    if (!KvGotoFirstSubKey(g_hPlayerUpgrades[client], false))
+    float level = KvGetFloat(g_hPlayerUpgrades[client], upgradeName, 0.0);
+    if (level == 0.0)
     {
-        // PrintToChat(client, "[Hyper Upgrades] No upgrade slots found for client %d.", client);
+        KvGoBack(g_hPlayerUpgrades[client]); // Clean up key state
         return;
     }
 
-   do
-    {
-        char slotName[64];
-        KvGetSectionName(g_hPlayerUpgrades[client], slotName, sizeof(slotName));
+    PrintToServer("[Debug] Refunding upgrade '%s' from slot '%s' with level %.6f", upgradeName, slotKey, level);
 
-        // PrintToConsole(client, "[Debug] Checking slot: %s", slotName);
+    float refundAmount = CalculateRefundAmount(upgradeName, level);
+    g_iMoneySpent[client] -= RoundToNearest(refundAmount);
+    if (g_iMoneySpent[client] < 0)
+        g_iMoneySpent[client] = 0;
 
-        // We are already inside the slot section here — DO NOT JumpToKey again.
+    KvDeleteKey(g_hPlayerUpgrades[client], upgradeName);
+    KvGoBack(g_hPlayerUpgrades[client]); // Exit from slotKey section
 
-        int storedLevel = KvGetNum(g_hPlayerUpgrades[client], upgradeName, -1);
-        if (storedLevel == -1)
-        {
-            continue;
-        }
-
-        float level = float(storedLevel) / 1000.0;
-        float refundAmount = CalculateRefundAmount(upgradeName, level);
-
-        g_iMoneySpent[client] -= RoundToNearest(refundAmount);
-        if (g_iMoneySpent[client] < 0)
-            g_iMoneySpent[client] = 0;
-
-        KvDeleteKey(g_hPlayerUpgrades[client], upgradeName);
-
-        PrintToConsole(client, "[Hyper Upgrades] Refunded upgrade: %s. Amount refunded: %.0f$", upgradeName, refundAmount);
-
-        break; // Done — exit the loop after successful refund
-    }
-    while (KvGotoNextKey(g_hPlayerUpgrades[client], false));
-
-    KvRewind(g_hPlayerUpgrades[client]);
+    PrintToConsole(client, "[Hyper Upgrades] Refunded upgrade: %s. Amount refunded: %.0f$", upgradeName, refundAmount);
 }
+
+
 
 
 
@@ -934,7 +1445,9 @@ float CalculateRefundAmount(const char[] upgradeName, float currentLevel)
     float increment = upgrade.increment;
 
     // Figure out how many times this upgrade was purchased based on increment
-    int purchases = RoundToFloor(currentLevel / increment);
+    int currentLevelInt = RoundToNearest(currentLevel * 1000.0); // float accuracy again, for int purchases
+    int incrementInt = RoundToNearest(increment * 1000.0);
+    int purchases = currentLevelInt / incrementInt; 
 
     // 🔸 Apply the same linear cost formula in reverse to get total refund
     float totalCost = 0.0;
@@ -1200,6 +1713,7 @@ public int MenuHandler_Submenu(Menu menu, MenuAction action, int client, int ite
         if (item == MenuCancel_ExitBack)
         {
             // Go back to the main category menu
+            g_bInUpgradeList[client] = false;
             ShowMainMenu(client);
         }
     }
@@ -1231,14 +1745,27 @@ void GetBodyAlias(int client, char[] alias, int maxlen)
 // This one also handles upgrade bought logic, like keybound multipliers.
 public int MenuHandler_UpgradeMenu(Menu menu, MenuAction action, int client, int item)
 {
+    
     if (action == MenuAction_End)
     {
+        for (int i = 1; i <= MaxClients; i++)
+        {
+            if (g_MenuClient[i] == i)
+            {
+                // PrintToServer("[Menu Exit] Client %d exited a menu", i);
+                g_bInUpgradeList[i] = false;
+                g_MenuClient[i] = 0; // Cleanup
+                break;
+            }
+        }
+
         delete menu;
     }
     else if (action == MenuAction_Select)
     {
         char itemData[64];
         menu.GetItem(item, itemData, sizeof(itemData));
+        g_iUpgradeMenuPage[client] = menu.Selection;
 
         char parts[3][64];
         int count = ExplodeString(itemData, "|", parts, sizeof(parts), sizeof(parts[]));
@@ -1274,24 +1801,24 @@ public int MenuHandler_UpgradeMenu(Menu menu, MenuAction action, int client, int
         float initValue = upgrade.initValue;
 
         float currentLevel = GetPlayerUpgradeLevelForSlot(client, weaponSlot, upgradeName);
-        int upgradeMultiplier = GetUpgradeMultiplier(client);
+        int upgradeMultiplier = g_bInUpgradeList[client] ? GetUpgradeMultiplier(client) : 1;
         int maxPurchasable = upgradeMultiplier;
 
         // Handle limit enforcement if applicable
         if (upgrade.hadLimit)
         {
             float appliedCurrent = initValue + currentLevel;
-            float appliedPotential = appliedCurrent + (increment * upgradeMultiplier);
+            float appliedPotential = appliedCurrent + (increment * (upgradeMultiplier + 0.0001));
 
-            if (increment > 0.0 && appliedPotential > upgrade.limit)
+            if (increment > 0.0 && appliedPotential > upgrade.limit + 0.0001) // floaty flota
             {
                 float room = upgrade.limit - appliedCurrent;
-                maxPurchasable = RoundToFloor(room / increment);
+                maxPurchasable = RoundToFloor(room / (increment + 0.0001)); // floaty flota 2
             }
-            else if (increment < 0.0 && appliedPotential < upgrade.limit)
+            else if (increment < 0.0 && appliedPotential < upgrade.limit - 0.0001) // floaty flota 3
             {
                 float room = appliedCurrent - upgrade.limit;
-                maxPurchasable = RoundToFloor(room / (-increment));
+                maxPurchasable = RoundToFloor(room / (-increment - 0.0001)); // floaty flota 4
             }
 
             if (maxPurchasable <= 0)
@@ -1302,7 +1829,7 @@ public int MenuHandler_UpgradeMenu(Menu menu, MenuAction action, int client, int
         }
 
         // Calculate how many times the upgrade was purchased so far
-        int purchases = RoundToFloor(currentLevel / increment);
+        int purchases = RoundToFloor(currentLevel / (increment + 0.0001)); // floatatious
 
         // 🔸 Linear cost calculation
         float totalCost = 0.0;
@@ -1334,8 +1861,9 @@ public int MenuHandler_UpgradeMenu(Menu menu, MenuAction action, int client, int
             Format(slotPath, sizeof(slotPath), "slot%d", weaponSlot);
         }
         // PrintToServer("[DEBUG] Storing upgrade \"%s\" under slotPath = \"%s\"", upgradeName, slotPath);
+
         KvJumpToKey(g_hPlayerUpgrades[client], slotPath, true);
-        KvSetNum(g_hPlayerUpgrades[client], upgradeName, RoundToNearest(newLevel * 1000.0)); // Store flat
+        KvSetFloat(g_hPlayerUpgrades[client], upgradeName, newLevel);
         KvRewind(g_hPlayerUpgrades[client]);
 
         ApplyPlayerUpgrades(client);
@@ -1348,10 +1876,17 @@ public int MenuHandler_UpgradeMenu(Menu menu, MenuAction action, int client, int
             upgradeAlias, increment, maxPurchasable, totalCost);
 
         // Refresh menu
-        ShowUpgradeListMenu(client, upgradeGroup);
+        DataPack dp = new DataPack();
+        dp.WriteCell(client);
+        dp.WriteString(upgradeGroup);
+        CreateTimer(0.0, Timer_DeferMenuReopen, dp);
     }
     else if (action == MenuAction_Cancel)
     {
+        // Covers 'Back' and hard exits like slot10
+        PrintToServer("[Menu Cancel] client = %d, item = %d", client, item);
+        g_bInUpgradeList[client] = false;
+
         if (item == MenuCancel_ExitBack)
         {
             ShowCategoryMenu(client, g_sPlayerCategory[client]);
@@ -1360,34 +1895,77 @@ public int MenuHandler_UpgradeMenu(Menu menu, MenuAction action, int client, int
 
     return 0;
 }
+public Action Timer_DeferMenuReopen(Handle timer, DataPack dp)
+{
+    dp.Reset();
+    int client = dp.ReadCell();
+    char group[64];
+    dp.ReadString(group, sizeof(group));
+    delete dp;
+
+    if (IsClientInGame(client) && g_bPlayerBrowsing[client])
+    {
+        ShowUpgradeListMenu(client, group);
+    }
+
+    return Plugin_Stop;
+}
 
 
 
 public Action Timer_CheckMenuRefresh(Handle timer, any client)
 {
-    if (!IsClientInGame(client) || !g_bPlayerBrowsing[client])
+    // PrintToServer("[Hyper Upgrades] Client %d | g_bInUpgradeList = %d", client, g_bInUpgradeList[client]);
+    // PrintToServer("[Timer] Client %d | This handle: %x | Stored handle: %x", client, timer, g_hRefreshTimer[client]);
+    if (client < 1 || client > MaxClients || !IsClientInGame(client))
     {
-        g_hRefreshTimer[client] = INVALID_HANDLE;
-        return Plugin_Stop;
+        return Plugin_Continue;
     }
-
+    // Only act if player is actively in the upgrade menu
+    if (!g_bPlayerBrowsing[client] || !g_bInUpgradeList[client])
+    {
+        return Plugin_Continue;
+    }
     int currentMultiplier = GetUpgradeMultiplier(client);
-
+    
     if (currentMultiplier != g_iPlayerLastMultiplier[client])
     {
         g_iPlayerLastMultiplier[client] = currentMultiplier;
 
-        // Refresh the menu
-        ShowUpgradeListMenu(client, g_sPlayerUpgradeGroup[client]);
+        PrintToServer("[Timer Refresh] Client %d triggered refresh (multiplier change)", client);
+        
+        // Defer menu refresh
+        DataPack dp = new DataPack();
+        dp.WriteCell(client);
+        dp.WriteString(g_sPlayerUpgradeGroup[client]);
+        CreateTimer(0.0, Timer_DeferMenuRefresh, dp);
     }
 
     return Plugin_Continue;
+}
+public Action Timer_DeferMenuRefresh(Handle timer, DataPack dp)
+{
+    dp.Reset();
+    int client = dp.ReadCell();
+    char group[64];
+    dp.ReadString(group, sizeof(group));
+    delete dp;
+
+    if (client >= 1 && client <= MaxClients && IsClientInGame(client) && g_bPlayerBrowsing[client])
+    {
+        ShowUpgradeListMenu(client, group);
+    }
+
+    return Plugin_Stop;
 }
 
 void ShowUpgradeListMenu(int client, const char[] upgradeGroup)
 {
     if (!g_bPlayerBrowsing[client])
+    {
+        g_bInUpgradeList[client] = false;
         return;
+    }
 
     // Load hu_attributes.cfg to find the upgrades in the selected group
     char attrFile[PLATFORM_MAX_PATH];
@@ -1398,6 +1976,7 @@ void ShowUpgradeListMenu(int client, const char[] upgradeGroup)
     {
         PrintToChat(client, "[Hyper Upgrades] Failed to load attributes config.");
         delete kv;
+        g_bInUpgradeList[client] = false;
         return;
     }
 
@@ -1410,11 +1989,12 @@ void ShowUpgradeListMenu(int client, const char[] upgradeGroup)
     {
         PrintToChat(client, "[Hyper Upgrades] No upgrades found for this item.");
         delete kv;
+        g_bInUpgradeList[client] = false;
         return;
     }
 
     // Get the current multiplier when building the menu
-    int multiplier = GetUpgradeMultiplier(client);
+    int multiplier = g_bInUpgradeList[client] ? GetUpgradeMultiplier(client) : 1; 
     g_iPlayerLastMultiplier[client] = multiplier; // Save it for refresh tracking
 
     // Build the upgrade menu
@@ -1433,9 +2013,8 @@ void ShowUpgradeListMenu(int client, const char[] upgradeGroup)
 
         char upgradeName[64];
         kv.GetString(NULL_STRING, upgradeName, sizeof(upgradeName));
-        TrimString(upgradeName); // ✅ Remove trailing whitespace from config strings
+        TrimString(upgradeName);
 
-        // Lookup upgrade alias from the name
         char upgradeAlias[64];
         if (!GetUpgradeAliasFromName(upgradeName, upgradeAlias, sizeof(upgradeAlias)))
         {
@@ -1443,7 +2022,6 @@ void ShowUpgradeListMenu(int client, const char[] upgradeGroup)
             continue;
         }
 
-        // Lookup UpgradeData by name (not alias!)
         int idx;
         if (!g_upgradeIndex.GetValue(upgradeName, idx))
         {
@@ -1462,29 +2040,51 @@ void ShowUpgradeListMenu(int client, const char[] upgradeGroup)
         bool hasLimit = upgrade.hadLimit;
 
         float currentLevel = GetPlayerUpgradeLevelForSlot(client, g_iPlayerBrowsingSlot[client], upgradeName);
-        //PrintToServer("[DEBUG] Upgrade Menu: Reading level %.3f for \"%s\" (slot = %d)", currentLevel, upgradeName, g_iPlayerBrowsingSlot[client]);
-        int purchases = RoundToFloor(currentLevel / increment);
 
-        // 🔸 New linear cost formula with multiplier
+        int IntCurrentLevel, IntInitValue, IntIncrement;
+        int scale = 1000000;
+
+        if (FloatAbs(limit) > 2000.0 || FloatAbs(currentLevel) > 2000.0)
+        {
+            scale = 1000;
+        }
+
+        IntCurrentLevel = RoundToNearest(currentLevel * scale);
+        IntInitValue    = RoundToNearest(initValue * scale);
+        IntIncrement    = RoundToNearest(increment * scale);
+
+        int purchases;
+        if (IntIncrement != 0)
+        {
+            purchases = IntCurrentLevel / IntIncrement;
+        }
+        else
+        {
+            purchases = 0;
+            PrintToServer("[Hyper Upgrades] Warning: Upgrade \"%s\" has increment = 0. Skipping cost scaling.", upgradeName);
+        }
+
         float totalCost = 0.0;
         int legalMultiplier = multiplier;
 
-        // Apply limit enforcement
         if (hasLimit)
         {
-            float appliedCurrent = initValue + currentLevel;
-            float appliedPotential = appliedCurrent + (increment * multiplier);
+            int IntAppliedCurrent   = IntInitValue + IntCurrentLevel;
+            int IntAppliedPotential = IntAppliedCurrent + (IntIncrement * multiplier);
+            int IntLimit            = RoundToNearest(limit * scale);
 
-            if (increment > 0.0 && appliedPotential > limit)
+            if (IntIncrement > 0 && IntAppliedPotential > IntLimit)
             {
-                float room = limit - appliedCurrent;
-                legalMultiplier = RoundToFloor(room / increment);
+                int room = IntLimit - IntAppliedCurrent;
+                legalMultiplier = room / IntIncrement;
             }
-            else if (increment < 0.0 && appliedPotential < limit)
+            else if (IntIncrement < 0 && IntAppliedPotential < IntLimit)
             {
-                float room = appliedCurrent - limit;
-                legalMultiplier = RoundToFloor(room / (-increment));
+                int room = IntAppliedCurrent - IntLimit;
+                legalMultiplier = room / -IntIncrement;
             }
+            if (legalMultiplier > multiplier)
+                legalMultiplier = multiplier;
         }
 
         for (int i = 0; i < legalMultiplier; i++)
@@ -1492,10 +2092,16 @@ void ShowUpgradeListMenu(int client, const char[] upgradeGroup)
             totalCost += baseCost + (baseCost * costMultiplier * float(purchases + i));
         }
 
-        // Build display string with multiplier
         char display[128];
         if (legalMultiplier <= 0)
         {
+            PrintToServer("[HU DEBUG] MAX REACHED for \"%s\"", upgradeName);
+            PrintToServer("  currentLevel=%.3f, initValue=%.3f, increment=%.3f, limit=%.3f",
+                currentLevel, initValue, increment, limit);
+            PrintToServer("  IntCurrentLevel=%d, IntInitValue=%d, IntIncrement=%d, IntLimit=%d",
+                IntCurrentLevel, IntInitValue, IntIncrement, RoundToNearest(limit * scale));
+            PrintToServer("  scale=%d, legalMultiplier=%d", scale, legalMultiplier);
+
             Format(display, sizeof(display), "%s (%.2f) [MAX]", upgradeName, currentLevel);
         }
         else
@@ -1516,20 +2122,23 @@ void ShowUpgradeListMenu(int client, const char[] upgradeGroup)
         PrintToChat(client, "[Hyper Upgrades] No upgrades available in this group.");
         delete kv;
         delete upgradeMenu;
+        g_bInUpgradeList[client] = false;
         return;
     }
 
     upgradeMenu.ExitBackButton = true;
-    upgradeMenu.Display(client, MENU_TIME_FOREVER);
+    g_MenuClient[client] = client;
+    upgradeMenu.DisplayAt(client, g_iUpgradeMenuPage[client], MENU_TIME_FOREVER);
+    g_bInUpgradeList[client] = true;
 
     delete kv;
 
     strcopy(g_sPlayerUpgradeGroup[client], sizeof(g_sPlayerUpgradeGroup[]), upgradeGroup);
 
-    // 🔸 Start the refresh timer if not already running
-    if (g_hRefreshTimer[client] == INVALID_HANDLE)
+    if (!g_bPlayerBrowsing[client])
     {
-        g_hRefreshTimer[client] = CreateTimer(0.2, Timer_CheckMenuRefresh, client, TIMER_REPEAT);
+        g_bInUpgradeList[client] = false;
+        return;
     }
 }
 
@@ -1563,11 +2172,11 @@ float GetPlayerUpgradeLevelForSlot(int client, int slot, const char[] upgradeNam
     // 🔍 Debug output to track where it's looking
     // PrintToServer("[DEBUG] GetPlayerUpgradeLevelForSlot(): Looking in [%s] for \"%s\"", slotPath, upgradeName);
 
-    int storedLevel = KvGetNum(g_hPlayerUpgrades[client], upgradeName, 0);
+    float storedLevel = KvGetFloat(g_hPlayerUpgrades[client], upgradeName, 0.0);
 
     KvRewind(g_hPlayerUpgrades[client]);
 
-    return float(storedLevel) / 1000.0;
+    return storedLevel;
 }
 
 bool GetUpgradeAliasFromName(const char[] upgradeName, char[] aliasOut, int maxlen)
@@ -1580,6 +2189,7 @@ bool GetUpgradeAliasFromName(const char[] upgradeName, char[] aliasOut, int maxl
     g_upgrades.GetArray(idx, upgrade);
 
     strcopy(aliasOut, maxlen, upgrade.alias);
+    // PrintToServer("[DEBUG] Upgrade name: %s → alias: %s", upgradeName, upgrade.alias);
     return true;
 }
 
@@ -1679,8 +2289,7 @@ void ApplyPlayerUpgrades(int client)
             char upgradeName[64];
             KvGetSectionName(g_hPlayerUpgrades[client], upgradeName, sizeof(upgradeName));
 
-            int storedLevel = KvGetNum(g_hPlayerUpgrades[client], NULL_STRING, 0);
-            float level = float(storedLevel) / 1000.0;
+            float level = KvGetFloat(g_hPlayerUpgrades[client], NULL_STRING, 0.0);
 
             // PrintToConsole(client, "[Debug] Applying upgrade: %s with stored level %d (parsed level %.2f)", upgradeName, storedLevel, level);
 
@@ -1729,6 +2338,10 @@ void ApplyPlayerUpgrades(int client)
 
     KvRewind(g_hPlayerUpgrades[client]);
 
+    if (g_iResistanceHudMode[client] != 0)
+    {
+        RefreshClientResistances(client); // Updates the res hud
+    }
     PrintToConsole(client, "[Hyper Upgrades] All upgrades have been applied.");
 }
 
@@ -1871,7 +2484,7 @@ public void OnBuildingSpawned(int entity)
     GetEntityClassname(entity, classname, sizeof(classname));
 
     // Debug message
-    PrintToServer("[Hyper Upgrades] Building spawned: %s by %N", classname, builder);
+    //  ("[Hyper Upgrades] Building spawned: %s by %N", classname, builder);
 
     ApplyBuildingUpgrades(builder, entity, classname);
 }
@@ -1906,8 +2519,7 @@ void ApplyBuildingUpgrades(int client, int entity, const char[] classname)
     {
         char upgradeName[64];
         KvGetSectionName(g_hPlayerUpgrades[client], upgradeName, sizeof(upgradeName));
-        int storedLevel = KvGetNum(g_hPlayerUpgrades[client], NULL_STRING, 0);
-        float level = float(storedLevel) / 1000.0;
+        float level = KvGetFloat(g_hPlayerUpgrades[client], NULL_STRING, 0.0);
 
         // Get attribute alias from name
         char upgradeAlias[64];
