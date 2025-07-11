@@ -7,21 +7,21 @@ def generate_hu_upgrades_cfg(csv_file):
         reader = csv.DictReader(csvfile)
         lines = ['"Upgrades"\n{']
         for row in reader:
-            if not row['alias'].strip():
+            if not row['name'].strip():
                 continue  # Skip blank lines
 
-            alias = row['alias']
-            lines.append(f'\t"{alias}"\n\t{{')
+            name = row['name']
+            lines.append(f'\t"{name}"\n\t{{')
             if row['cost'].strip():
                 lines.append(f'\t\t"Cost"\t"{row["cost"]}"')
-            if row['ratio'].strip():
-                lines.append(f'\t\t"Ratio"\t"{row["ratio"]}"')
+            if row['costincrease'].strip():
+                lines.append(f'\t\t"CostIncrease"\t"{row["costincrease"]}"')
             if row['increment'].strip():
                 lines.append(f'\t\t"Increment"\t"{row["increment"]}"')
             if row['limit'].strip():
                 lines.append(f'\t\t"Limit"\t"{row["limit"]}"')
-            if row['name'].strip():
-                lines.append(f'\t\t"Name"\t"{row["name"]}"')
+            if row['alias'].strip():
+                lines.append(f'\t\t"Alias"\t"{row["alias"]}"')
             if 'initvalue' in row and row['initvalue'].strip():
                 lines.append(f'\t\t"InitValue"\t"{row["initvalue"]}"')
             lines.append('\t}')
@@ -34,42 +34,33 @@ def generate_hu_upgrades_cfg(csv_file):
 
 def generate_hu_attributes_cfg(csv_file):
     with open(csv_file, newline='', encoding='utf-8') as csvfile:
-        reader = list(csv.DictReader(csvfile))
+        reader = csv.DictReader(csvfile)
         structure = {}
 
-        for idx, row in enumerate(reader):
+        for row in reader:
             if not row['upgradetype'].strip():
-                # Mark that we need to insert a blank line later at this CSV position
-                row['__blank__'] = True
-                continue
+                continue  # Skip blank lines
 
             upgrade_type = row['upgradetype']
             upgrade_target = row['upgradetarget']
             submenu = row['submenu']
             upgrade_number = row['upgradenumber']
-            upgrade_alias = row['upgradealias']
+            upgrade_name = row['upgradename']
 
-            structure.setdefault(upgrade_type, {}).setdefault(upgrade_target, {}).setdefault(submenu, {})[upgrade_number] = upgrade_alias
+            structure.setdefault(upgrade_type, {}).setdefault(upgrade_target, {}).setdefault(submenu, {})[upgrade_number] = upgrade_name
 
         lines = ['"Upgrades"\n{']
-        current_line = 0
-        blank_lines = [idx for idx, row in enumerate(reader) if '__blank__' in row]
-
         for upgrade_type, targets in structure.items():
             lines.append(f'\t"{upgrade_type}"\n\t{{')
             for target, submenus in targets.items():
                 lines.append(f'\t\t"{target}"\n\t\t{{')
                 for submenu, upgrades in submenus.items():
                     lines.append(f'\t\t\t"{submenu}"\n\t\t\t{{')
-                    sorted_upgrades = sorted(upgrades.items(), key=lambda x: int(x[0]))
-                    for number, alias in sorted_upgrades:
-                        lines.append(f'\t\t\t\t"{number}"\t"{alias}"')
-                        if current_line in blank_lines:
-                            lines.append('')  # Write empty line if needed
-                        current_line += 1
-                    lines.append(f'\t\t\t}}')
-                lines.append(f'\t\t}}')
-            lines.append(f'\t}}')
+                    for number, name in sorted(upgrades.items(), key=lambda x: int(x[0])):
+                        lines.append(f'\t\t\t\t"{number}"\t"{name}"')
+                    lines.append('\t\t\t}')
+                lines.append('\t\t}')
+            lines.append('\t}')
         lines.append('}')
 
     output_file = 'hu_attributes.cfg'

@@ -1,826 +1,826 @@
-name,cost,ratio,increment,limit,initvalue,alias
-*Absorb Damage While Cloaked,250,0.5,0.15,0.94,,absorb_damage_while_cloaked
-*Accepted Wedding Ring Account Id 1,100,0.5,0.1,,,accepted_wedding_ring_account_id_1
-*Accepted Wedding Ring Account Id 2,100,0.5,0.1,,,accepted_wedding_ring_account_id_2
-*Damage Scales With Accuracy,300,0.8,0.1,1000,1,accuracy_scales_damage
-*Active Health Degeneration,100,0.5,0.1,,,active_health_degen
-*Active Health Regeneration,100,0.5,0.1,,,active_health_regen
-*Add Cloak On Hit,1200,0.5,1,1,0,add_cloak_on_hit
-*Add Cloak On Kill,400,0.5,1,12,0,add_cloak_on_kill
-*Add Head On Hit,5000,0.5,1,1,,add_head_on_hit
-*Get Head On Kill,100,0.5,1,1,,add_head_on_kill
-*Add Jingle To Footsteps,100,0.5,1,1,0,add_jingle_to_footsteps
-*Get Ammo On Hit,100,0.5,1,1,,add_onhit_addammo
-*Get Uber Charge On Hit,800,0.4,0.05,0.5,0,add_uber_charge_on_hit
-*Additional Halloween Response Criteria Name,100,0.5,0.1,,,additional_halloween_response_criteria_name
-*Afterburn Duration Bonus,100,0.5,0.1,,,afterburn_duration_bonus
-*Afterburn Duration Penalty,100,0.5,0.1,,,afterburn_duration_penalty
-*Afterburn Immunity,100,0.5,0.1,,,afterburn_immunity
-*Aiming Knockback Resistance,100,0.5,0.1,,,aiming_knockback_resistance
-*Aiming Movespeed Decreased,400,0.5,-0.2,0.1,1,aiming_movespeed_decreased
-*Aiming Movespeed Increased,400,0.5,0.1,1.5,1,aiming_movespeed_increased
-*Aiming No Flinch,2500,0.5,1,1,0,aiming_no_flinch
-*Air Dash Count,350,0.5,1,5,0,air_dash_count
-*Air Jump On Attack,100,0.5,0.1,,,air_jump_on_attack
-*Airblast Cost Decreased,300,0.5,-0.05,0.1,1,airblast_cost_decreased
-*Airblast Cost Increased,100,0.5,0.1,,,airblast_cost_increased
-*Airblast Cost Scale Hidden,100,0.5,0.1,,,airblast_cost_scale_hidden
-*Disable Airblast Projectile Reflect,100,0.5,0.1,,,airblast_deflect_projectiles_disabled
-*Airblast Destroys Projectiles,100,0.5,0.1,,,airblast_destroy_projectile
-*Airblast Disabled,-200,0.5,1,1,0,airblast_disabled
-*Airblast Boosts Teammate Speed,500,0.5,1,1,0,airblast_give_teammate_speed_boost
-*No Pushback From Airblast,100,0.5,0.1,,,airblast_pushback_disabled
-*No Stun From Airblast,100,0.5,0.1,,,airblast_pushback_no_stun
-*Airblast Pushback No Viewpunch,100,0.5,0.1,,,airblast_pushback_no_viewpunch
-*Airblast Pushback Scale,1000,0.5,0.25,10,1,airblast_pushback_scale
-*Airblast Does Not Extinguish,100,0.5,0.1,,,airblast_put_out_teammate_disabled
-*Gain Ammo From Airblasting Projectiles,100,0.5,0.1,,,airblast_turn_projectile_to_ammo
-*Airblast Vertical Pushback Scale,100,0.5,0.1,,,airblast_vertical_pushback_scale
-*Airblast Vertical Vulnerability Multiplier,200,0.5,-0.1,0.05,1,airblast_vertical_vulnerability_multiplier
-*Airblast Vulnerability Multiplier,100,0.5,-0.1,0.05,1,airblast_vulnerability_multiplier
-*Airblast Vulnerability Multiplier Hidden,100,0.5,-0.1,0.05,1,airblast_vulnerability_multiplier_hidden
-*Allow Halloween Offering,100,0.5,0.1,,,allow_halloween_offering
-*Allowed In Medieval Mode,100,0.5,0.1,,,allowed_in_medieval_mode
-*Alt Fire Teleport To Spawn,1500,0.5,1,1,0,alt_fire_teleport_to_spawn
-*Alt-fire Disabled,100,0.5,0.1,,,alt-fire_disabled
-*Always Tradable,100,0.5,0.1,,,always_tradable
-*Always Transmit So,100,0.5,0.1,,,always_transmit_so
-*Ammo Becomes Health,100,0.5,1,1,0,ammo_becomes_health
-*Ammo Gives Charge,100,0.5,1,1,0,ammo_gives_charge
-*Ammo Regen,900,1.2,0.05,0.3,0,ammo_regen
-*Aoe Deflection,100,0.5,0.1,,,aoe_deflection
-*Applies Snare Effect,2000,0.5,0.05,0.5,0,applies_snare_effect
-*Apply Look Velocity On Damage,1000,0.5,25,200,0,apply_look_velocity_on_damage
-*Apply Z Velocity On Damage,1000,0.5,25,200,0,apply_z_velocity_on_damage
-*Armor Piercing,1200,0.5,0.25,5,1,armor_piercing
-*Arrow Heals Buildings,1100,1.4,10,50,0,arrow_heals_buildings
-*Attach Particle Effect,100,0.5,0.1,,,attach_particle_effect
-*Attach Particle Effect Static,100,0.5,0.1,,,attach_particle_effect_static
-*Extinguishing Minicrits,100,0.5,0.1,,,attack_minicrits_and_consumes_burning
-*Attack Does Not Cancel Charge,400,0.5,1,1,0,Attack_not_cancel_charge
-*Attack Projectiles,400,0.5,1,1,0,attack_projectiles
-*Auto Fires Full Clip,400,0.5,1,1,0,auto_fires_full_clip
-*Auto Fires Full Clip All At Once,400,0.5,1,1,0,auto_fires_full_clip_all_at_once
-*Auto Fires Full Clip Penalty,400,0.5,1,1,0,auto_fires_full_clip_penalty
-*Auto Fires When Full,100,0.5,0.1,,,auto_fires_when_full
-*Axtinguisher Properties,100,0.5,0.1,,,axtinguisher_properties
-*Back Headshot,100,0.5,0.1,,,back_headshot
-*Backstab Shield,100,0.5,0.1,,,backstab_shield
-*Become Fireproof On Hit By Fire,1900,0.75,1,100,0,become_fireproof_on_hit_by_fire
-*Bidirectional Teleport,500,0.5,1,1,0,bidirectional_teleport
-*Blast Dmg To Self Increased,100,0.5,0.1,,,blast_dmg_to_self_increased
-*Blast Radius Decreased,-1200,0.5,-0.34,0.3,1,Blast_radius_decreased
-*Blast Radius Increased,800,0.5,0.1,2,1,Blast_radius_increased
-*Bleeding Duration,150,1,1,60,1,bleeding_duration
-*Bombinomicon Effect On Death,1000,0.5,1,1,0,bombinomicon_effect_on_death
-*Boost On Damage,1000,0.5,1,1,0,boost_on_damage
-*Boots Falling Stomp,50,0.5,0.75,55,3,boots_falling_stomp
-*Bot Custom Jump Particle,100,0.5,0.1,,,bot_custom_jump_particle
-*Bot Medic Uber Deploy Delay Duration,100,0.5,0.1,,,bot_medic_uber_deploy_delay_duration
-*Bot Medic Uber Health Threshold,100,0.5,0.1,,,bot_medic_uber_health_threshold
-*Breadgloves Properties,100,0.5,0.1,,,breadgloves_properties
-*Build Rate Bonus,300,1.3,-0.1,0.2,1,build_rate_bonus
-*Building Cost Reduction,100,0.5,0.1,,,building_cost_reduction
-*Building Instant Upgrade,5000,0.5,1,1,0,building_instant_upgrade
-*Bullets Per Shot Bonus,1000,0.25,0.25,2,1,bullets_per_shot_bonus
-*Burn Damage Earns Rage,450,0.5,1,10,0,burn_damage_earns_rage
-*Can Overload,100,0.5,0.1,,,can_overload
-*Can Shuffle Crate Contents,100,0.5,0.1,,,can_shuffle_crate_contents
-*Cancel Falling Damage,600,0.5,1,1,0,cancel_falling_damage
-*Cannonball Push Back,500,0.5,1,1,,cannonball_push_back
-*Cannot Be Backstabbed,5000,0.5,1,1,,cannot_be_backstabbed
-*Cannot Delete,100,0.5,0.1,,,cannot_delete
-*Cannot Disguise,100,0.5,0.1,,,cannot_disguise
-*Cannot Giftwrap,100,0.5,0.1,,,cannot_giftwrap
-*Cannot Pick Up Buildings,100,0.5,0.1,,,cannot_pick_up_buildings
-*Cannot Pick Up Intelligence,100,0.5,0.1,,,cannot_pick_up_intelligence
-*Cannot Restore,100,0.5,0.1,,,cannot_restore
-*Cannot Trade,100,0.5,0.1,,,cannot_trade
-*Cannot Transmute,100,0.5,0.1,,,cannot_transmute
-*Canteen Specialist,100,0.5,0.1,,,canteen_specialist
-*Damage Bonus (CARD),100,0.5,0.1,,,CARD:_damage_bonus
-*Bullet Resist (CARD),100,0.5,0.1,,,CARD:_dmg_taken_from_bullets_reduced
-*Health Regen (CARD),100,0.5,0.1,,,CARD:_health_regen
-*Move Speed Bonus (CARD),100,0.5,0.1,,1,CARD:_move_speed_bonus
-*Centerfire Projectile,100,0.5,0.1,,,centerfire_projectile
-*Charge Impact Damage Decreased,100,0.5,0.1,,,charge_impact_damage_decreased
-*Charge Impact Damage Increased,200,0.3,0.25,1600,1,charge_impact_damage_increased
-*Charge Meter On Hit,200,0.3,0.25,1,1,charge_meter_on_hit
-*Charge Recharge Rate Increased,150,0.5,1,25,1,charge_recharge_rate_increased
-*Charge Time Decreased,200,0.75,0.5,10,1,charge_time_decreased
-*Charge Time Increased,200,0.75,0.5,10,1,charge_time_increased
-*Charged Airblast,200,0.5,1,1,0,charged_airblast
-*Class Select Override Vcd,100,0.5,0.1,,,class_select_override_vcd
-*Cleaver Description,100,0.5,0.1,,,cleaver_description
-*Clip Size Bonus,200,0.5,0.5,80,1,clip_size_bonus
-*Clip Size Bonus Upgrade,600,0.2,0.25,100,1,clip_size_bonus_upgrade
-*Clip Size Penalty,-400,0.5,-0.1,5,1,clip_size_penalty
-*Clip Size Penalty Hidden,-200,0.5,-0.15,0.25,1,clip_size_penalty_HIDDEN
-*Clip Size Upgrade Atomic,100,0.5,0.1,,,clip_size_upgrade_atomic
-*Clipsize Increase On Kill,800,0.2,1,1000,1,clipsize_increase_on_kill
-*Feigning Death Consumes Cloak,100,0.5,0.1,,,cloak_consume_on_feign_death_activate
-*Cloak Consume Rate Decreased,100,0.5,0.1,,,cloak_consume_rate_decreased
-*Cloak Consume Rate Increased,100,0.5,0.1,,,cloak_consume_rate_increased
-*Cloak Regen Rate Decreased,100,0.5,0.1,,,cloak_regen_rate_decreased
-*Cloak Regen Rate Increased,200,0.5,0.2,6,0,cloak_regen_rate_increased
-*Closerange Backattack Minicrits,100,0.5,0.1,,,closerange_backattack_minicrits
-*Community Description,100,0.5,0.1,,,community_description
-*Construction Speed Bonus,100,0.5,0.1,,,Construction_rate_decreased
-*Construction Speed Malus,200,0.5,0.34,15,0,Construction_rate_increased
-*Allow Inspecting Cosmetic,100,0.5,0.1,,,cosmetic_allow_inspect
-*Cosmetic Taunt Sound,100,0.5,0.1,,,cosmetic_taunt_sound
-*Counts As Assister Is Some Kind Of Pet This Update Is Going To Be Awesome,666,0.5,0.1,,,counts_as_assister_is_some_kind_of_pet_this_update_is_going_to_be_awesome
-*Crate Generation Code,100,0.5,0.1,,,crate_generation_code
-*Crit Damage Has Falloff,500,0.25,-0.1,0.1,1,crit_dmg_falloff
-*No Critical Damage,100,0.5,0.1,,,crit_does_no_damage
-*Crit Forces Victim To Laugh,2000,0.5,1,1,0,crit_forces_victim_to_laugh
-*Crit From Behind,1200,0.5,1,1,0,crit_from_behind
-*Crit Kill Will Gib,500,0.5,1,1,0,crit_kill_will_gib
-*Crit Mod Disabled,400,0.5,0.05,1,0.15,crit_mod_disabled
-*Crit Mod Disabled Hidden,100,0.5,0.1,,,crit_mod_disabled_hidden
-*Crit On Hard Hit,100,0.5,0.1,,,crit_on_hard_hit
-*Crit Vs Burning Players (Flare),10000,0.5,1,1,0,crit_vs_burning_FLARES_DISPLAY_ONLY
-*Crit Vs Burning Players,10000,0.5,1,1,0,crit_vs_burning_players
-*Crit Vs Disguised Players,2000,0.5,1,1,0,crit_vs_disguised_players
-*Crit Vs Non Burning Players,2000,0.5,1,1,0,crit_vs_non_burning_players
-*Crit Vs Stunned Players,5000,0.5,1,1,0,crit_vs_stunned_players
-*Crit Vs Wet Players,2500,0.5,1,1,0,crit_vs_wet_players
-*Critboost,100000,0.5,0.1,,,critboost
-*Critboost On Kill,450,1.2,2,60,0,critboost_on_kill
-*Crits Become Minicrits,500,0.5,1,1,0,crits_become_minicrits
-*Currency Bonus,100,0.5,0.1,,,currency_bonus
-*Custom Desc Attr,100,0.5,0.1,,,custom_desc_attr
-*Custom Employee Number,100,0.5,0.1,,,custom_employee_number
-*Custom Name Attr,100,0.5,0.1,,,custom_name_attr
-*Custom Paintkit Seed Hi,100,0.5,0.1,,,custom_paintkit_seed_hi
-*Custom Paintkit Seed Lo,100,0.5,0.1,,,custom_paintkit_seed_lo
-*Custom Projectile Model,100,0.5,0.1,,,custom_projectile_model
-*Custom Texture Hi,100,0.5,0.1,,,custom_texture_hi
-*Custom Texture Lo,100,0.5,0.1,,,custom_texture_lo
-*Damage All Connected,1500,0.5,1,1,0,damage_all_connected
-*Damage Applies To Sappers,1000,0.5,1,1,0,damage_applies_to_sappers
-*Damage Blast Push,800,0.5,0.2,3,0,damage_blast_push
-*Damage Bonus,400,0.2,0.25,7500,1,damage_bonus
-*Damage Bonus Bullet Vs Sentry Target,100,0.5,0.1,,,damage_bonus_bullet_vs_sentry_target
-*Damage Bonus Hidden,1200,0.2,0.25,7500,1,damage_bonus_HIDDEN
-*Damage Bonus Vs Burning,1200,0.2,0.25,7500,1,damage_bonus_vs_burning
-*Damage Bonus While Disguised,100,0.5,0.1,,,damage_bonus_while_disguised
-*Damage Causes Airblast,2000,0.5,1,1,0,damage_causes_airblast
-*Damage Force Increase,200,0.5,0.2,2,0,damage_force_increase
-*Damage Force Increase Hidden,200,0.5,0.2,2,0,damage_force_increase_hidden
-*Damage Force Increase Text,100,0.5,0.1,,,damage_force_increase_text
-*Damage Force Reduction,200,1,-0.1,0.02,1,damage_force_reduction
-*Damage Penalty,1200,0.8,0.15,1000,1,damage_penalty
-*Damage Penalty On Bodyshot,-600,0.8,0.15,1000,1,damage_penalty_on_bodyshot
-*Deactive Date,100,0.5,0.1,,,deactive_date
-*Decapitate Type,100,0.5,0.1,,,decapitate_type
-*Decoded By Itemdefindex,100,0.5,0.1,,,decoded_by_itemdefindex
-*Deflection Size Multiplier,1200,0.5,0.05,10,1,deflection_size_multiplier
-*Deploy Time Decreased,200,0.5,-0.25,0.1,1,deploy_time_decreased
-*Deploy Time Increased,100,0.5,0.1,,,deploy_time_increased
-*Disable Fancy Class Select Anim,100,0.5,0.1,,,disable_fancy_class_select_anim
-*Disable Weapon Hiding For Animations,100,0.5,0.1,,,disable_weapon_hiding_for_animations
-*Disable Weapon Switch,100,0.5,0.1,,,disable_weapon_switch
-*Disguise Damage Reduction,4000,0.5,-0.1,0.5,1,disguise_damage_reduction
-*Disguise No Burn,800,0.5,1,1,0,disguise_no_burn
-*Disguise On Backstab,600,0.5,1,1,0,disguise_on_backstab
-*Disguise Speed,200,0.5,-0.1,-1.5,0,disguise_speed_penalty
-*Display Duck Leaderboard,100,0.5,0.1,,,display_duck_leaderboard
-*Dmg Bonus Vs Buildings,800,0.2,0.1,500,1,dmg_bonus_vs_buildings
-*Dmg Bonus While Half Dead,400,0.5,0.25,1500,1,dmg_bonus_while_half_dead
-*Dmg Falloff Decreased,100,0.5,-0.25,0.05,1,dmg_falloff_decreased
-*Dmg Falloff Increased,100,0.5,0.1,,,dmg_falloff_increased
-*Melee Resistance,250,1,-0.1,0.1,1,dmg_from_melee_increased
-*Dmg From Ranged Reduced,750,1.2,-0.05,0.15,1,dmg_from_ranged_reduced
-*Dmg Penalty Vs Buildings,100,0.5,0.1,,,dmg_penalty_vs_buildings
-*Dmg Penalty Vs Nonburning,100,0.5,0.1,,,dmg_penalty_vs_nonburning
-*Dmg Penalty Vs Nonstunned,100,0.5,0.1,,,dmg_penalty_vs_nonstunned
-*Dmg Penalty Vs Players,400,0.2,0.25,10000,1,dmg_penalty_vs_players
-*Damage bonus vs player (C),300,0.2,0.25,10000,1,dmg_penalty_vs_players
-*Damage bonus vs player (S),2000,0.2,1,10000,1,dmg_penalty_vs_players
-*Dmg Penalty While Half Alive,100,0.5,0.1,,,dmg_penalty_while_half_alive
-*Dmg Pierces Resists Absorbs,100,0.5,0.1,,,dmg_pierces_resists_absorbs
-*Dmg Taken From Blast Increased,350,1,-0.1,0.1,1,dmg_taken_from_blast_increased
-*Blast Resistance,350,1,-0.1,0.1,1,dmg_taken_from_blast_reduced
-*Dmg Taken From Bullets Increased,350,1,-0.1,0.1,1,dmg_taken_from_bullets_increased
-*Bullet Resistance,350,1,-0.1,0.1,1,dmg_taken_from_bullets_reduced
-*Dmg Taken From Crit Increased,350,0.9,-0.1,0.1,1,dmg_taken_from_crit_increased
-*Crit Resistance,350,0.9,-0.1,0.1,1,dmg_taken_from_crit_reduced
-*Dmg Taken From Fire Increased,350,1,-0.1,0.1,1,dmg_taken_from_fire_increased
-*Fire Resistance,350,1,-0.1,0.1,1,dmg_taken_from_fire_reduced
-*Fire Resistance On Active,300,1,-0.1,0.1,1,dmg_taken_from_fire_reduced_on_active
-*Dmg Taken Reduced,900,1.4,-0.05,0.15,1,dmg_taken_increased
-*Dragons Fury Negative Properties,100,0.5,0.1,,,dragons_fury_negative_properties
-*Dragons Fury Neutral Properties,100,0.5,0.1,,,dragons_fury_neutral_properties
-*Dragons Fury Positive Properties,100,0.5,0.1,,,dragons_fury_positive_properties
-*Drop Health Pack On Kill,500,0.5,1,1,0,drop_health_pack_on_kill
-*Duck Badge Level,100,0.5,0.1,,,duck_badge_level
-*Duck Rating,100,0.5,0.1,,,duck_rating
-*Duckstreaks Active,100,0.5,0.1,,,duckstreaks_active
-*Duel Loser Account Id,100,0.5,0.1,,,duel_loser_account_id
-*Effect Bar Recharge Rate Increased,250,0.75,-0.1,0.01,1,effect_bar_recharge_rate_increased
-*Electrical Airblast Display Only,100,0.5,0.1,,,electrical_airblast_DISPLAY_ONLY
-*Elevate Quality,100,0.5,0.1,,,elevate_quality
-*Elevate To Unusual If Applicable,100,0.5,0.1,,,elevate_to_unusual_if_applicable
-*Enables Aoe Heal,400,0.5,1,5,0,enables_aoe_heal
-*End Drop Date,100,0.5,0.1,,,end_drop_date
-*Energy Buff Dmg Taken Multiplier,100,0.5,0.1,,,energy_buff_dmg_taken_multiplier
-*Energy Weapon Charged Shot,100,0.5,0.1,,,energy_weapon_charged_shot
-*Energy Weapon No Ammo,100,0.5,0.1,,,energy_weapon_no_ammo
-*Energy Weapon No Deflect,100,0.5,0.1,,,energy_weapon_no_deflect
-*Energy Weapon No Drain,100,0.5,0.1,,,energy_weapon_no_drain
-*Energy Weapon No Hurt Building,100,0.5,0.1,,,energy_weapon_no_hurt_building
-*Energy Weapon Penetration,100,0.5,0.1,,,energy_weapon_penetration
-*Engineer Building Teleporting Pickup,6000,0.5,50,50,0,engineer_building_teleporting_pickup
-*Engineer Rage On Dmg,100,0.5,0.1,,,engineer_rage_on_dmg
-*Engineer Sentry Build Rate Multiplier,250,0.75,-0.1,0.1,1,engineer_sentry_build_rate_multiplier
-*Engineer Teleporter Build Rate Multiplier,250,0.75,-0.1,0.1,1,engineer_teleporter_build_rate_multiplier
-*Engy Building Health Bonus,400,0.1,1,1500,1,engy_building_health_bonus
-*Engy Dispenser Radius Increased,200,0.5,1,100,1,engy_dispenser_radius_increased
-*Engy Disposable Sentries,500,0.5,1,3,0,engy_disposable_sentries
-*Engy Sentry Damage Bonus,400,0.4,0.25,2950,1,engy_sentry_damage_bonus
-*Engy Sentry Fire Rate Increased,400,0.5,-0.1,0.1,1,engy_sentry_fire_rate_increased
-*Engy Sentry Radius Increased,600,0.5,0.1,2,1,engy_sentry_radius_increased
-*Event Date,100,0.5,0.1,,,event_date
-*Expiration Date,100,0.5,0.1,,,expiration_date
-*Explode On Ignite,3000,0.5,1,1,0,explode_on_ignite
-*Explosive Sniper Shot,1000,0.5,1,1,0,explosive_sniper_shot
-*Extinguish Earns Revenge Crits,200,0.5,1,4,0,extinguish_earns_revenge_crits
-*Extinguish Reduces Cooldown,200,0.5,1,1,0,extinguish_reduces_cooldown
-*Extinguish Restores Health,200,0.1,20,1000,0,extinguish_restores_health
-*Falling Impact Radius Pushback,1000,0.5,1,1,0,falling_impact_radius_pushback
-*Falling Impact Radius Stun,1000,0.5,1,1,0,falling_impact_radius_stun
-*Faster Reload Rate,250,0.5,-0.1,0.1,1,faster_reload_rate
-*Fire Particle Blue,100,0.5,0.1,,,fire_particle_blue
-*Fire Particle Blue Crit,100,0.5,0.1,,,fire_particle_blue_crit
-*Fire Particle Red,100,0.5,0.1,,,fire_particle_red
-*Fire Particle Red Crit,100,0.5,0.1,,,fire_particle_red_crit
-*Fire Rate Bonus,300,0.5,-0.1,0.1,1,fire_rate_bonus
-*Fire Rate Bonus (Bat),300,0.5,-0.1,0.4,1,fire_rate_bonus
-*Fire Rate Bonus Hidden,400,0.5,-0.1,0.5,1,fire_rate_bonus_HIDDEN
-*Fire Rate Bonus With Reduced Health,400,0.5,-0.1,0.5,1,fire_rate_bonus_with_reduced_health
-*Fire Rate Penalty,-400,0.5,0.1,25,1,fire_rate_penalty
-*Fire Rate Penalty Hidden,100,0.5,0.1,,,fire_rate_penalty_HIDDEN
-*Fire Retardant,100,0.5,0.1,,,fire_retardant
-*Fish Damage Override,100,0.5,0.1,,,fish_damage_override
-*Fists Have Radial Buff,100,0.5,0.1,,,fists_have_radial_buff
-*Fixed Shot Pattern,600,0.5,1,1,0,fixed_shot_pattern
-*Flame Ammopersec Decreased,200,0.5,-0.1,0.1,1,flame_ammopersec_decreased
-*Flame Ammopersec Increased,-200,0.5,1,5,0,flame_ammopersec_increased
-*Flame Drag,100,0.5,0.1,,,flame_drag
-*Flame Gravity,100,0.5,0.1,,,flame_gravity
-*Flame Ignore Player Velocity,100,0.5,0.1,,,flame_ignore_player_velocity
-*Flame Life Bonus,250,0.5,0.25,5,1,flame_life_bonus
-*Flame Life Penalty,100,0.5,0.1,,,flame_life_penalty
-*Flame Lifetime,250,0.5,0.25,5,1,flame_lifetime
-*Flame Random Life Time Offset,100,0.5,0.1,,,flame_random_life_time_offset
-*Flame Reflect On Collision,800,0.5,1,1,1,flame_reflect_on_collision
-*Flame Reflection Add Life Time,100,0.5,0.1,,,flame_reflection_add_life_time
-*Flame Size Bonus,800,0.3,1,60,1,flame_size_bonus
-*Flame Size Penalty,100,0.5,0.1,,,flame_size_penalty
-*Flame Speed,600,0.5,1000,8000,2000,flame_speed
-*Flame Spread Degree,100,0.5,0.1,,,flame_spread_degree
-*Flame Up Speed,600,0.5,1000,8000,2000,flame_up_speed
-*Force Center Wrap,100,0.5,0.1,,,force_center_wrap
-*Force Level Display,100,0.5,0.1,,,force_level_display
-*Force Weapon Switch,100,0.5,0.1,,,force_weapon_switch
-*Freaky Fair Ammo Potion,100,0.5,0.1,,,freaky_fair_ammo_potion
-*Freaky Fair Buster Potion,100,0.5,0.1,,,freaky_fair_buster_potion
-*Freaky Fair Extra Attrib1,100,0.5,0.1,,,freaky_fair_extra_attrib1
-*Freaky Fair Extra Attrib2,100,0.5,0.1,,,freaky_fair_extra_attrib2
-*Freaky Fair Ghost Potion,100,0.5,0.1,,,freaky_fair_ghost_potion
-*Freaky Fair Giant Potion,100,0.5,0.1,,,freaky_fair_giant_potion
-*Freaky Fair Healing Potion,100,0.5,0.1,,,freaky_fair_healing_potion
-*Freaky Fair Kritz Potion,100,0.5,0.1,,,freaky_fair_kritz_potion
-*Freaky Fair Relentless Potion,100,0.5,0.1,,,freaky_fair_relentless_potion
-*Freaky Fair Rtd Potion,100,0.5,0.1,,,freaky_fair_rtd_potion
-*Freaky Fair Uber Potion,100,0.5,0.1,,,freaky_fair_uber_potion
-*Freeze Backstab Victim,800,0.5,1,1,0,freeze_backstab_victim
-*Full Charge Turn Control,100,0.5,0.1,,,full_charge_turn_control
-*Decrease Grenade Fuse Time,200,0.5,-0.1,0,1,fuse_bonus
-*Generate Rage On Damage,800,0.5,1,50,0,generate_rage_on_damage
-*Generate Rage On Heal,2000,0.5,1,2,0,generate_rage_on_heal
-*Gesture Speed Increase,75,0.5,1,5,1,gesture_speed_increase
-*Gifter Account Id,100,0.5,0.1,,,gifter_account_id
-*Grenade Damage Reduction On World Contact,100,0.5,0.1,,,grenade_damage_reduction_on_world_contact
-*Grenade Detonation Damage Penalty,100,0.5,0.1,,,grenade_detonation_damage_penalty
-*Grenade Launcher Mortar Mode,100,0.5,0.1,,,grenade_launcher_mortar_mode
-*Grenade No Bounce,1000,0.5,1,1,0,grenade_no_bounce
-*Grenade No Spin,500,0.5,1,1,0,grenade_no_spin
-*Grenade Not Explode On Impact,500,0.5,1,1,0,grenade_not_explode_on_impact
-*Grenades1 Resupply Denied,100,0.5,0.1,,,grenades1_resupply_denied
-*Grenades2 Resupply Denied,100,0.5,0.1,,,grenades2_resupply_denied
-*Grenades3 Resupply Denied,100,0.5,0.1,,,grenades3_resupply_denied
-*Gunslinger Punch Combo,100,0.5,0.1,,,gunslinger_punch_combo
-*Halloween Fire Rate Bonus,100,0.5,0.1,,,halloween_fire_rate_bonus
-*Halloween Increased Jump Height,100,0.5,0.1,,,halloween_increased_jump_height
-*Halloween Item,100,0.5,0.1,,,halloween_item
-*Halloween Reload Time Decreased,100,0.5,0.1,,,halloween_reload_time_decreased
-*Audere Spell,100,0.5,0.1,,,Halloween_Spellbook_Page:_Audere
-*Congeriae Spell,100,0.5,0.1,,,Halloween_Spellbook_Page:_Congeriae
-*Gratanter Spell,100,0.5,0.1,,,Halloween_Spellbook_Page:_Gratanter
-*Tumidum Spell,100,0.5,0.1,,,Halloween_Spellbook_Page:_Tumidum
-*Veteris Spell,100,0.5,0.1,,,Halloween_Spellbook_Page:_Veteris
-*Halloweenvision Filter Display Only,100,0.5,0.1,,,halloweenvision_filter_DISPLAY_ONLY
-*Halloweenvision Opt In Display Only,100,0.5,0.1,,,halloweenvision_opt_in_DISPLAY_ONLY
-*Hand Scale,100,0.5,0.1,,,hand_scale
-*Has Pipboy Build Interface,100,0.5,1,1,0,has_pipboy_build_interface
-*Has Team Color Paintkit,100,0.5,0.1,,,has_team_color_paintkit
-*Hat Only Unusual Effect,100,0.5,0.1,,,hat_only_unusual_effect
-*Head Scale,100,0.5,0.1,,,head_scale
-*Headshot Damage Increase,1000,0.5,0.5,2,1,headshot_damage_increase
-*Heal On Hit For Rapidfire,1200,1.5,1,3,0,heal_on_hit_for_rapidfire
-*Heal On Hit For Slowfire,800,0.5,1,20,0,heal_on_hit_for_slowfire
-*Heal On Kill,200,0.05,50,25000,0,heal_on_kill
-*Heal Rate Bonus,400,0.25,0.25,500,1,heal_rate_bonus
-*Heal Rate Penalty,100,0.5,0.1,,,heal_rate_penalty
-*Healing Mastery,1000,0.5,1,4,0,healing_mastery
-*Healing Received Bonus,100,0.5,0.1,,,healing_received_bonus
-*Healing Received Penalty,100,0.5,0.1,,,healing_received_penalty
-*Health Drain,100,0.5,0.1,,,health_drain
-*Health Drain Medic,100,0.5,0.1,,,health_drain_medic
-*Health From Healers Increased,800,0.6,0.25,30,1,health_from_healers_increased
-*Health From Healers Reduced,100,0.5,0.1,,,health_from_healers_reduced
-*Health From Packs Decreased,100,0.5,0.1,,,health_from_packs_decreased
-*Health From Packs Increased,450,0.5,0.25,5,1,health_from_packs_increased
-*Health On Radius Damage,100,0.5,0.1,,,health_on_radius_damage
-*Health Regen,750,0.7,2,20000,0,health_regen
-*Hidden Maxhealth Non Buffed,100,0.5,0.1,,,hidden_maxhealth_non_buffed
-*Hidden Primary Max Ammo Bonus,100,0.5,0.1,,,hidden_primary_max_ammo_bonus
-*Hidden Secondary Max Ammo Penalty,100,0.5,0.1,,,hidden_secondary_max_ammo_penalty
-*Hide Crate Series Number,100,0.5,0.1,,,hide_crate_series_number
-*Hide Enemy Health,100,0.5,0.1,,,hide_enemy_health
-*Hide Strange Prefix,100,0.5,0.1,,,hide_strange_prefix
-*Hit Self On Miss,100,0.5,1,1,0,hit_self_on_miss
-*Holster Anim Time,100,0.5,0.1,,,holster_anim_time
-*Honorbound,0,0.5,-1,0,1,honorbound
-*Hype Decays Over Time,100,0.5,0.1,,,hype_decays_over_time
-*Hype On Damage,100,0.5,0.1,,,hype_on_damage
-*Hype Resets On Jump,100,0.5,0.1,,,hype_resets_on_jump
-*Increase Buff Duration,1000,0.35,0.2,90,1,increase_buff_duration
-*Increase Buff Duration Hidden,1000,0.35,0.2,90,1,increase_buff_duration_HIDDEN
-*Increase Player Capture Value,600,0.5,1,3,0,increase_player_capture_value
-*Increased Air Control,400,0.5,5,25,0,increased_air_control
-*Increased Jump Height,200,1,0.2,3,1,increased_jump_height
-*Increased Jump Height From Weapon,200,0.5,0.2,2,1,increased_jump_height_from_weapon
-*Inspect Viewmodel Offset,100,0.5,0.1,,,inspect_viewmodel_offset
-*Is A Sword,100,0.5,0.1,,,is_a_sword
-*Is Australium Item,1000,0.5,1,1,0,is_australium_item
-*Is Commodity,100,0.5,0.1,,,is_commodity
-*Is Festivized,500,0.5,1,1,0,is_festivized
-*Is Giger Counter,100,0.5,0.1,,,is_giger_counter
-*Is Marketable,100,0.5,0.1,,,is_marketable
-*Is Operation Pass,100,0.5,0.1,,,is_operation_pass
-*Is Passive Weapon,100,0.5,0.1,,,is_passive_weapon
-*Is Throwable Chargeable,100,0.5,0.1,,,is_throwable_chargeable
-*Is Throwable Primable,100,0.5,0.1,,,is_throwable_primable
-*Is Winter Case,100,0.5,0.1,,,is_winter_case
-*Item Drop Wave,100,0.5,0.1,,,item_drop_wave
-*Item In Slot 1,100,0.5,0.1,,,item_in_slot_1
-*Item In Slot 2,100,0.5,0.1,,,item_in_slot_2
-*Item In Slot 3,100,0.5,0.1,,,item_in_slot_3
-*Item In Slot 4,100,0.5,0.1,,,item_in_slot_4
-*Item In Slot 5,100,0.5,0.1,,,item_in_slot_5
-*Item In Slot 6,100,0.5,0.1,,,item_in_slot_6
-*Item In Slot 7,100,0.5,0.1,,,item_in_slot_7
-*Item In Slot 8,100,0.5,0.1,,,item_in_slot_8
-*Item Charge Rate,250,0.75,-0.01,0.9,1,item_meter_charge_rate
-*Item Meter Charge Type,100,0.5,0.1,,,item_meter_charge_type
-*Item Meter Charge Type 3 Display Only,100,0.5,0.1,,,item_meter_charge_type_3_DISPLAY_ONLY
-*Item Meter Damage For Full Charge,100,0.5,0.1,,,item_meter_damage_for_full_charge
-*Item Meter Resupply Denied,100,0.5,0.1,,,item_meter_resupply_denied
-*Item Meter Starts Empty Display Only,100,0.5,0.1,,,item_meter_starts_empty_DISPLAY_ONLY
-*Item Name Text Override,100,0.5,0.1,,,item_name_text_override
-*Item Slot Criteria 1,100,0.5,0.1,,,item_slot_criteria_1
-*Item Slot Criteria 2,100,0.5,0.1,,,item_slot_criteria_2
-*Item Slot Criteria 3,100,0.5,0.1,,,item_slot_criteria_3
-*Item Slot Criteria 4,100,0.5,0.1,,,item_slot_criteria_4
-*Item Slot Criteria 5,100,0.5,0.1,,,item_slot_criteria_5
-*Item Slot Criteria 6,100,0.5,0.1,,,item_slot_criteria_6
-*Item Slot Criteria 7,100,0.5,0.1,,,item_slot_criteria_7
-*Item Slot Criteria 8,100,0.5,0.1,,,item_slot_criteria_8
-*Item Style Override,100,0.5,0.1,,,item_style_override
-*Items Traded In For,100,0.5,0.1,,,items_traded_in_for
-*Jarate Backstabber,100,0.5,0.1,,,jarate_backstabber
-*Jarate Description,100,0.5,0.1,,,jarate_description
-*Jarate Duration,200,0.75,1,30,1,jarate_duration
-*Kill Eater,100,0.5,0.1,,,kill_eater
-*Kill Eater 2,100,0.5,0.1,,,kill_eater_2
-*Kill Eater 3,100,0.5,0.1,,,kill_eater_3
-*Kill Eater Kill Type,100,0.5,0.1,,,kill_eater_kill_type
-*Kill Eater Score Type,100,0.5,0.1,,,kill_eater_score_type
-*Kill Eater Score Type 2,100,0.5,0.1,,,kill_eater_score_type_2
-*Kill Eater Score Type 3,100,0.5,0.1,,,kill_eater_score_type_3
-*Kill Eater User 1,100,0.5,0.1,,,kill_eater_user_1
-*Kill Eater User 2,100,0.5,0.1,,,kill_eater_user_2
-*Kill Eater User 3,100,0.5,0.1,,,kill_eater_user_3
-*Kill Eater User Score Type 1,100,0.5,0.1,,,kill_eater_user_score_type_1
-*Kill Eater User Score Type 2,100,0.5,0.1,,,kill_eater_user_score_type_2
-*Kill Eater User Score Type 3,100,0.5,0.1,,,kill_eater_user_score_type_3
-*Kill Forces Attacker To Laugh,100,0.5,0.1,,,kill_forces_attacker_to_laugh
-*Kill Refills Meter,100,0.5,0.1,,,kill_refills_meter
-*Killstreak Effect,100,0.5,0.1,,,killstreak_effect
-*Killstreak Idleeffect,100,0.5,0.1,,,killstreak_idleeffect
-*Killstreak Tier,100,0.5,0.1,,,killstreak_tier
-*Limited Quantity Item,100,0.5,0.1,,,limited_quantity_item
-*Loot List Name,100,0.5,0.1,,,loot_list_name
-*Loot Rarity,100,0.5,0.1,,,loot_rarity
-*Damage Won't Reduce Charge,800,0.5,-1,0,1,lose_demo_charge_on_damage_when_charging
-*Lose Hype On Take Damage,100,0.5,0.1,,,lose_hype_on_take_damage
-*Lose Revenge Crits On Death Display Only,100,0.5,0.1,,,lose_revenge_crits_on_death_DISPLAY_ONLY
-*Lunchbox Adds Maxhealth Bonus,100,0.5,1,1,0,lunchbox_adds_maxhealth_bonus
-*Lunchbox Adds Minicrits,2000,0.5,2,2,0,lunchbox_adds_minicrits
-*Lunchbox Healing Decreased,100,0.5,0.1,,,lunchbox_healing_decreased
-*Mad Milk Syringes,1000,0.5,1,1,0,mad_milk_syringes
-*Major Increased Jump Height,2000,0.5,1,2,1,major_increased_jump_height
-*Major Move Speed Bonus,2000,0.5,1,2,1,major_move_speed_bonus
-*Makers Mark Id,100,0.5,0.1,,,makers_mark_id
-*Mark For Death,100,0.5,0.1,,,mark_for_death
-*Mark For Death On Building Pickup,100,0.5,0.1,,,mark_for_death_on_building_pickup
-*Max Flame Reflection Count,100,0.5,0.1,,,max_flame_reflection_count
-*Max Health Bonus,300,0.5,25,50000,0,max_health_additive_bonus
-*Max Health Additive Penalty,-200,0.5,-25,-100,0,max_health_additive_penalty
-*Max Pipebombs Decreased,100,0.5,0.1,,,max_pipebombs_decreased
-*Max Pipebombs Increased,500,0.5,1,12,0,max_pipebombs_increased
-*Maxammo Grenades1 Increased,300,0.5,1,20,1,maxammo_grenades1_increased
-*Maxammo Metal Increased,200,0.5,0.25,25,1,maxammo_metal_increased
-*Maxammo Metal Reduced,-400,0.5,-0.05,0.64,1,maxammo_metal_reduced
-*Maxammo Primary Increased,600,0.5,0.25,20,1,maxammo_primary_increased
-*Maxammo Primary Reduced,-600,0.5,-0.2,0.05,1,maxammo_primary_reduced
-*Maxammo Secondary Increased,600,0.5,0.5,20,1,maxammo_secondary_increased
-*Maxammo Secondary Reduced,-600,0.5,-0.2,0.05,1,maxammo_secondary_reduced
-*Medic Regen Bonus,300,0.5,1,20,1,medic_regen_bonus
-*Medic Regen Penalty,100,0.5,0.1,,,medic_regen_penalty
-*Medigun Blast Resist Deployed,400,0.8,-0.1,0.15,0.25,medigun_blast_resist_deployed
-*Medigun Blast Resist Passive,400,0.8,-0.1,0.4,0.85,medigun_blast_resist_passive
-*Medigun Bullet Resist Deployed,400,0.8,-0.1,0.15,0.25,medigun_bullet_resist_deployed
-*Medigun Bullet Resist Passive,400,0.8,-0.1,0.4,0.85,medigun_bullet_resist_passive
-*Medigun Charge Is Crit Boost,50,0.5,1,1,0,medigun_charge_is_crit_boost
-*Medigun Charge Is Megaheal,50,0.5,1,1,0,medigun_charge_is_megaheal
-*Medigun Charge Is Resists,50,0.5,1,1,0,medigun_charge_is_resists
-*Medigun Crit Blast Percent Bar Deplete,100,0.5,0.1,,,medigun_crit_blast_percent_bar_deplete
-*Medigun Crit Bullet Percent Bar Deplete,100,0.5,0.1,,,medigun_crit_bullet_percent_bar_deplete
-*Medigun Crit Fire Percent Bar Deplete,100,0.5,0.1,,,medigun_crit_fire_percent_bar_deplete
-*Medigun Fire Resist Deployed,400,0.8,-0.1,0.15,0.25,medigun_fire_resist_deployed
-*Medigun Fire Resist Passive,400,0.8,-0.1,0.4,0.85,medigun_fire_resist_passive
-*Melee Attack Rate Bonus,600,1.5,-0.1,0.4,1,melee_attack_rate_bonus
-*Melee Bounds Multiplier,100,0.5,0.25,5,1,melee_bounds_multiplier
-*Melee Range Multiplier,200,0.4,0.1,70,1,melee_range_multiplier
-*Melts In Fire,100,0.5,0.1,,,melts_in_fire
-*Merasmus Hat Level Display Only,100,0.5,0.1,,,merasmus_hat_level_display_ONLY
-*Metal Pickup Increased,300,1.3,0.1,5,1,metal_pickup_decreased
-*Metal Pickup Decreased,300,1.3,-0.1,0.1,1,metal_pickup_decreased
-*Metal Regen,200,0.5,5,1000,0,metal_regen
-*Meter Label,100,0.5,0.1,,,meter_label
-*Min Viewmodel Offset,100,0.5,0.1,,,min_viewmodel_offset
-*Air Strike Rockets,300,0.5,1,1,0,mini_rockets
-*Minicrit Boost Charge Rate,100,0.5,0.1,,,minicrit_boost_charge_rate
-*Minicrit Boost When Charged,100,0.5,0.1,,,minicrit_boost_when_charged
-*Minicrit Vs Burning Player,3000,0.5,1,1,0,minicrit_vs_burning_player
-*Minicritboost On Kill,1000,0.5,2,30,0,minicritboost_on_kill
-*Minicrits Become Crits,2000,0.5,1,1,0,minicrits_become_crits
-*Minigun No Spin Sounds,800,0.5,1,1,0,minigun_no_spin_sounds
-*Minigun Spinup Time Decreased,850,0.75,-0.1,0.2,1,minigun_spinup_time_decreased
-*Minigun Spinup Time Increased,-200,0.5,0.25,12,1,minigun_spinup_time_increased
-*Mod Air Control On Blast Jump,100,0.5,1,25,0,mod_air_control_blast_jump
-*Mod Ammo Per Shot,-400,0.5,1,10,1,mod_ammo_per_shot
-*Mod Ammo Per Shot Missed Display Only,100,0.5,0.1,,,mod_ammo_per_shot_missed_DISPLAY_ONLY
-*Mod Bat Launches Balls,100,0.5,0.1,,,mod_bat_launches_balls
-*Mod Bat Launches Ornaments,100,0.5,0.1,,,mod_bat_launches_ornaments
-*Mod Cloak No Regen From Items,100,0.5,0.1,,,mod_cloak_no_regen_from_items
-*Mod Crit While Airborne,1000,0.5,1,1,0,mod_crit_while_airborne
-*Mod Demo Buff Type,100,0.5,0.1,,,mod_demo_buff_type
-*Disguise Consumes Cloak,100,0.5,0.1,,,mod_disguise_consumes_cloak
-*Mod Flamethrower Back Crit,600,0.5,1,1,0,mod_flamethrower_back_crit
-*Mod Flamethrower Push,100,0.5,0.1,,,mod_flamethrower_push
-*Mod Flaregun Fires Pellets With Knockback,800,0.5,1,1,0,mod_flaregun_fires_pellets_with_knockback
-*Mark Attacker For Death,100,0.5,0.1,,,mod_mark_attacker_for_death
-*Mod Max Primary Clip Override,100,0.5,0.1,,,mod_max_primary_clip_override
-*Max Health Drain Rate,100,0.5,0.1,,,mod_maxhealth_drain_rate
-*Mod Medic Healed Damage Bonus,100,0.5,0.1,,,mod_medic_healed_damage_bonus
-*Mod Medic Healed Deploy Time Penalty,100,0.5,0.1,,,mod_medic_healed_deploy_time_penalty
-*Mod Medic Killed Marked For Death,100,0.5,0.1,,,mod_medic_killed_marked_for_death
-*Mod Medic Killed Minicrit Boost,200,0.5,1,1,0,mod_medic_killed_minicrit_boost
-*Mod Medic Killed Revenge,200,0.5,1,1,0,mod_medic_killed_revenge
-*Mod Mini-crit Airborne,400,0.5,1,1,0,mod_mini-crit_airborne
-*Mod Mini-crit Airborne Deploy,100,0.5,0.1,,,mod_mini-crit_airborne_deploy
-*Mod No Reload Display Only,100,0.5,0.1,,,mod_no_reload_DISPLAY_ONLY
-*Mod Rage Damage Boost,300,1.2,0.15,1000,1,mod_rage_damage_boost
-*Mod Rage On Hit Bonus,350,0.5,1,10,0,mod_rage_on_hit_bonus
-*Mod Rage On Hit Penalty,100,0.5,0.1,,,mod_rage_on_hit_penalty
-*Mod See Enemy Health,1200,0.5,1,1,0,mod_see_enemy_health
-*Mod Sentry Killed Revenge,400,0.5,1,1,0,mod_sentry_killed_revenge
-*Mod Shovel Damage Boost,150,0.5,1,1,0,mod_shovel_damage_boost
-*Mod Shovel Speed Boost,600,0.5,1,1,0,mod_shovel_speed_boost
-*Mod Soldier Buff Type,100,0.5,0.1,,,mod_soldier_buff_type
-*Mod Stun Waist High Airborne,100,0.5,0.1,,,mod_stun_waist_high_airborne
-*Mod Teleporter Cost,100,0.5,0.1,,,mod_teleporter_cost
-*Mod Use Metal Ammo Type,200,0.5,1,1,0,mod_use_metal_ammo_type
-*Mod Weapon Blocks Healing,100,0.5,0.1,,,mod_weapon_blocks_healing
-*Mod Wrench Builds Minisentry,200,0.5,1,1,0,mod_wrench_builds_minisentry
-*Move Speed Bonus,200,0.5,0.1,,1,move_speed_bonus
-*Move Speed Bonus Resource Level,100,0.5,0.1,,,move_speed_bonus_resource_level
-*Move Speed Bonus Shield Required,100,0.5,0.1,,,move_speed_bonus_shield_required
-*Move Speed,200,1.4,0.1,2.2,1,move_speed_penalty
-*Mult Airblast Refire Time,500,0.5,-0.05,0.3,1,mult_airblast_refire_time
-*Mult Charge Turn Control,200,0.5,0.5,6,0,mult_charge_turn_control
-*Mult Cloak Meter Consume Rate,600,0.5,-0.25,-50,1,mult_cloak_meter_consume_rate
-*Mult Cloak Meter Regen Rate,120,0.5,0.5,100,0,mult_cloak_meter_regen_rate
-*Mult Cloak Rate,400,0.5,-0.05,-1,0,mult_cloak_rate
-*Mult Decloak Rate,400,0.5,-0.05,0.01,1,mult_decloak_rate
-*Mult Damage Taken Active,400,0.5,-0.05,0.4,1,mult_dmgtaken_active
-*Mult End Flame Size,100,0.5,0.1,,,mult_end_flame_size
-*Mult Health From Healers Active,100,0.5,0.1,,,mult_health_fromhealers_penalty_active
-*Mult Item Meter Charge Rate,1250,0.75,-0.1,0.4,1,mult_item_meter_charge_rate
-*Thermal Thruster Increased Recharge Rate,1250,0.75,-0.1,0,1,mult_item_meter_charge_rate
-*Dragon Fury Increased Recharge Rate,1250,0.75,-0.1,0.4,1,mult_item_meter_charge_rate
-*Gas Passer Increased Recharge Rate,2500,0.5,-0.2,0.001,0,mult_item_meter_charge_rate
-*Mult Patient Overheal Penalty Active,100,0.5,0.1,,,mult_patient_overheal_penalty_active
-*Mult Player Movespeed Active,100,0.5,0.1,,,mult_player_movespeed_active
-*Mult Sniper Charge After Bodyshot,500,0.5,-0.1,0.2,1,mult_sniper_charge_after_bodyshot
-*Mult Sniper Charge After Headshot,200,0.5,-0.25,0.1,1,mult_sniper_charge_after_headshot
-*Mult Sniper Charge After Miss,1000,0.5,-0.1,0.2,1,mult_sniper_charge_after_miss
-*Mult Sniper Charge Penalty Display Only,100,0.5,0.1,,,mult_sniper_charge_penalty_DISPLAY_ONLY
-*Mult Spread Scale First Shot,100,0.5,0.1,,,mult_spread_scale_first_shot
-*Mult Spread Scales Consecutive,100,0.5,0.1,,,mult_spread_scales_consecutive
-*Multiple Sentries,800,0.5,1,4,0,multiple_sentries
-*Mvm Completed Challenges Bitmask,100,0.5,0.1,,,mvm_completed_challenges_bitmask
-*Never Craftable,100,0.5,0.1,,,never_craftable
-*No Attack,100,0.5,0.1,,,no_attack
-*No Charge Impact Range,500,0.5,1,1,0,no_charge_impact_range
-*No Crit Boost,100,0.5,0.1,,,no_crit_boost
-*No Crit Vs Nonburning,100,0.5,0.1,,,no_crit_vs_nonburning
-*No Double Jump,100,0.5,0.1,,,no_double_jump
-*No Duck,100,0.5,0.1,,,no_duck
-*No Jump,100,0.5,0.1,,,no_jump
-*No Metal From Dispensers While Active,100,0.5,0.1,,,no_metal_from_dispensers_while_active
-*No Primary Ammo From Dispensers While Active,100,0.5,0.1,,,no_primary_ammo_from_dispensers_while_active
-*No Self Blast Dmg,2000,0.5,2,2,0,no_self_blast_dmg
-*No Cloak When Cloaked,100,0.5,0.1,,,NoCloakWhenCloaked
-*Noise Maker,100,0.5,0.1,,,noise_maker
-*Non Economy,100,0.5,0.1,,,non_economy
-*Obsolete Ammo Penalty,100,0.5,0.1,,,obsolete_ammo_penalty
-*Overheal Bonus,400,0.6,0.2,800.5,1,overheal_bonus
-*Overheal Decay Bonus,500,0.5,0.25,4,1,overheal_decay_bonus
-*Overheal Decay Disabled,2500,0.5,1,1,,overheal_decay_disabled
-*Overheal Decay Penalty,100,0.5,0.1,,,overheal_decay_penalty
-*Overheal Expert,100,0.5,0.1,,,overheal_expert
-*Overheal Fill Rate Reduced,100,0.5,0.1,,,overheal_fill_rate_reduced
-*Overheal Penalty,100,0.5,0.1,,,overheal_penalty
-*Override Footstep Sound Set,100,0.5,0.1,,,override_footstep_sound_set
-*Override Item Level Desc String,100,0.5,0.1,,,override_item_level_desc_string
-*Override Projectile Type,100,0.5,0.1,,,override_projectile_type
-*Paint Decal Enum,100,0.5,0.1,,,paint_decal_enum
-*Paintkit Proto Def Index,400,0.5,14,14,0,paintkit_proto_def_index
-*Panic Attack,100,0.5,0.1,,,panic_attack
-*Panic Attack Negative,100,0.5,0.1,,,panic_attack_negative
-*Parachute Attribute,500,0.5,1,1,0,parachute_attribute
-*Particle Effect Use Head Origin,100,0.5,0.1,,,particle_effect_use_head_origin
-*Particle Effect Vertical Offset,100,0.5,0.1,,,particle_effect_vertical_offset
-*Patient Overheal Penalty,100,0.5,0.1,,,patient_overheal_penalty
-*Player Skin Override,100,0.5,0.1,,,player_skin_override
-*Powerup Charges,100,0.5,0.1,,,powerup_charges
-*Powerup Duration,300,0.5,1,30,3,powerup_duration
-*Powerup Max Charges,300,0.5,1,15,3,powerup_max_charges
-*Preserve Ubercharge,200,0.5,20,100,0,preserve_ubercharge
-*Projectile Entity Name,100,0.5,0.1,,,projectile_entity_name
-*Projectile Particle Name,100,0.5,0.1,,,projectile_particle_name
-*Projectile Penetration,300,0.5,1,1,0,projectile_penetration
-*Projectile Penetration Heavy,300,0.5,2,2,0,projectile_penetration_heavy
-*Projectile Range Decreased,-400,0.5,-0.1,0.4,1,Projectile_range_decreased
-*Projectile Range Increased,200,1,0.25,2.5,1,Projectile_range_increased
-*Projectile Speed Decreased,800,0.5,-0.1,0.4,1,Projectile_speed_decreased
-*Projectile Speed Increased,200,1,0.25,2,1,Projectile_speed_increased
-*Projectile Speed Increased Hidden,100,0.5,0.1,,,Projectile_speed_increased_HIDDEN
-*Projectile Spread Angle Removal,2000,2,-10,0,10,projectile_spread_angle_penalty
-*Provide On Active,100,0.5,0.1,,,provide_on_active
-*Purchased,100,0.5,0.1,,,purchased
-*Pyro Year Number,100,0.5,0.1,,,pyro_year_number
-*Pyrovision Only Display Only,100,0.5,0.1,,,pyrovision_only_DISPLAY_ONLY
-*Pyrovision Opt In Display Only,100,0.5,0.1,,,pyrovision_opt_in_DISPLAY_ONLY
-*Quality Text Override,100,0.5,0.1,,,quality_text_override
-*Quest Earned Bonus Points,100,0.5,0.1,,,quest_earned_bonus_points
-*Quest Earned Standard Points,100,0.5,0.1,,,quest_earned_standard_points
-*Quest Loaner Id Hi,100,0.5,0.1,,,quest_loaner_id_hi
-*Quest Loaner Id Low,100,0.5,0.1,,,quest_loaner_id_low
-*Ragdolls Become Ash,600,0.5,1,1,0,ragdolls_become_ash
-*Ragdolls Plasma Effect,600,0.5,1,1,0,ragdolls_plasma_effect
-*Rage Giving Scale,450,0.5,1,5,0,rage_giving_scale
-*Rage On Assists,100,0.5,0.1,,,rage_on_assists
-*Rage On Kill,450,0.5,1,5,0,rage_on_kill
-*Random Drop Line Item 0,100,0.5,0.1,,,random_drop_line_item_0
-*Random Drop Line Item 1,100,0.5,0.1,,,random_drop_line_item_1
-*Random Drop Line Item 2,100,0.5,0.1,,,random_drop_line_item_2
-*Random Drop Line Item 3,100,0.5,0.1,,,random_drop_line_item_3
-*Random Drop Line Item Footer Desc,100,0.5,0.1,,,random_drop_line_item_footer_desc
-*Random Drop Line Item Unusual Chance,100,0.5,0.1,,,random_drop_line_item_unusual_chance
-*Random Drop Line Item Unusual List,100,0.5,0.1,,,random_drop_line_item_unusual_list
-*Recall,100,0.5,0.1,,,recall
-*Recipe Component Defined Item 1,100,0.5,0.1,,,recipe_component_defined_item_1
-*Recipe Component Defined Item 10,100,0.5,0.1,,,recipe_component_defined_item_10
-*Recipe Component Defined Item 2,100,0.5,0.1,,,recipe_component_defined_item_2
-*Recipe Component Defined Item 3,100,0.5,0.1,,,recipe_component_defined_item_3
-*Recipe Component Defined Item 4,100,0.5,0.1,,,recipe_component_defined_item_4
-*Recipe Component Defined Item 5,100,0.5,0.1,,,recipe_component_defined_item_5
-*Recipe Component Defined Item 6,100,0.5,0.1,,,recipe_component_defined_item_6
-*Recipe Component Defined Item 7,100,0.5,0.1,,,recipe_component_defined_item_7
-*Recipe Component Defined Item 8,100,0.5,0.1,,,recipe_component_defined_item_8
-*Recipe Component Defined Item 9,100,0.5,0.1,,,recipe_component_defined_item_9
-*Recipe No Partial Complete,100,0.5,0.1,,,recipe_no_partial_complete
-*Redirected Flame Size Mult,100,0.5,0.1,,,redirected_flame_size_mult
-*Reduced Healing From Medics,100,0.5,0.1,,,reduced_healing_from_medics
-*Less Cloak From Ammo,100,0.5,0.1,,,ReducedCloakFromAmmo
-*Referenced Item Def Updated,100,0.5,0.1,,,referenced_item_def_UPDATED
-*Referenced Item Id High,100,0.5,0.1,,,referenced_item_id_high
-*Referenced Item Id Low,100,0.5,0.1,,,referenced_item_id_low
-*Refill Ammo,100,0.5,0.1,,,refill_ammo
-*Reflected Flame Dmg Reduction,100,0.5,0.1,,,reflected_flame_dmg_reduction
-*Reload Time Decreased,200,0.5,-0.1,0.25,1,Reload_time_decreased
-*Reload Time Decreased While Healed,100,0.5,0.1,,,reload_time_decreased_while_healed
-*Reload Time Increased,100,0.5,0.1,,,Reload_time_increased
-*Reload Time Increased Hidden,100,0.5,0.1,,,reload_time_increased_hidden
-*Repair Health To Metal Ratio Display Only,100,0.5,0.1,,,repair_health_to_metal_ratio_DISPLAY_ONLY
-*Repair Rate Decreased,100,0.5,0.1,,,Repair_rate_decreased
-*Repair Rate Increased,300,0.5,0.2,10,1,Repair_rate_increased
-*Restore Health On Kill,100,0.5,0.1,,,restore_health_on_kill
-*Reveal Cloaked Victim On Hit,2000,0.5,1,1,0,reveal_cloaked_victim_on_hit
-*Reveal Disguised Victim On Hit,2000,0.5,1,1,0,reveal_disguised_victim_on_hit
-*Revive,100,0.5,0.1,,,revive
-*Revolver Use Hit Locations,500,0.5,1,1,0,revolver_use_hit_locations
-*Ring Of Fire While Aiming,400,0.5,1,1,0,ring_of_fire_while_aiming
-*Rj Air Bombardment,100,0.5,0.1,,,rj_air_bombardment
-*Robo Sapper,350,0.5,1,3,0,robo_sapper
-*Rocket Jump Damage Reduction,500,0.5,-0.3,0.1,1,rocket_jump_damage_reduction
-*Rocket Jump Damage Reduction Hidden,100,0.5,0.1,,,rocket_jump_damage_reduction_HIDDEN
-*Rocket Launch Impulse,100,0.5,0.1,,,rocket_launch_impulse
-*Rocket Specialist,100,0.5,0.1,,,rocket_specialist
-*Rocketjump Attackrate Bonus,100,0.5,0.1,,,rocketjump_attackrate_bonus
-*Sanguisuge,300,0.5,1,1,0,sanguisuge
-*Sapper Damage Bonus,200,0.1,0.5,1500,1,sapper_damage_bonus
-*Sapper Damage Leaches Health,200,0.1,1,1500,1,sapper_damage_leaches_health
-*Sapper Damage Penalty,100,0.5,0.1,,,sapper_damage_penalty
-*Sapper Damage Penalty Hidden,100,0.5,0.1,,,sapper_damage_penalty_hidden
-*Sapper Degenerates Buildings,100,0.5,0.1,,,sapper_degenerates_buildings
-*Sapper Health Bonus,400,0.1,0.5,500,1,sapper_health_bonus
-*Sapper Health Penalty,100,0.5,0.1,,,sapper_health_penalty
-*Sapper Kills Collect Crits,600,0.5,1,1,0,sapper_kills_collect_crits
-*Sapper Voice Pak,300,0.5,1,1,0,sapper_voice_pak
-*Sapper Voice Pak Idle Wait,200,0.5,1,1,0,sapper_voice_pak_idle_wait
-*Saxxy Award Category,100,0.5,0.1,,,saxxy_award_category
-*Scattergun Has Knockback,400,0.5,1,1,0,scattergun_has_knockback
-*Scattergun Knockback Mult,200,0.5,0.5,20,1,scattergun_knockback_mult
-*Scattergun No Reload Single,350,0.5,1,1,0,scattergun_no_reload_single
-*Self Dmg Push Force Decreased,100,0.5,0.1,,,self_dmg_push_force_decreased
-*Self Dmg Push Force Increased,100,0.5,0.3,10,1,self_dmg_push_force_increased
-*Self Mark For Death,100,0.5,0.1,,,self_mark_for_death
-*Selfdmg On Hit For Rapidfire,100,0.5,0.1,,,selfdmg_on_hit_for_rapidfire
-*Selfdmg On Hit For Slowfire,100,0.5,0.1,,,selfdmg_on_hit_for_slowfire
-*Selfmade Description,100,0.5,0.1,,,selfmade_description
-*Series Number,100,0.5,0.1,,,series_number
-*Alien Merc Malus,100,0.5,0.1,,,SET_BONUS:_alien_isolation_merc_bonus_neg
-*Alien Merc Bonus,100,0.5,0.1,,,SET_BONUS:_alien_isolation_merc_bonus_pos
-*Alien Xeno Malus,100,0.5,0.1,,,SET_BONUS:_alien_isolation_xeno_bonus_neg
-*Alien Xeno Bonus,100,0.5,0.1,,,SET_BONUS:_alien_isolation_xeno_bonus_pos
-*Calling Card,4000,0.5,1,1,0,SET_BONUS:_calling_card_on_kill
-*Lower Hunger Chance,100,0.5,0.1,,,SET_BONUS:_chance_of_hunger_decrease
-*Cloak Blink Time Penalty,100,0.5,0.1,,,SET_BONUS:_cloak_blink_time_penalty
-*Taunt Particle Attribute,100,0.5,0.1,,,SET_BONUS:_custom_taunt_particle_attr
-*Sentry Damage Resistance,250,1,-0.1,0.1,1,SET_BONUS:_dmg_from_sentry_reduced
-*Bullet Vulnerability,100,0.5,0.1,,,SET_BONUS:_dmg_taken_from_bullets_increased
-*Crit Resistance (Sb),100,0.5,0.1,,,SET_BONUS:_dmg_taken_from_crit_reduced_set_bonus
-*Fire Resistance (Sb),100,0.5,0.1,,,SET_BONUS:_dmg_taken_from_fire_reduced_set_bonus
-*Health Regen (Sb),100,0.5,0.1,,,SET_BONUS:_health_regen_set_bonus
-*Max Health (Sb),100,0.5,0.1,100000,,SET_BONUS:_max_health_additive_bonus
-*Move Speed Bonus (Sb),100,0.5,0.1,,,SET_BONUS:_move_speed_set_bonus
-*Less Mystery Solving Time,100,0.5,0.1,,,SET_BONUS:_mystery_solving_time_decrease
-*No Death From Headshots,2500,0.5,1,1,0,SET_BONUS:_no_death_from_headshots
-*Quiet Unstealth,1000,0.5,1,1,0,SET_BONUS:_quiet_unstealth
-*Set Bonus: Special Dsp,100,0.5,0.1,,,SET_BONUS:_special_dsp
-*Set Cloak Is Feign Death,700,0.5,1,1,0,set_cloak_is_feign_death
-*Set Cloak Is Movement Based,100,0.5,0.1,,,set_cloak_is_movement_based
-*Set Damagetype Ignite,2400,0.5,1,1,0,Set_DamageType_Ignite
-*Set Icicle Knife Mode,100,0.5,0.1,,,set_icicle_knife_mode
-*Set Item Texture Wear,100,0.5,0.1,,,set_item_texture_wear
-*Set Item Tint Rgb,100,0.5,0.1,,,set_item_tint_RGB
-*Set Item Tint Rgb 2,100,0.5,0.1,,,set_item_tint_RGB_2
-*Set Supply Crate Series,100,0.5,0.1,,,set_supply_crate_series
-*Set Throwable Type,100,0.5,0.1,,,set_throwable_type
-*Share Consumable With Patient,600,0.5,1,1,0,share_consumable_with_patient
-*Shot Penetrate All Players,1000,0.5,1,1,0,shot_penetrate_all_players
-*Show Paint Description,100,0.5,0.1,,,show_paint_description
-*Shuffle Crate Item Def Max,100,0.5,0.1,,,shuffle_crate_item_def_max
-*Shuffle Crate Item Def Min,100,0.5,0.1,,,shuffle_crate_item_def_min
-*Silent Killer,300,0.5,1,1,0,silent_killer
-*Single Wep Deploy Time Decreased,100,0.5,0.1,,,single_wep_deploy_time_decreased
-*Single Wep Deploy Time Increased,100,0.5,0.1,,,single_wep_deploy_time_increased
-*Single Wep Holster Time Increased,100,0.5,0.1,,,single_wep_holster_time_increased
-*Slow Enemy On Hit,100,0.5,0.1,,,slow_enemy_on_hit
-*Slow Enemy On Hit Major,600,1.5,1,10,0,slow_enemy_on_hit_major
-*Sniper Aiming Movespeed Decreased,100,0.5,0.1,,,sniper_aiming_movespeed_decreased
-*Sniper Charge Per Sec,200,0.25,0.25,20,1,sniper_charge_per_sec
-*Sniper Crit No Scope,100,0.5,0.1,,,sniper_crit_no_scope
-*Sniper Fires Tracer,100,0.5,0.1,,,sniper_fires_tracer
-*Sniper Fires Tracer Hidden,100,0.5,0.1,,,sniper_fires_tracer_HIDDEN
-*Sniper Full Charge Damage Bonus,200,0.25,1,3000,1,sniper_full_charge_damage_bonus
-*Sniper Independent Zoom Display Only,100,0.5,0.1,,,sniper_independent_zoom_DISPLAY_ONLY
-*Sniper No Charge,100,0.5,0.1,,,sniper_no_charge
-*Sniper No Headshot Without Full Charge,100,0.5,0.1,,,sniper_no_headshot_without_full_charge
-*Sniper No Headshots,100,0.5,0.1,,,sniper_no_headshots
-*Remove Sniper Only Fire Zoomed,1000,0.5,-1,0,1,sniper_only_fire_zoomed
-*Sniper Penetrate Players When Charged,200,0.5,1,1,0,sniper_penetrate_players_when_charged
-*Sniper Rage Display Only,100,0.5,0.1,,,sniper_rage_DISPLAY_ONLY
-*Sniper Zoom Penalty,100,0.5,0.1,,,sniper_zoom_penalty
-*Soldier Model Index,100,0.5,0.1,,,soldier_model_index
-*Spawn With Physics Toy,100,0.5,0.1,,,spawn_with_physics_toy
-*Special Taunt,100,0.5,0.1,,,special_taunt
-*Speed Boost On Hit,100,0.5,0.1,,,speed_boost_on_hit
-*Speed Boost On Hit Enemy,1000,0.5,1,1,0,speed_boost_on_hit_enemy
-*Speed Boost On Kill,300,0.5,1,1,0,speed_boost_on_kill
-*Speed Boost When Active,100,0.5,0.1,,,speed_boost_when_active
-*Speed Buff Ally,300,0.5,1,1,0,speed_buff_ally
-*Spell: Halloween Death Ghosts,100,0.5,0.1,,,SPELL:_Halloween_death_ghosts
-*Spell: Halloween Green Flames,100,0.5,0.1,,,SPELL:_Halloween_green_flames
-*Spell: Halloween Pumpkin Explosions,100,0.5,0.1,,,SPELL:_Halloween_pumpkin_explosions
-*Spell: Halloween Voice Modulation,100,0.5,0.1,,,SPELL:_Halloween_voice_modulation
-*Spell: Set Halloween Footstep Type,100,0.5,0.1,,,SPELL:_set_Halloween_footstep_type
-*Spell: Set Item Tint Rgb,100,0.5,0.1,,,SPELL:_set_item_tint_RGB
-*Spellbook Page Attr Id,100,0.5,0.1,,,spellbook_page_attr_id
-*Spread Penalty,-400,0.5,0.3,5,1,spread_penalty
-*Spunup Damage Resistance,300,0.5,-0.1,0.4,1,spunup_damage_resistance
-*Spunup Push Force Immunity,1000,0.5,1,1,0,spunup_push_force_immunity
-*Rifle Charge Rate Decreased,100,0.5,0.1,,,SRifle_Charge_rate_decreased
-*Rifle Charge Rate Increased,100,0.5,0.1,,,SRifle_Charge_rate_increased
-*Start Drop Date,100,0.5,0.1,,,start_drop_date
-*Stickies Detonate Stickies,150,0.5,1,1,0,stickies_detonate_stickies
-*Sticky Air Burst Mode,800,0.5,2,2,0,sticky_air_burst_mode
-*Sticky Arm Time Bonus,100,0.5,-0.2,-1,1,sticky_arm_time_bonus
-*Sticky Arm Time Penalty,100,0.5,0.1,,,sticky_arm_time_penalty
-*Sticky Detonate Mode,100,0.5,1,1,0,sticky_detonate_mode
-*Stickybomb Charge Damage Increase,800,0.5,0.2,9,0,stickybomb_charge_damage_increase
-*Stickybomb Charge Rate,250,0.75,-0.1,0.05,1,stickybomb_charge_rate
-*Stickybomb Fizzle Time,100,0.5,0.1,,,stickybomb_fizzle_time
-*Strange Part New Counter Id,100,0.5,0.1,,,strange_part_new_counter_ID
-*Strange Restriction Type 1,100,0.5,0.1,,,strange_restriction_type_1
-*Strange Restriction Type 2,100,0.5,0.1,,,strange_restriction_type_2
-*Strange Restriction Type 3,100,0.5,0.1,,,strange_restriction_type_3
-*Strange Restriction User Type 1,100,0.5,0.1,,,strange_restriction_user_type_1
-*Strange Restriction User Type 2,100,0.5,0.1,,,strange_restriction_user_type_2
-*Strange Restriction User Type 3,100,0.5,0.1,,,strange_restriction_user_type_3
-*Strange Restriction User Value 1,100,0.5,0.1,,,strange_restriction_user_value_1
-*Strange Restriction User Value 2,100,0.5,0.1,,,strange_restriction_user_value_2
-*Strange Restriction User Value 3,100,0.5,0.1,,,strange_restriction_user_value_3
-*Strange Restriction Value 1,100,0.5,0.1,,,strange_restriction_value_1
-*Strange Restriction Value 2,100,0.5,0.1,,,strange_restriction_value_2
-*Strange Restriction Value 3,100,0.5,0.1,,,strange_restriction_value_3
-*Strange Score Selector,100,0.5,0.1,,,strange_score_selector
-*Stun Enemies Wielding Same Weapon,2000,0.5,1,1,0,stun_enemies_wielding_same_weapon
-*Style Changes On Strange Level,100,0.5,0.1,,,style_changes_on_strange_level
-*Subtract Victim Cloak On Hit,100,0.5,0.1,,,subtract_victim_cloak_on_hit
-*Subtract Victim Medigun Charge On Hit,100,0.5,0.1,,,subtract_victim_medigun_charge_on_hit
-*Switch From Wep Deploy Time Decreased,100,0.5,0.1,,,switch_from_wep_deploy_time_decreased
-*Thermal Thruster,100,0.5,0.1,,,thermal_thruster
-*Thermal Thruster Air Launch,500,0.5,1,1,0,thermal_thruster_air_launch
-*Throwable Damage,100,0.5,0.1,,,throwable_damage
-*Throwable Detonation Time,100,0.5,0.1,,,throwable_detonation_time
-*Throwable Fire Speed,100,0.5,0.1,,,throwable_fire_speed
-*Throwable Healing,100,0.5,0.1,,,throwable_healing
-*Throwable Particle Trail Only,100,0.5,0.1,,,throwable_particle_trail_only
-*Throwable Recharge Time,100,0.5,0.1,,,throwable_recharge_time
-*Tickle Enemies Wielding Same Weapon,100,0.5,0.1,,,tickle_enemies_wielding_same_weapon
-*Tmp Dmgbuff On Hit,100,0.5,0.1,,,tmp_dmgbuff_on_hit
-*Tool Escrow Until Date,100,0.5,0.1,,,tool_escrow_until_date
-*Tool Needs Giftwrap,100,0.5,0.1,,,tool_needs_giftwrap
-*Tool Target Item,100,0.5,0.1,,,tool_target_item
-*Tool Target Item Icon Offset,100,0.5,0.1,,,tool_target_item_icon_offset
-*Torso Scale,100,0.5,0.1,,,torso_scale
-*Tradable After Date,100,0.5,0.1,,,tradable_after_date
-*Turn To Gold,100,0.5,0.1,,,turn_to_gold
-*Uber Duration Bonus,400,0.55,1,40,0,uber_duration_bonus
-*Ubercharge,100,0.5,0.1,,,ubercharge
-*Ubercharge Overheal Rate Penalty,100,0.5,0.1,,,ubercharge_overheal_rate_penalty
-*Ubercharge Preserved On Spawn,100,0.5,0.1,,,ubercharge_preserved_on_spawn_max
-*Ubercharge Rate Bonus,600,0.5,1,50,1,ubercharge_rate_bonus
-*Ubercharge Rate Bonus For Healer,200,0.5,0.25,100,1,ubercharge_rate_bonus_for_healer
-*Ubercharge Rate Penalty,100,0.5,0.1,,,ubercharge_rate_penalty
-*Unique Craft Index,100,0.5,0.1,,,unique_craft_index
-*Unlimited Quantity,100,0.5,0.1,,,unlimited_quantity
-*Unlimited Quantity Hidden,100,0.5,0.1,,,unlimited_quantity_hidden
-*Unusualifier Attribute Template Name,100,0.5,0.1,,,unusualifier_attribute_template_name
-*Upgrade Rate Decrease,100,0.5,0.1,,,upgrade_rate_decrease
-*Use Large Smoke Explosion,20000,0.5,1,1,0,use_large_smoke_explosion
-*Use Model Cache Icon,100,0.5,0.1,,,use_model_cache_icon
-*Uses Ammo While Aiming,-800,0.5,4,50,0,uses_ammo_while_aiming
-*Vision Opt In Flags,100,0.5,0.1,,,vision_opt_in_flags
-*Voice Pitch Scale,100,0.5,0.1,,,voice_pitch_scale
-*Weapon Allow Inspect,100,0.5,0.1,,,weapon_allow_inspect
-*Weapon Burn Dmg Increased,300,0.5,0.25,1500,1,weapon_burn_dmg_increased
-*Weapon Burn Dmg Reduced,100,0.5,0.1,,,weapon_burn_dmg_reduced
-*Weapon Burn Time Increased,300,0.5,0.25,1500,1,weapon_burn_time_increased
-*Weapon Burn Time Reduced,100,0.5,0.1,,,weapon_burn_time_reduced
-*Weapon Spread Bonus,400,0.75,-0.1,0.05,1,weapon_spread_bonus
-*Weapon Stattrak Module Scale,100,0.5,0.1,,,weapon_stattrak_module_scale
-*Weapon Uses Stattrak Module,100,0.5,0.1,,,weapon_uses_stattrak_module
-*Wide Item Level,100,0.5,0.1,,,wide_item_level
-*Wrench Index,100,0.5,0.1,,,Wrench_index
-*Zombiezombiezombiezombie,100,0.5,0.1,,,zombiezombiezombiezombie
-*Zoom Speed Mod Disabled,350,0.5,1,1,1,zoom_speed_mod_disabled
+name,cost,costincrease,increment,limit,initvalue,alias,,,,,,oldcost,oldcostincrease
+*Absorb Damage While Cloaked,25,12,0.15,0.94,,absorb_damage_while_cloaked,,,,,,250,125
+*Accepted Wedding Ring Account Id 1,10,5,0.1,,,accepted_wedding_ring_account_id_1,,,,,,100,50
+*Accepted Wedding Ring Account Id 2,10,5,0.1,,,accepted_wedding_ring_account_id_2,,,,,,100,50
+*Damage Scales With Accuracy,30,24,0.1,1000,1,accuracy_scales_damage,,,,,,300,240
+*Active Health Degeneration,10,5,0.1,,,active_health_degen,,,,,,100,50
+*Active Health Regeneration,10,5,0.1,,,active_health_regen,,,,,,100,50
+*Add Cloak On Hit,120,60,1,1,0,add_cloak_on_hit,,,,,,1200,600
+*Add Cloak On Kill,40,20,1,12,0,add_cloak_on_kill,,,,,,400,200
+*Add Head On Hit,500,250,1,1,,add_head_on_hit,,,,,,5000,2500
+*Get Head On Kill,10,5,1,1,,add_head_on_kill,,,,,,100,50
+*Add Jingle To Footsteps,10,5,1,1,0,add_jingle_to_footsteps,,,,,,100,50
+*Get Ammo On Hit,10,5,1,1,,add_onhit_addammo,,,,,,100,50
+*Get Uber Charge On Hit,80,32,0.05,0.5,0,add_uber_charge_on_hit,,,,,,800,320
+*Additional Halloween Response Criteria Name,10,5,0.1,,,additional_halloween_response_criteria_name,,,,,,100,50
+*Afterburn Duration Bonus,10,5,0.1,,,afterburn_duration_bonus,,,,,,100,50
+*Afterburn Duration Penalty,10,5,0.1,,,afterburn_duration_penalty,,,,,,100,50
+*Afterburn Immunity,10,5,0.1,,,afterburn_immunity,,,,,,100,50
+*Aiming Knockback Resistance,10,5,0.1,,,aiming_knockback_resistance,,,,,,100,50
+*Aiming Movespeed Decreased,40,20,-0.2,0.1,1,aiming_movespeed_decreased,,,,,,400,200
+*Aiming Movespeed Increased,40,20,0.1,1.5,1,aiming_movespeed_increased,,,,,,400,200
+*Aiming No Flinch,250,125,1,1,0,aiming_no_flinch,,,,,,2500,1250
+*Air Dash Count,35,17,1,5,0,air_dash_count,,,,,,350,175
+*Air Jump On Attack,10,5,0.1,,,air_jump_on_attack,,,,,,100,50
+*Airblast Cost Decreased,30,15,-0.05,0.1,1,airblast_cost_decreased,,,,,,300,150
+*Airblast Cost Increased,10,5,0.1,,,airblast_cost_increased,,,,,,100,50
+*Airblast Cost Scale Hidden,10,5,0.1,,,airblast_cost_scale_hidden,,,,,,100,50
+*Disable Airblast Projectile Reflect,10,5,0.1,,,airblast_deflect_projectiles_disabled,,,,,,100,50
+*Airblast Destroys Projectiles,10,5,0.1,,,airblast_destroy_projectile,,,,,,100,50
+*Airblast Disabled,-20,-10,1,1,0,airblast_disabled,,,,,,-200,-100
+*Airblast Boosts Teammate Speed,50,25,1,1,0,airblast_give_teammate_speed_boost,,,,,,500,250
+*No Pushback From Airblast,10,5,0.1,,,airblast_pushback_disabled,,,,,,100,50
+*No Stun From Airblast,10,5,0.1,,,airblast_pushback_no_stun,,,,,,100,50
+*Airblast Pushback No Viewpunch,10,5,0.1,,,airblast_pushback_no_viewpunch,,,,,,100,50
+*Airblast Pushback Scale,100,50,0.25,10,1,airblast_pushback_scale,,,,,,1000,500
+*Airblast Does Not Extinguish,10,5,0.1,,,airblast_put_out_teammate_disabled,,,,,,100,50
+*Gain Ammo From Airblasting Projectiles,10,5,0.1,,,airblast_turn_projectile_to_ammo,,,,,,100,50
+*Airblast Vertical Pushback Scale,10,5,0.1,,,airblast_vertical_pushback_scale,,,,,,100,50
+*Airblast Vertical Vulnerability Multiplier,20,10,-0.1,0.05,1,airblast_vertical_vulnerability_multiplier,,,,,,200,100
+*Airblast Vulnerability Multiplier,10,5,-0.1,0.05,1,airblast_vulnerability_multiplier,,,,,,100,50
+*Airblast Vulnerability Multiplier Hidden,10,5,-0.1,0.05,1,airblast_vulnerability_multiplier_hidden,,,,,,100,50
+*Allow Halloween Offering,10,5,0.1,,,allow_halloween_offering,,,,,,100,50
+*Allowed In Medieval Mode,10,5,0.1,,,allowed_in_medieval_mode,,,,,,100,50
+*Alt Fire Teleport To Spawn,150,75,1,1,0,alt_fire_teleport_to_spawn,,,,,,1500,750
+*Alt-fire Disabled,10,5,0.1,,,alt-fire_disabled,,,,,,100,50
+*Always Tradable,10,5,0.1,,,always_tradable,,,,,,100,50
+*Always Transmit So,10,5,0.1,,,always_transmit_so,,,,,,100,50
+*Ammo Becomes Health,10,5,1,1,0,ammo_becomes_health,,,,,,100,50
+*Ammo Gives Charge,10,5,1,1,0,ammo_gives_charge,,,,,,100,50
+*Ammo Regen,90,108,0.05,0.3,0,ammo_regen,,,,,,900,1080
+*Aoe Deflection,10,5,0.1,,,aoe_deflection,,,,,,100,50
+*Applies Snare Effect,200,100,0.05,0.5,0,applies_snare_effect,,,,,,2000,1000
+*Apply Look Velocity On Damage,100,50,25,200,0,apply_look_velocity_on_damage,,,,,,1000,500
+*Apply Z Velocity On Damage,100,50,25,200,0,apply_z_velocity_on_damage,,,,,,1000,500
+*Armor Piercing,120,60,0.25,5,1,armor_piercing,,,,,,1200,600
+*Arrow Heals Buildings,110,154,10,50,0,arrow_heals_buildings,,,,,,1100,1540
+*Attach Particle Effect,10,5,0.1,,,attach_particle_effect,,,,,,100,50
+*Attach Particle Effect Static,10,5,0.1,,,attach_particle_effect_static,,,,,,100,50
+*Extinguishing Minicrits,10,5,0.1,,,attack_minicrits_and_consumes_burning,,,,,,100,50
+*Attack Does Not Cancel Charge,40,20,1,1,0,Attack_not_cancel_charge,,,,,,400,200
+*Attack Projectiles,40,20,1,1,0,attack_projectiles,,,,,,400,200
+*Auto Fires Full Clip,40,20,1,1,0,auto_fires_full_clip,,,,,,400,200
+*Auto Fires Full Clip All At Once,40,20,1,1,0,auto_fires_full_clip_all_at_once,,,,,,400,200
+*Auto Fires Full Clip Penalty,40,20,1,1,0,auto_fires_full_clip_penalty,,,,,,400,200
+*Auto Fires When Full,10,5,0.1,,,auto_fires_when_full,,,,,,100,50
+*Axtinguisher Properties,10,5,0.1,,,axtinguisher_properties,,,,,,100,50
+*Back Headshot,10,5,0.1,,,back_headshot,,,,,,100,50
+*Backstab Shield,10,5,0.1,,,backstab_shield,,,,,,100,50
+*Become Fireproof On Hit By Fire,190,142,1,100,0,become_fireproof_on_hit_by_fire,,,,,,1900,1425
+*Bidirectional Teleport,50,25,1,1,0,bidirectional_teleport,,,,,,500,250
+*Blast Dmg To Self Increased,10,5,0.1,,,blast_dmg_to_self_increased,,,,,,100,50
+*Blast Radius Decreased,-120,-60,-0.34,0.3,1,Blast_radius_decreased,,,,,,-1200,-600
+*Blast Radius Increased,80,40,0.1,2,1,Blast_radius_increased,,,,,,800,400
+*Bleeding Duration,15,15,1,60,1,bleeding_duration,,,,,,150,150
+*Bombinomicon Effect On Death,100,50,1,1,0,bombinomicon_effect_on_death,,,,,,1000,500
+*Boost On Damage,100,50,1,1,0,boost_on_damage,,,,,,1000,500
+*Boots Falling Stomp,5,2,0.75,55,3,boots_falling_stomp,,,,,,50,25
+*Bot Custom Jump Particle,10,5,0.1,,,bot_custom_jump_particle,,,,,,100,50
+*Bot Medic Uber Deploy Delay Duration,10,5,0.1,,,bot_medic_uber_deploy_delay_duration,,,,,,100,50
+*Bot Medic Uber Health Threshold,10,5,0.1,,,bot_medic_uber_health_threshold,,,,,,100,50
+*Breadgloves Properties,10,5,0.1,,,breadgloves_properties,,,,,,100,50
+*Build Rate Bonus,30,39,-0.1,0.1,1,build_rate_bonus,,,,,,300,390
+*Building Cost Reduction,30,15,-0.1,0.1,1,building_cost_reduction,,,,,,300,150
+*Building Instant Upgrade,200,100,1,1,0,building_instant_upgrade,,,,,,2000,1000
+*Bullets Per Shot Bonus,100,25,0.25,2,1,bullets_per_shot_bonus,,,,,,1000,250
+*Burn Damage Earns Rage,45,22,1,10,0,burn_damage_earns_rage,,,,,,450,225
+*Can Overload,10,5,0.1,,,can_overload,,,,,,100,50
+*Can Shuffle Crate Contents,10,5,0.1,,,can_shuffle_crate_contents,,,,,,100,50
+*Cancel Falling Damage,60,30,1,1,0,cancel_falling_damage,,,,,,600,300
+*Cannonball Push Back,50,25,1,1,,cannonball_push_back,,,,,,500,250
+*Cannot Be Backstabbed,500,250,1,1,,cannot_be_backstabbed,,,,,,5000,2500
+*Cannot Delete,10,5,0.1,,,cannot_delete,,,,,,100,50
+*Cannot Disguise,10,5,0.1,,,cannot_disguise,,,,,,100,50
+*Cannot Giftwrap,10,5,0.1,,,cannot_giftwrap,,,,,,100,50
+*Cannot Pick Up Buildings,10,5,0.1,,,cannot_pick_up_buildings,,,,,,100,50
+*Cannot Pick Up Intelligence,10,5,0.1,,,cannot_pick_up_intelligence,,,,,,100,50
+*Cannot Restore,10,5,0.1,,,cannot_restore,,,,,,100,50
+*Cannot Trade,10,5,0.1,,,cannot_trade,,,,,,100,50
+*Cannot Transmute,10,5,0.1,,,cannot_transmute,,,,,,100,50
+*Canteen Specialist,10,5,0.1,,,canteen_specialist,,,,,,100,50
+*Damage Bonus (CARD),10,5,0.1,,,CARD:_damage_bonus,,,,,,100,50
+*Bullet Resist (CARD),10,5,0.1,,,CARD:_dmg_taken_from_bullets_reduced,,,,,,100,50
+*Health Regen (CARD),10,5,0.1,,,CARD:_health_regen,,,,,,100,50
+*Move Speed Bonus (CARD),10,5,0.1,,1,CARD:_move_speed_bonus,,,,,,100,50
+*Centerfire Projectile,10,5,0.1,,,centerfire_projectile,,,,,,100,50
+*Charge Impact Damage Decreased,10,5,0.1,,,charge_impact_damage_decreased,,,,,,100,50
+*Charge Impact Damage Increased,20,6,0.25,1600,1,charge_impact_damage_increased,,,,,,200,60
+*Charge Meter On Hit,20,6,0.25,1,1,charge_meter_on_hit,,,,,,200,60
+*Charge Recharge Rate Increased,15,7,1,25,1,charge_recharge_rate_increased,,,,,,150,75
+*Charge Time Decreased,20,15,0.5,10,1,charge_time_decreased,,,,,,200,150
+*Charge Time Increased,20,15,0.5,10,1,charge_time_increased,,,,,,200,150
+*Charged Airblast,20,10,1,1,0,charged_airblast,,,,,,200,100
+*Class Select Override Vcd,10,5,0.1,,,class_select_override_vcd,,,,,,100,50
+*Cleaver Description,10,5,0.1,,,cleaver_description,,,,,,100,50
+*Clip Size Bonus,20,10,0.5,80,1,clip_size_bonus,,,,,,200,100
+*Clip Size Bonus Upgrade,60,12,0.25,100,1,clip_size_bonus_upgrade,,,,,,600,120
+*Clip Size Penalty,-40,-20,-0.1,5,1,clip_size_penalty,,,,,,-400,-200
+*Clip Size Penalty Hidden,-20,-10,-0.15,0.25,1,clip_size_penalty_HIDDEN,,,,,,-200,-100
+*Clip Size Upgrade Atomic,10,5,0.1,,,clip_size_upgrade_atomic,,,,,,100,50
+*Clipsize Increase On Kill,80,16,1,1000,1,clipsize_increase_on_kill,,,,,,800,160
+*Feigning Death Consumes Cloak,10,5,0.1,,,cloak_consume_on_feign_death_activate,,,,,,100,50
+*Cloak Consume Rate Decreased,10,5,0.1,,,cloak_consume_rate_decreased,,,,,,100,50
+*Cloak Consume Rate Increased,10,5,0.1,,,cloak_consume_rate_increased,,,,,,100,50
+*Cloak Regen Rate Decreased,10,5,0.1,,,cloak_regen_rate_decreased,,,,,,100,50
+*Cloak Regen Rate Increased,20,10,0.2,6,0,cloak_regen_rate_increased,,,,,,200,100
+*Closerange Backattack Minicrits,10,5,0.1,,,closerange_backattack_minicrits,,,,,,100,50
+*Community Description,10,5,0.1,,,community_description,,,,,,100,50
+*Construction Speed Bonus,10,5,0.1,,,Construction_rate_decreased,,,,,,100,50
+*Construction Speed Malus,20,10,0.34,15,0,Construction_rate_increased,,,,,,200,100
+*Allow Inspecting Cosmetic,10,5,0.1,,,cosmetic_allow_inspect,,,,,,100,50
+*Cosmetic Taunt Sound,10,5,0.1,,,cosmetic_taunt_sound,,,,,,100,50
+*Counts As Assister Is Some Kind Of Pet This Update Is Going To Be Awesome,66,33,0.1,,,counts_as_assister_is_some_kind_of_pet_this_update_is_going_to_be_awesome,,,,,,666,333
+*Crate Generation Code,10,5,0.1,,,crate_generation_code,,,,,,100,50
+*Crit Damage Has Falloff,50,12,-0.1,0.1,1,crit_dmg_falloff,,,,,,500,125
+*No Critical Damage,10,5,0.1,,,crit_does_no_damage,,,,,,100,50
+*Crit Forces Victim To Laugh,200,100,1,1,0,crit_forces_victim_to_laugh,,,,,,2000,1000
+*Crit From Behind,120,60,1,1,0,crit_from_behind,,,,,,1200,600
+*Crit Kill Will Gib,50,25,1,1,0,crit_kill_will_gib,,,,,,500,250
+*Crit Mod Disabled,40,20,0.05,1,0.15,crit_mod_disabled,,,,,,400,200
+*Crit Mod Disabled Hidden,10,5,0.1,,,crit_mod_disabled_hidden,,,,,,100,50
+*Crit On Hard Hit,10,5,0.1,,,crit_on_hard_hit,,,,,,100,50
+*Crit Vs Burning Players (Flare),1000,500,1,1,0,crit_vs_burning_FLARES_DISPLAY_ONLY,,,,,,10000,5000
+*Crit Vs Burning Players,1000,500,1,1,0,crit_vs_burning_players,,,,,,10000,5000
+*Crit Vs Disguised Players,200,100,1,1,0,crit_vs_disguised_players,,,,,,2000,1000
+*Crit Vs Non Burning Players,200,100,1,1,0,crit_vs_non_burning_players,,,,,,2000,1000
+*Crit Vs Stunned Players,500,250,1,1,0,crit_vs_stunned_players,,,,,,5000,2500
+*Crit Vs Wet Players,250,125,1,1,0,crit_vs_wet_players,,,,,,2500,1250
+*Critboost,10000,5000,0.1,,,critboost,,,,,,100000,50000
+*Critboost On Kill,45,54,2,60,0,critboost_on_kill,,,,,,450,540
+*Crits Become Minicrits,50,25,1,1,0,crits_become_minicrits,,,,,,500,250
+*Currency Bonus,10,5,0.1,,,currency_bonus,,,,,,100,50
+*Custom Desc Attr,10,5,0.1,,,custom_desc_attr,,,,,,100,50
+*Custom Employee Number,10,5,0.1,,,custom_employee_number,,,,,,100,50
+*Custom Name Attr,10,5,0.1,,,custom_name_attr,,,,,,100,50
+*Custom Paintkit Seed Hi,10,5,0.1,,,custom_paintkit_seed_hi,,,,,,100,50
+*Custom Paintkit Seed Lo,10,5,0.1,,,custom_paintkit_seed_lo,,,,,,100,50
+*Custom Projectile Model,10,5,0.1,,,custom_projectile_model,,,,,,100,50
+*Custom Texture Hi,10,5,0.1,,,custom_texture_hi,,,,,,100,50
+*Custom Texture Lo,10,5,0.1,,,custom_texture_lo,,,,,,100,50
+*Damage All Connected,150,75,1,1,0,damage_all_connected,,,,,,1500,750
+*Damage Applies To Sappers,100,50,1,1,0,damage_applies_to_sappers,,,,,,1000,500
+*Damage Blast Push,80,40,0.2,3,0,damage_blast_push,,,,,,800,400
+*Damage Bonus,16,1,0.25,7500,1,damage_bonus,,,,,,160,16
+*Damage Bonus Bullet Vs Sentry Target,10,5,0.1,,,damage_bonus_bullet_vs_sentry_target,,,,,,100,50
+*Damage Bonus Hidden,120,24,0.25,7500,1,damage_bonus_HIDDEN,,,,,,1200,240
+*Damage Bonus Vs Burning,120,24,0.25,7500,1,damage_bonus_vs_burning,,,,,,1200,240
+*Damage Bonus While Disguised,10,5,0.1,,,damage_bonus_while_disguised,,,,,,100,50
+*Damage Causes Airblast,200,100,1,1,0,damage_causes_airblast,,,,,,2000,1000
+*Damage Force Increase,20,10,0.2,2,0,damage_force_increase,,,,,,200,100
+*Damage Force Increase Hidden,20,10,0.2,2,0,damage_force_increase_hidden,,,,,,200,100
+*Damage Force Increase Text,10,5,0.1,,,damage_force_increase_text,,,,,,100,50
+*Damage Force Reduction,20,20,-0.1,0.02,1,damage_force_reduction,,,,,,200,200
+*Damage Penalty,120,96,0.15,1000,1,damage_penalty,,,,,,1200,960
+*Damage Penalty On Bodyshot,-60,-48,0.15,1000,1,damage_penalty_on_bodyshot,,,,,,-600,-480
+*Deactive Date,10,5,0.1,,,deactive_date,,,,,,100,50
+*Decapitate Type,10,5,0.1,,,decapitate_type,,,,,,100,50
+*Decoded By Itemdefindex,10,5,0.1,,,decoded_by_itemdefindex,,,,,,100,50
+*Deflection Size Multiplier,120,60,0.05,10,1,deflection_size_multiplier,,,,,,1200,600
+*Deploy Time Decreased,20,10,-0.25,0.1,1,deploy_time_decreased,,,,,,200,100
+*Deploy Time Increased,10,5,0.1,,,deploy_time_increased,,,,,,100,50
+*Disable Fancy Class Select Anim,10,5,0.1,,,disable_fancy_class_select_anim,,,,,,100,50
+*Disable Weapon Hiding For Animations,10,5,0.1,,,disable_weapon_hiding_for_animations,,,,,,100,50
+*Disable Weapon Switch,10,5,0.1,,,disable_weapon_switch,,,,,,100,50
+*Disguise Damage Reduction,400,200,-0.1,0.5,1,disguise_damage_reduction,,,,,,4000,2000
+*Disguise No Burn,80,40,1,1,0,disguise_no_burn,,,,,,800,400
+*Disguise On Backstab,60,30,1,1,0,disguise_on_backstab,,,,,,600,300
+*Disguise Speed,20,10,-0.1,-1.5,0,disguise_speed_penalty,,,,,,200,100
+*Display Duck Leaderboard,10,5,0.1,,,display_duck_leaderboard,,,,,,100,50
+*Dmg Bonus Vs Buildings,80,16,0.1,500,1,dmg_bonus_vs_buildings,,,,,,800,160
+*Dmg Bonus While Half Dead,40,20,0.25,1500,1,dmg_bonus_while_half_dead,,,,,,400,200
+*Dmg Falloff Decreased,10,5,-0.25,0.05,1,dmg_falloff_decreased,,,,,,100,50
+*Dmg Falloff Increased,10,5,0.1,,,dmg_falloff_increased,,,,,,100,50
+*Melee Resistance,25,25,-0.1,0.1,1,dmg_from_melee_increased,,,,,,250,250
+*Dmg From Ranged Reduced,75,90,-0.05,0.15,1,dmg_from_ranged_reduced,,,,,,750,900
+*Dmg Penalty Vs Buildings,10,5,0.1,,,dmg_penalty_vs_buildings,,,,,,100,50
+*Dmg Penalty Vs Nonburning,10,5,0.1,,,dmg_penalty_vs_nonburning,,,,,,100,50
+*Dmg Penalty Vs Nonstunned,10,5,0.1,,,dmg_penalty_vs_nonstunned,,,,,,100,50
+*Dmg Penalty Vs Players,20,4,0.25,10000,1,dmg_penalty_vs_players,,,,,,200,40
+*Damage bonus vs player (C),10,1,0.25,10000,1,dmg_penalty_vs_players,,,,,,100,15
+*Damage bonus vs player (S),120,120,1,10000,1,dmg_penalty_vs_players,,,,,,1200,1200
+*Dmg Penalty While Half Alive,10,5,0.1,,,dmg_penalty_while_half_alive,,,,,,100,50
+*Dmg Pierces Resists Absorbs,10,5,0.1,,,dmg_pierces_resists_absorbs,,,,,,100,50
+*Dmg Taken From Blast Increased,35,35,-0.1,0.1,1,dmg_taken_from_blast_increased,,,,,,350,350
+*Blast Resistance,35,35,-0.1,0.1,1,dmg_taken_from_blast_reduced,,,,,,350,350
+*Dmg Taken From Bullets Increased,35,35,-0.1,0.1,1,dmg_taken_from_bullets_increased,,,,,,350,350
+*Bullet Resistance,35,35,-0.1,0.1,1,dmg_taken_from_bullets_reduced,,,,,,350,350
+*Dmg Taken From Crit Increased,35,31,-0.1,0.1,1,dmg_taken_from_crit_increased,,,,,,350,315
+*Crit Resistance,35,31,-0.1,0.1,1,dmg_taken_from_crit_reduced,,,,,,350,315
+*Dmg Taken From Fire Increased,35,35,-0.1,0.1,1,dmg_taken_from_fire_increased,,,,,,350,350
+*Fire Resistance,35,35,-0.1,0.1,1,dmg_taken_from_fire_reduced,,,,,,350,350
+*Fire Resistance On Active,30,30,-0.1,0.1,1,dmg_taken_from_fire_reduced_on_active,,,,,,300,300
+*Dmg Taken Reduced,90,126,-0.05,0.15,1,dmg_taken_increased,,,,,,900,1260
+*Dragons Fury Negative Properties,10,5,0.1,,,dragons_fury_negative_properties,,,,,,100,50
+*Dragons Fury Neutral Properties,10,5,0.1,,,dragons_fury_neutral_properties,,,,,,100,50
+*Dragons Fury Positive Properties,10,5,0.1,,,dragons_fury_positive_properties,,,,,,100,50
+*Drop Health Pack On Kill,50,25,1,1,0,drop_health_pack_on_kill,,,,,,500,250
+*Duck Badge Level,10,5,0.1,,,duck_badge_level,,,,,,100,50
+*Duck Rating,10,5,0.1,,,duck_rating,,,,,,100,50
+*Duckstreaks Active,10,5,0.1,,,duckstreaks_active,,,,,,100,50
+*Duel Loser Account Id,10,5,0.1,,,duel_loser_account_id,,,,,,100,50
+*Effect Bar Recharge Rate Increased,25,18,-0.1,0.01,1,effect_bar_recharge_rate_increased,,,,,,250,187.5
+*Electrical Airblast Display Only,10,5,0.1,,,electrical_airblast_DISPLAY_ONLY,,,,,,100,50
+*Elevate Quality,10,5,0.1,,,elevate_quality,,,,,,100,50
+*Elevate To Unusual If Applicable,10,5,0.1,,,elevate_to_unusual_if_applicable,,,,,,100,50
+*Enables Aoe Heal,40,20,1,5,0,enables_aoe_heal,,,,,,400,200
+*End Drop Date,10,5,0.1,,,end_drop_date,,,,,,100,50
+*Energy Buff Dmg Taken Multiplier,10,5,0.1,,,energy_buff_dmg_taken_multiplier,,,,,,100,50
+*Energy Weapon Charged Shot,10,5,0.1,,,energy_weapon_charged_shot,,,,,,100,50
+*Energy Weapon No Ammo,10,5,0.1,,,energy_weapon_no_ammo,,,,,,100,50
+*Energy Weapon No Deflect,10,5,0.1,,,energy_weapon_no_deflect,,,,,,100,50
+*Energy Weapon No Drain,10,5,0.1,,,energy_weapon_no_drain,,,,,,100,50
+*Energy Weapon No Hurt Building,10,5,0.1,,,energy_weapon_no_hurt_building,,,,,,100,50
+*Energy Weapon Penetration,10,5,0.1,,,energy_weapon_penetration,,,,,,100,50
+*Engineer Building Teleporting Pickup,600,300,50,50,0,engineer_building_teleporting_pickup,,,,,,6000,3000
+*Engineer Rage On Dmg,10,5,0.1,,,engineer_rage_on_dmg,,,,,,100,50
+*Engineer Sentry Build Rate Multiplier,25,18,-0.1,0.1,1,engineer_sentry_build_rate_multiplier,,,,,,250,187.5
+*Engineer Teleporter Build Rate Multiplier,25,18,-0.1,0.1,1,engineer_teleporter_build_rate_multiplier,,,,,,250,187.5
+*Engy Building Health Bonus,25,2,1,1500,1,engy_building_health_bonus,,,,,,250,25
+*Engy Dispenser Radius Increased,20,10,1,100,1,engy_dispenser_radius_increased,,,,,,200,100
+*Engy Disposable Sentries,50,25,1,3,0,engy_disposable_sentries,,,,,,500,250
+*Engy Sentry Damage Bonus,40,16,0.25,2950,1,engy_sentry_damage_bonus,,,,,,400,160
+*Engy Sentry Fire Rate Increased,40,20,-0.1,0.1,1,engy_sentry_fire_rate_increased,,,,,,400,200
+*Engy Sentry Radius Increased,60,30,0.1,2,1,engy_sentry_radius_increased,,,,,,600,300
+*Event Date,10,5,0.1,,,event_date,,,,,,100,50
+*Expiration Date,10,5,0.1,,,expiration_date,,,,,,100,50
+*Explode On Ignite,300,150,1,1,0,explode_on_ignite,,,,,,3000,1500
+*Explosive Sniper Shot,100,50,1,1,0,explosive_sniper_shot,,,,,,1000,500
+*Extinguish Earns Revenge Crits,20,10,1,4,0,extinguish_earns_revenge_crits,,,,,,200,100
+*Extinguish Reduces Cooldown,20,10,1,1,0,extinguish_reduces_cooldown,,,,,,200,100
+*Extinguish Restores Health,20,2,20,1000,0,extinguish_restores_health,,,,,,200,20
+*Falling Impact Radius Pushback,100,50,1,1,0,falling_impact_radius_pushback,,,,,,1000,500
+*Falling Impact Radius Stun,100,50,1,1,0,falling_impact_radius_stun,,,,,,1000,500
+*Faster Reload Rate,25,12,-0.1,0.1,1,faster_reload_rate,,,,,,250,125
+*Fire Particle Blue,10,5,0.1,,,fire_particle_blue,,,,,,100,50
+*Fire Particle Blue Crit,10,5,0.1,,,fire_particle_blue_crit,,,,,,100,50
+*Fire Particle Red,10,5,0.1,,,fire_particle_red,,,,,,100,50
+*Fire Particle Red Crit,10,5,0.1,,,fire_particle_red_crit,,,,,,100,50
+*Fire Rate Bonus,30,15,-0.1,0.1,1,fire_rate_bonus,,,,,,300,150
+*Fire Rate Bonus (Bat),30,15,-0.1,0.4,1,fire_rate_bonus,,,,,,300,150
+*Fire Rate Bonus Hidden,40,20,-0.1,0.5,1,fire_rate_bonus_HIDDEN,,,,,,400,200
+*Fire Rate Bonus With Reduced Health,40,20,-0.1,0.5,1,fire_rate_bonus_with_reduced_health,,,,,,400,200
+*Fire Rate Penalty,-40,-20,0.1,25,1,fire_rate_penalty,,,,,,-400,-200
+*Fire Rate Penalty Hidden,10,5,0.1,,,fire_rate_penalty_HIDDEN,,,,,,100,50
+*Fire Retardant,10,5,0.1,,,fire_retardant,,,,,,100,50
+*Fish Damage Override,10,5,0.1,,,fish_damage_override,,,,,,100,50
+*Fists Have Radial Buff,10,5,0.1,,,fists_have_radial_buff,,,,,,100,50
+*Fixed Shot Pattern,60,30,1,1,0,fixed_shot_pattern,,,,,,600,300
+*Flame Ammopersec Decreased,20,10,-0.1,0.1,1,flame_ammopersec_decreased,,,,,,200,100
+*Flame Ammopersec Increased,-20,-10,1,5,0,flame_ammopersec_increased,,,,,,-200,-100
+*Flame Drag,10,5,0.1,,,flame_drag,,,,,,100,50
+*Flame Gravity,10,5,0.1,,,flame_gravity,,,,,,100,50
+*Flame Ignore Player Velocity,10,5,0.1,,,flame_ignore_player_velocity,,,,,,100,50
+*Flame Life Bonus,25,12,0.25,5,1,flame_life_bonus,,,,,,250,125
+*Flame Life Penalty,10,5,0.1,,,flame_life_penalty,,,,,,100,50
+*Flame Lifetime,25,12,0.25,5,1,flame_lifetime,,,,,,250,125
+*Flame Random Life Time Offset,10,5,0.1,,,flame_random_life_time_offset,,,,,,100,50
+*Flame Reflect On Collision,80,40,1,1,1,flame_reflect_on_collision,,,,,,800,400
+*Flame Reflection Add Life Time,10,5,0.1,,,flame_reflection_add_life_time,,,,,,100,50
+*Flame Size Bonus,80,24,1,60,1,flame_size_bonus,,,,,,800,240
+*Flame Size Penalty,10,5,0.1,,,flame_size_penalty,,,,,,100,50
+*Flame Speed,60,30,1000,8000,2000,flame_speed,,,,,,600,300
+*Flame Spread Degree,10,5,0.1,,,flame_spread_degree,,,,,,100,50
+*Flame Up Speed,60,30,1000,8000,2000,flame_up_speed,,,,,,600,300
+*Force Center Wrap,10,5,0.1,,,force_center_wrap,,,,,,100,50
+*Force Level Display,10,5,0.1,,,force_level_display,,,,,,100,50
+*Force Weapon Switch,10,5,0.1,,,force_weapon_switch,,,,,,100,50
+*Freaky Fair Ammo Potion,10,5,0.1,,,freaky_fair_ammo_potion,,,,,,100,50
+*Freaky Fair Buster Potion,10,5,0.1,,,freaky_fair_buster_potion,,,,,,100,50
+*Freaky Fair Extra Attrib1,10,5,0.1,,,freaky_fair_extra_attrib1,,,,,,100,50
+*Freaky Fair Extra Attrib2,10,5,0.1,,,freaky_fair_extra_attrib2,,,,,,100,50
+*Freaky Fair Ghost Potion,10,5,0.1,,,freaky_fair_ghost_potion,,,,,,100,50
+*Freaky Fair Giant Potion,10,5,0.1,,,freaky_fair_giant_potion,,,,,,100,50
+*Freaky Fair Healing Potion,10,5,0.1,,,freaky_fair_healing_potion,,,,,,100,50
+*Freaky Fair Kritz Potion,10,5,0.1,,,freaky_fair_kritz_potion,,,,,,100,50
+*Freaky Fair Relentless Potion,10,5,0.1,,,freaky_fair_relentless_potion,,,,,,100,50
+*Freaky Fair Rtd Potion,10,5,0.1,,,freaky_fair_rtd_potion,,,,,,100,50
+*Freaky Fair Uber Potion,10,5,0.1,,,freaky_fair_uber_potion,,,,,,100,50
+*Freeze Backstab Victim,80,40,1,1,0,freeze_backstab_victim,,,,,,800,400
+*Full Charge Turn Control,10,5,0.1,,,full_charge_turn_control,,,,,,100,50
+*Decrease Grenade Fuse Time,20,10,-0.1,0,1,fuse_bonus,,,,,,200,100
+*Generate Rage On Damage,80,40,1,50,0,generate_rage_on_damage,,,,,,800,400
+*Generate Rage On Heal,200,100,1,2,0,generate_rage_on_heal,,,,,,2000,1000
+*Gesture Speed Increase,7,3,1,5,1,gesture_speed_increase,,,,,,75,37.5
+*Gifter Account Id,10,5,0.1,,,gifter_account_id,,,,,,100,50
+*Grenade Damage Reduction On World Contact,10,5,0.1,,,grenade_damage_reduction_on_world_contact,,,,,,100,50
+*Grenade Detonation Damage Penalty,10,5,0.1,,,grenade_detonation_damage_penalty,,,,,,100,50
+*Grenade Launcher Mortar Mode,10,5,0.1,,,grenade_launcher_mortar_mode,,,,,,100,50
+*Grenade No Bounce,100,50,1,1,0,grenade_no_bounce,,,,,,1000,500
+*Grenade No Spin,50,25,1,1,0,grenade_no_spin,,,,,,500,250
+*Grenade Not Explode On Impact,50,25,1,1,0,grenade_not_explode_on_impact,,,,,,500,250
+*Grenades1 Resupply Denied,10,5,0.1,,,grenades1_resupply_denied,,,,,,100,50
+*Grenades2 Resupply Denied,10,5,0.1,,,grenades2_resupply_denied,,,,,,100,50
+*Grenades3 Resupply Denied,10,5,0.1,,,grenades3_resupply_denied,,,,,,100,50
+*Gunslinger Punch Combo,10,5,0.1,,,gunslinger_punch_combo,,,,,,100,50
+*Halloween Fire Rate Bonus,10,5,0.1,,,halloween_fire_rate_bonus,,,,,,100,50
+*Halloween Increased Jump Height,10,5,0.1,,,halloween_increased_jump_height,,,,,,100,50
+*Halloween Item,10,5,0.1,,,halloween_item,,,,,,100,50
+*Halloween Reload Time Decreased,10,5,0.1,,,halloween_reload_time_decreased,,,,,,100,50
+*Audere Spell,10,5,0.1,,,Halloween_Spellbook_Page:_Audere,,,,,,100,50
+*Congeriae Spell,10,5,0.1,,,Halloween_Spellbook_Page:_Congeriae,,,,,,100,50
+*Gratanter Spell,10,5,0.1,,,Halloween_Spellbook_Page:_Gratanter,,,,,,100,50
+*Tumidum Spell,10,5,0.1,,,Halloween_Spellbook_Page:_Tumidum,,,,,,100,50
+*Veteris Spell,10,5,0.1,,,Halloween_Spellbook_Page:_Veteris,,,,,,100,50
+*Halloweenvision Filter Display Only,10,5,0.1,,,halloweenvision_filter_DISPLAY_ONLY,,,,,,100,50
+*Halloweenvision Opt In Display Only,10,5,0.1,,,halloweenvision_opt_in_DISPLAY_ONLY,,,,,,100,50
+*Hand Scale,10,5,0.1,,,hand_scale,,,,,,100,50
+*Has Pipboy Build Interface,10,5,1,1,0,has_pipboy_build_interface,,,,,,100,50
+*Has Team Color Paintkit,10,5,0.1,,,has_team_color_paintkit,,,,,,100,50
+*Hat Only Unusual Effect,10,5,0.1,,,hat_only_unusual_effect,,,,,,100,50
+*Head Scale,10,5,0.1,,,head_scale,,,,,,100,50
+*Headshot Damage Increase,100,50,0.5,2,1,headshot_damage_increase,,,,,,1000,500
+*Heal On Hit For Rapidfire,120,180,1,3,0,heal_on_hit_for_rapidfire,,,,,,1200,1800
+*Heal On Hit For Slowfire,80,40,1,20,0,heal_on_hit_for_slowfire,,,,,,800,400
+*Heal On Kill,20,1,50,25000,0,heal_on_kill,,,,,,200,10
+*Heal Rate Bonus,40,10,0.25,500,1,heal_rate_bonus,,,,,,400,100
+*Heal Rate Penalty,10,5,0.1,,,heal_rate_penalty,,,,,,100,50
+*Healing Mastery,100,50,1,4,0,healing_mastery,,,,,,1000,500
+*Healing Received Bonus,10,5,0.1,,,healing_received_bonus,,,,,,100,50
+*Healing Received Penalty,10,5,0.1,,,healing_received_penalty,,,,,,100,50
+*Health Drain,10,5,0.1,,,health_drain,,,,,,100,50
+*Health Drain Medic,10,5,0.1,,,health_drain_medic,,,,,,100,50
+*Health From Healers Increased,80,48,0.25,30,1,health_from_healers_increased,,,,,,800,480
+*Health From Healers Reduced,10,5,0.1,,,health_from_healers_reduced,,,,,,100,50
+*Health From Packs Decreased,10,5,0.1,,,health_from_packs_decreased,,,,,,100,50
+*Health From Packs Increased,45,22,0.25,5,1,health_from_packs_increased,,,,,,450,225
+*Health On Radius Damage,10,5,0.1,,,health_on_radius_damage,,,,,,100,50
+*Health Regen,75,52,2,20000,0,health_regen,,,,,,750,525
+*Hidden Maxhealth Non Buffed,10,5,0.1,,,hidden_maxhealth_non_buffed,,,,,,100,50
+*Hidden Primary Max Ammo Bonus,10,5,0.1,,,hidden_primary_max_ammo_bonus,,,,,,100,50
+*Hidden Secondary Max Ammo Penalty,10,5,0.1,,,hidden_secondary_max_ammo_penalty,,,,,,100,50
+*Hide Crate Series Number,10,5,0.1,,,hide_crate_series_number,,,,,,100,50
+*Hide Enemy Health,10,5,0.1,,,hide_enemy_health,,,,,,100,50
+*Hide Strange Prefix,10,5,0.1,,,hide_strange_prefix,,,,,,100,50
+*Hit Self On Miss,10,5,1,1,0,hit_self_on_miss,,,,,,100,50
+*Holster Anim Time,10,5,0.1,,,holster_anim_time,,,,,,100,50
+*Honorbound,0,0,-1,0,1,honorbound,,,,,,0,0
+*Hype Decays Over Time,10,5,0.1,,,hype_decays_over_time,,,,,,100,50
+*Hype On Damage,10,5,0.1,,,hype_on_damage,,,,,,100,50
+*Hype Resets On Jump,10,5,0.1,,,hype_resets_on_jump,,,,,,100,50
+*Increase Buff Duration,100,35,0.2,90,1,increase_buff_duration,,,,,,1000,350
+*Increase Buff Duration Hidden,100,35,0.2,90,1,increase_buff_duration_HIDDEN,,,,,,1000,350
+*Increase Player Capture Value,60,30,1,3,0,increase_player_capture_value,,,,,,600,300
+*Increased Air Control,40,20,5,25,0,increased_air_control,,,,,,400,200
+*Increased Jump Height,20,20,0.2,3,1,increased_jump_height,,,,,,200,200
+*Increased Jump Height From Weapon,20,10,0.2,2,1,increased_jump_height_from_weapon,,,,,,200,100
+*Inspect Viewmodel Offset,10,5,0.1,,,inspect_viewmodel_offset,,,,,,100,50
+*Is A Sword,10,5,0.1,,,is_a_sword,,,,,,100,50
+*Is Australium Item,100,50,1,1,0,is_australium_item,,,,,,1000,500
+*Is Commodity,10,5,0.1,,,is_commodity,,,,,,100,50
+*Is Festivized,50,25,1,1,0,is_festivized,,,,,,500,250
+*Is Giger Counter,10,5,0.1,,,is_giger_counter,,,,,,100,50
+*Is Marketable,10,5,0.1,,,is_marketable,,,,,,100,50
+*Is Operation Pass,10,5,0.1,,,is_operation_pass,,,,,,100,50
+*Is Passive Weapon,10,5,0.1,,,is_passive_weapon,,,,,,100,50
+*Is Throwable Chargeable,10,5,0.1,,,is_throwable_chargeable,,,,,,100,50
+*Is Throwable Primable,10,5,0.1,,,is_throwable_primable,,,,,,100,50
+*Is Winter Case,10,5,0.1,,,is_winter_case,,,,,,100,50
+*Item Drop Wave,10,5,0.1,,,item_drop_wave,,,,,,100,50
+*Item In Slot 1,10,5,0.1,,,item_in_slot_1,,,,,,100,50
+*Item In Slot 2,10,5,0.1,,,item_in_slot_2,,,,,,100,50
+*Item In Slot 3,10,5,0.1,,,item_in_slot_3,,,,,,100,50
+*Item In Slot 4,10,5,0.1,,,item_in_slot_4,,,,,,100,50
+*Item In Slot 5,10,5,0.1,,,item_in_slot_5,,,,,,100,50
+*Item In Slot 6,10,5,0.1,,,item_in_slot_6,,,,,,100,50
+*Item In Slot 7,10,5,0.1,,,item_in_slot_7,,,,,,100,50
+*Item In Slot 8,10,5,0.1,,,item_in_slot_8,,,,,,100,50
+*Item Charge Rate,25,18,-0.01,0.9,1,item_meter_charge_rate,,,,,,250,187.5
+*Item Meter Charge Type,10,5,0.1,,,item_meter_charge_type,,,,,,100,50
+*Item Meter Charge Type 3 Display Only,10,5,0.1,,,item_meter_charge_type_3_DISPLAY_ONLY,,,,,,100,50
+*Item Meter Damage For Full Charge,10,5,0.1,,,item_meter_damage_for_full_charge,,,,,,100,50
+*Item Meter Resupply Denied,10,5,0.1,,,item_meter_resupply_denied,,,,,,100,50
+*Item Meter Starts Empty Display Only,10,5,0.1,,,item_meter_starts_empty_DISPLAY_ONLY,,,,,,100,50
+*Item Name Text Override,10,5,0.1,,,item_name_text_override,,,,,,100,50
+*Item Slot Criteria 1,10,5,0.1,,,item_slot_criteria_1,,,,,,100,50
+*Item Slot Criteria 2,10,5,0.1,,,item_slot_criteria_2,,,,,,100,50
+*Item Slot Criteria 3,10,5,0.1,,,item_slot_criteria_3,,,,,,100,50
+*Item Slot Criteria 4,10,5,0.1,,,item_slot_criteria_4,,,,,,100,50
+*Item Slot Criteria 5,10,5,0.1,,,item_slot_criteria_5,,,,,,100,50
+*Item Slot Criteria 6,10,5,0.1,,,item_slot_criteria_6,,,,,,100,50
+*Item Slot Criteria 7,10,5,0.1,,,item_slot_criteria_7,,,,,,100,50
+*Item Slot Criteria 8,10,5,0.1,,,item_slot_criteria_8,,,,,,100,50
+*Item Style Override,10,5,0.1,,,item_style_override,,,,,,100,50
+*Items Traded In For,10,5,0.1,,,items_traded_in_for,,,,,,100,50
+*Jarate Backstabber,10,5,0.1,,,jarate_backstabber,,,,,,100,50
+*Jarate Description,10,5,0.1,,,jarate_description,,,,,,100,50
+*Jarate Duration,20,15,1,30,1,jarate_duration,,,,,,200,150
+*Kill Eater,10,5,0.1,,,kill_eater,,,,,,100,50
+*Kill Eater 2,10,5,0.1,,,kill_eater_2,,,,,,100,50
+*Kill Eater 3,10,5,0.1,,,kill_eater_3,,,,,,100,50
+*Kill Eater Kill Type,10,5,0.1,,,kill_eater_kill_type,,,,,,100,50
+*Kill Eater Score Type,10,5,0.1,,,kill_eater_score_type,,,,,,100,50
+*Kill Eater Score Type 2,10,5,0.1,,,kill_eater_score_type_2,,,,,,100,50
+*Kill Eater Score Type 3,10,5,0.1,,,kill_eater_score_type_3,,,,,,100,50
+*Kill Eater User 1,10,5,0.1,,,kill_eater_user_1,,,,,,100,50
+*Kill Eater User 2,10,5,0.1,,,kill_eater_user_2,,,,,,100,50
+*Kill Eater User 3,10,5,0.1,,,kill_eater_user_3,,,,,,100,50
+*Kill Eater User Score Type 1,10,5,0.1,,,kill_eater_user_score_type_1,,,,,,100,50
+*Kill Eater User Score Type 2,10,5,0.1,,,kill_eater_user_score_type_2,,,,,,100,50
+*Kill Eater User Score Type 3,10,5,0.1,,,kill_eater_user_score_type_3,,,,,,100,50
+*Kill Forces Attacker To Laugh,10,5,0.1,,,kill_forces_attacker_to_laugh,,,,,,100,50
+*Kill Refills Meter,10,5,0.1,,,kill_refills_meter,,,,,,100,50
+*Killstreak Effect,10,5,0.1,,,killstreak_effect,,,,,,100,50
+*Killstreak Idleeffect,10,5,0.1,,,killstreak_idleeffect,,,,,,100,50
+*Killstreak Tier,10,5,0.1,,,killstreak_tier,,,,,,100,50
+*Limited Quantity Item,10,5,0.1,,,limited_quantity_item,,,,,,100,50
+*Loot List Name,10,5,0.1,,,loot_list_name,,,,,,100,50
+*Loot Rarity,10,5,0.1,,,loot_rarity,,,,,,100,50
+*Damage Won't Reduce Charge,80,40,-1,0,1,lose_demo_charge_on_damage_when_charging,,,,,,800,400
+*Lose Hype On Take Damage,10,5,0.1,,,lose_hype_on_take_damage,,,,,,100,50
+*Lose Revenge Crits On Death Display Only,10,5,0.1,,,lose_revenge_crits_on_death_DISPLAY_ONLY,,,,,,100,50
+*Lunchbox Adds Maxhealth Bonus,10,5,1,1,0,lunchbox_adds_maxhealth_bonus,,,,,,100,50
+*Lunchbox Adds Minicrits,200,100,2,2,0,lunchbox_adds_minicrits,,,,,,2000,1000
+*Lunchbox Healing Decreased,10,5,0.1,,,lunchbox_healing_decreased,,,,,,100,50
+*Mad Milk Syringes,100,50,1,1,0,mad_milk_syringes,,,,,,1000,500
+*Major Increased Jump Height,200,100,1,2,1,major_increased_jump_height,,,,,,2000,1000
+*Major Move Speed Bonus,200,100,1,2,1,major_move_speed_bonus,,,,,,2000,1000
+*Makers Mark Id,10,5,0.1,,,makers_mark_id,,,,,,100,50
+*Mark For Death,10,5,0.1,,,mark_for_death,,,,,,100,50
+*Mark For Death On Building Pickup,10,5,0.1,,,mark_for_death_on_building_pickup,,,,,,100,50
+*Max Flame Reflection Count,10,5,0.1,,,max_flame_reflection_count,,,,,,100,50
+*Max Health Bonus,30,15,25,50000,0,max_health_additive_bonus,,,,,,300,150
+*Max Health Additive Penalty,-20,-10,-25,-100,0,max_health_additive_penalty,,,,,,-200,-100
+*Max Pipebombs Decreased,10,5,0.1,,,max_pipebombs_decreased,,,,,,100,50
+*Max Pipebombs Increased,50,25,1,12,0,max_pipebombs_increased,,,,,,500,250
+*Maxammo Grenades1 Increased,30,15,1,20,1,maxammo_grenades1_increased,,,,,,300,150
+*Maxammo Metal Increased,20,10,0.25,25,1,maxammo_metal_increased,,,,,,200,100
+*Maxammo Metal Reduced,-40,-20,-0.05,0.64,1,maxammo_metal_reduced,,,,,,-400,-200
+*Maxammo Primary Increased,60,30,0.25,20,1,maxammo_primary_increased,,,,,,600,300
+*Maxammo Primary Reduced,-60,-30,-0.2,0.05,1,maxammo_primary_reduced,,,,,,-600,-300
+*Maxammo Secondary Increased,60,30,0.5,20,1,maxammo_secondary_increased,,,,,,600,300
+*Maxammo Secondary Reduced,-60,-30,-0.2,0.05,1,maxammo_secondary_reduced,,,,,,-600,-300
+*Medic Regen Bonus,30,15,1,20,1,medic_regen_bonus,,,,,,300,150
+*Medic Regen Penalty,10,5,0.1,,,medic_regen_penalty,,,,,,100,50
+*Medigun Blast Resist Deployed,40,32,-0.1,0.15,0.25,medigun_blast_resist_deployed,,,,,,400,320
+*Medigun Blast Resist Passive,40,32,-0.1,0.4,0.85,medigun_blast_resist_passive,,,,,,400,320
+*Medigun Bullet Resist Deployed,40,32,-0.1,0.15,0.25,medigun_bullet_resist_deployed,,,,,,400,320
+*Medigun Bullet Resist Passive,40,32,-0.1,0.4,0.85,medigun_bullet_resist_passive,,,,,,400,320
+*Medigun Charge Is Crit Boost,5,2,1,1,0,medigun_charge_is_crit_boost,,,,,,50,25
+*Medigun Charge Is Megaheal,5,2,1,1,0,medigun_charge_is_megaheal,,,,,,50,25
+*Medigun Charge Is Resists,5,2,1,1,0,medigun_charge_is_resists,,,,,,50,25
+*Medigun Crit Blast Percent Bar Deplete,10,5,0.1,,,medigun_crit_blast_percent_bar_deplete,,,,,,100,50
+*Medigun Crit Bullet Percent Bar Deplete,10,5,0.1,,,medigun_crit_bullet_percent_bar_deplete,,,,,,100,50
+*Medigun Crit Fire Percent Bar Deplete,10,5,0.1,,,medigun_crit_fire_percent_bar_deplete,,,,,,100,50
+*Medigun Fire Resist Deployed,40,32,-0.1,0.15,0.25,medigun_fire_resist_deployed,,,,,,400,320
+*Medigun Fire Resist Passive,40,32,-0.1,0.4,0.85,medigun_fire_resist_passive,,,,,,400,320
+*Melee Attack Rate Bonus,60,90,-0.1,0.4,1,melee_attack_rate_bonus,,,,,,600,900
+*Melee Bounds Multiplier,10,5,0.25,5,1,melee_bounds_multiplier,,,,,,100,50
+*Melee Range Multiplier,20,8,0.1,70,1,melee_range_multiplier,,,,,,200,80
+*Melts In Fire,10,5,0.1,,,melts_in_fire,,,,,,100,50
+*Merasmus Hat Level Display Only,10,5,0.1,,,merasmus_hat_level_display_ONLY,,,,,,100,50
+*Metal Pickup Increased,30,39,0.1,5,1,metal_pickup_decreased,,,,,,300,390
+*Metal Pickup Decreased,30,39,-0.1,0.1,1,metal_pickup_decreased,,,,,,300,390
+*Metal Regen,20,10,5,1000,0,metal_regen,,,,,,200,100
+*Meter Label,10,5,0.1,,,meter_label,,,,,,100,50
+*Min Viewmodel Offset,10,5,0.1,,,min_viewmodel_offset,,,,,,100,50
+*Air Strike Rockets,30,15,1,1,0,mini_rockets,,,,,,300,150
+*Minicrit Boost Charge Rate,10,5,0.1,,,minicrit_boost_charge_rate,,,,,,100,50
+*Minicrit Boost When Charged,10,5,0.1,,,minicrit_boost_when_charged,,,,,,100,50
+*Minicrit Vs Burning Player,300,150,1,1,0,minicrit_vs_burning_player,,,,,,3000,1500
+*Minicritboost On Kill,100,50,2,30,0,minicritboost_on_kill,,,,,,1000,500
+*Minicrits Become Crits,200,100,1,1,0,minicrits_become_crits,,,,,,2000,1000
+*Minigun No Spin Sounds,80,40,1,1,0,minigun_no_spin_sounds,,,,,,800,400
+*Minigun Spinup Time Decreased,85,63,-0.1,0.2,1,minigun_spinup_time_decreased,,,,,,850,637.5
+*Minigun Spinup Time Increased,-20,-10,0.25,12,1,minigun_spinup_time_increased,,,,,,-200,-100
+*Mod Air Control On Blast Jump,10,5,1,25,0,mod_air_control_blast_jump,,,,,,100,50
+*Mod Ammo Per Shot,-40,-20,1,10,1,mod_ammo_per_shot,,,,,,-400,-200
+*Mod Ammo Per Shot Missed Display Only,10,5,0.1,,,mod_ammo_per_shot_missed_DISPLAY_ONLY,,,,,,100,50
+*Mod Bat Launches Balls,10,5,0.1,,,mod_bat_launches_balls,,,,,,100,50
+*Mod Bat Launches Ornaments,10,5,0.1,,,mod_bat_launches_ornaments,,,,,,100,50
+*Mod Cloak No Regen From Items,10,5,0.1,,,mod_cloak_no_regen_from_items,,,,,,100,50
+*Mod Crit While Airborne,100,50,1,1,0,mod_crit_while_airborne,,,,,,1000,500
+*Mod Demo Buff Type,10,5,0.1,,,mod_demo_buff_type,,,,,,100,50
+*Disguise Consumes Cloak,10,5,0.1,,,mod_disguise_consumes_cloak,,,,,,100,50
+*Mod Flamethrower Back Crit,60,30,1,1,0,mod_flamethrower_back_crit,,,,,,600,300
+*Mod Flamethrower Push,10,5,0.1,,,mod_flamethrower_push,,,,,,100,50
+*Mod Flaregun Fires Pellets With Knockback,80,40,1,1,0,mod_flaregun_fires_pellets_with_knockback,,,,,,800,400
+*Mark Attacker For Death,10,5,0.1,,,mod_mark_attacker_for_death,,,,,,100,50
+*Mod Max Primary Clip Override,10,5,0.1,,,mod_max_primary_clip_override,,,,,,100,50
+*Max Health Drain Rate,10,5,0.1,,,mod_maxhealth_drain_rate,,,,,,100,50
+*Mod Medic Healed Damage Bonus,10,5,0.1,,,mod_medic_healed_damage_bonus,,,,,,100,50
+*Mod Medic Healed Deploy Time Penalty,10,5,0.1,,,mod_medic_healed_deploy_time_penalty,,,,,,100,50
+*Mod Medic Killed Marked For Death,10,5,0.1,,,mod_medic_killed_marked_for_death,,,,,,100,50
+*Mod Medic Killed Minicrit Boost,20,10,1,1,0,mod_medic_killed_minicrit_boost,,,,,,200,100
+*Mod Medic Killed Revenge,20,10,1,1,0,mod_medic_killed_revenge,,,,,,200,100
+*Mod Mini-crit Airborne,40,20,1,1,0,mod_mini-crit_airborne,,,,,,400,200
+*Mod Mini-crit Airborne Deploy,10,5,0.1,,,mod_mini-crit_airborne_deploy,,,,,,100,50
+*Mod No Reload Display Only,10,5,0.1,,,mod_no_reload_DISPLAY_ONLY,,,,,,100,50
+*Mod Rage Damage Boost,30,36,0.15,1000,1,mod_rage_damage_boost,,,,,,300,360
+*Mod Rage On Hit Bonus,35,17,1,10,0,mod_rage_on_hit_bonus,,,,,,350,175
+*Mod Rage On Hit Penalty,10,5,0.1,,,mod_rage_on_hit_penalty,,,,,,100,50
+*Mod See Enemy Health,120,60,1,1,0,mod_see_enemy_health,,,,,,1200,600
+*Mod Sentry Killed Revenge,40,20,1,1,0,mod_sentry_killed_revenge,,,,,,400,200
+*Mod Shovel Damage Boost,15,7,1,1,0,mod_shovel_damage_boost,,,,,,150,75
+*Mod Shovel Speed Boost,60,30,1,1,0,mod_shovel_speed_boost,,,,,,600,300
+*Mod Soldier Buff Type,10,5,0.1,,,mod_soldier_buff_type,,,,,,100,50
+*Mod Stun Waist High Airborne,10,5,0.1,,,mod_stun_waist_high_airborne,,,,,,100,50
+*Mod Teleporter Cost,20,8,-0.1,0,1,mod_teleporter_cost,,,,,,200,80
+*Mod Use Metal Ammo Type,20,10,1,1,0,mod_use_metal_ammo_type,,,,,,200,100
+*Mod Weapon Blocks Healing,10,5,0.1,,,mod_weapon_blocks_healing,,,,,,100,50
+*Mod Wrench Builds Minisentry,20,10,1,1,0,mod_wrench_builds_minisentry,,,,,,200,100
+*Move Speed Bonus,20,10,0.1,,1,move_speed_bonus,,,,,,200,100
+*Move Speed Bonus Resource Level,10,5,0.1,,,move_speed_bonus_resource_level,,,,,,100,50
+*Move Speed Bonus Shield Required,10,5,0.1,,,move_speed_bonus_shield_required,,,,,,100,50
+*Move Speed,20,28,0.1,2.2,1,move_speed_penalty,,,,,,200,280
+*Mult Airblast Refire Time,50,25,-0.05,0.3,1,mult_airblast_refire_time,,,,,,500,250
+*Mult Charge Turn Control,20,10,0.5,6,0,mult_charge_turn_control,,,,,,200,100
+*Mult Cloak Meter Consume Rate,50,5,-0.25,-50,1,mult_cloak_meter_consume_rate,,,,,,500,50
+*Mult Cloak Meter Regen Rate,120,60,0.5,100,0,mult_cloak_meter_regen_rate,,,,,,1200,600
+*Mult Cloak Rate,30,15,-0.05,-1,0,mult_cloak_rate,,,,,,300,150
+*Mult Decloak Rate,60,30,-0.05,0.01,1,mult_decloak_rate,,,,,,600,300
+*Mult Damage Taken Active,40,20,-0.05,0.4,1,mult_dmgtaken_active,,,,,,400,200
+*Mult End Flame Size,10,5,0.1,,,mult_end_flame_size,,,,,,100,50
+*Mult Health From Healers Active,10,5,0.1,,,mult_health_fromhealers_penalty_active,,,,,,100,50
+*Mult Item Meter Charge Rate,125,93,-0.1,0.4,1,mult_item_meter_charge_rate,,,,,,1250,937.5
+*Thermal Thruster Increased Recharge Rate,125,93,-0.1,0,1,mult_item_meter_charge_rate,,,,,,1250,937.5
+*Dragon Fury Increased Recharge Rate,125,93,-0.1,0.4,1,mult_item_meter_charge_rate,,,,,,1250,937.5
+*Gas Passer Increased Recharge Rate,250,125,-0.2,0.001,0,mult_item_meter_charge_rate,,,,,,2500,1250
+*Mult Patient Overheal Penalty Active,10,5,0.1,,,mult_patient_overheal_penalty_active,,,,,,100,50
+*Mult Player Movespeed Active,10,5,0.1,,,mult_player_movespeed_active,,,,,,100,50
+*Mult Sniper Charge After Bodyshot,50,25,-0.1,0.2,1,mult_sniper_charge_after_bodyshot,,,,,,500,250
+*Mult Sniper Charge After Headshot,20,10,-0.25,0.1,1,mult_sniper_charge_after_headshot,,,,,,200,100
+*Mult Sniper Charge After Miss,100,50,-0.1,0.2,1,mult_sniper_charge_after_miss,,,,,,1000,500
+*Mult Sniper Charge Penalty Display Only,10,5,0.1,,,mult_sniper_charge_penalty_DISPLAY_ONLY,,,,,,100,50
+*Mult Spread Scale First Shot,10,5,0.1,,,mult_spread_scale_first_shot,,,,,,100,50
+*Mult Spread Scales Consecutive,10,5,0.1,,,mult_spread_scales_consecutive,,,,,,100,50
+*Multiple Sentries,80,40,1,4,0,multiple_sentries,,,,,,800,400
+*Mvm Completed Challenges Bitmask,10,5,0.1,,,mvm_completed_challenges_bitmask,,,,,,100,50
+*Never Craftable,10,5,0.1,,,never_craftable,,,,,,100,50
+*No Attack,10,5,0.1,,,no_attack,,,,,,100,50
+*No Charge Impact Range,50,25,1,1,0,no_charge_impact_range,,,,,,500,250
+*No Crit Boost,10,5,0.1,,,no_crit_boost,,,,,,100,50
+*No Crit Vs Nonburning,10,5,0.1,,,no_crit_vs_nonburning,,,,,,100,50
+*No Double Jump,10,5,0.1,,,no_double_jump,,,,,,100,50
+*No Duck,10,5,0.1,,,no_duck,,,,,,100,50
+*No Jump,10,5,0.1,,,no_jump,,,,,,100,50
+*No Metal From Dispensers While Active,10,5,0.1,,,no_metal_from_dispensers_while_active,,,,,,100,50
+*No Primary Ammo From Dispensers While Active,10,5,0.1,,,no_primary_ammo_from_dispensers_while_active,,,,,,100,50
+*No Self Blast Dmg,200,100,2,2,0,no_self_blast_dmg,,,,,,2000,1000
+*No Cloak When Cloaked,10,5,0.1,,,NoCloakWhenCloaked,,,,,,100,50
+*Noise Maker,10,5,0.1,,,noise_maker,,,,,,100,50
+*Non Economy,10,5,0.1,,,non_economy,,,,,,100,50
+*Obsolete Ammo Penalty,10,5,0.1,,,obsolete_ammo_penalty,,,,,,100,50
+*Overheal Bonus,40,24,0.2,800.5,1,overheal_bonus,,,,,,400,240
+*Overheal Decay Bonus,50,25,0.25,4,1,overheal_decay_bonus,,,,,,500,250
+*Overheal Decay Disabled,250,125,1,1,,overheal_decay_disabled,,,,,,2500,1250
+*Overheal Decay Penalty,10,5,0.1,,,overheal_decay_penalty,,,,,,100,50
+*Overheal Expert,10,5,0.1,,,overheal_expert,,,,,,100,50
+*Overheal Fill Rate Reduced,10,5,0.1,,,overheal_fill_rate_reduced,,,,,,100,50
+*Overheal Penalty,10,5,0.1,,,overheal_penalty,,,,,,100,50
+*Override Footstep Sound Set,10,5,0.1,,,override_footstep_sound_set,,,,,,100,50
+*Override Item Level Desc String,10,5,0.1,,,override_item_level_desc_string,,,,,,100,50
+*Override Projectile Type,10,5,0.1,,,override_projectile_type,,,,,,100,50
+*Paint Decal Enum,10,5,0.1,,,paint_decal_enum,,,,,,100,50
+*Paintkit Proto Def Index,40,20,14,14,0,paintkit_proto_def_index,,,,,,400,200
+*Panic Attack,10,5,0.1,,,panic_attack,,,,,,100,50
+*Panic Attack Negative,10,5,0.1,,,panic_attack_negative,,,,,,100,50
+*Parachute Attribute,50,25,1,1,0,parachute_attribute,,,,,,500,250
+*Particle Effect Use Head Origin,10,5,0.1,,,particle_effect_use_head_origin,,,,,,100,50
+*Particle Effect Vertical Offset,10,5,0.1,,,particle_effect_vertical_offset,,,,,,100,50
+*Patient Overheal Penalty,10,5,0.1,,,patient_overheal_penalty,,,,,,100,50
+*Player Skin Override,10,5,0.1,,,player_skin_override,,,,,,100,50
+*Powerup Charges,10,5,0.1,,,powerup_charges,,,,,,100,50
+*Powerup Duration,30,15,1,30,3,powerup_duration,,,,,,300,150
+*Powerup Max Charges,30,15,1,15,3,powerup_max_charges,,,,,,300,150
+*Preserve Ubercharge,20,10,20,100,0,preserve_ubercharge,,,,,,200,100
+*Projectile Entity Name,10,5,0.1,,,projectile_entity_name,,,,,,100,50
+*Projectile Particle Name,10,5,0.1,,,projectile_particle_name,,,,,,100,50
+*Projectile Penetration,30,15,1,1,0,projectile_penetration,,,,,,300,150
+*Projectile Penetration Heavy,30,15,2,2,0,projectile_penetration_heavy,,,,,,300,150
+*Projectile Range Decreased,-40,-20,-0.1,0.4,1,Projectile_range_decreased,,,,,,-400,-200
+*Projectile Range Increased,20,20,0.25,2.5,1,Projectile_range_increased,,,,,,200,200
+*Projectile Speed Decreased,80,40,-0.1,0.4,1,Projectile_speed_decreased,,,,,,800,400
+*Projectile Speed Increased,20,20,0.25,2,1,Projectile_speed_increased,,,,,,200,200
+*Projectile Speed Increased Hidden,10,5,0.1,,,Projectile_speed_increased_HIDDEN,,,,,,100,50
+*Projectile Spread Angle Removal,200,400,-10,0,10,projectile_spread_angle_penalty,,,,,,2000,4000
+*Provide On Active,10,5,0.1,,,provide_on_active,,,,,,100,50
+*Purchased,10,5,0.1,,,purchased,,,,,,100,50
+*Pyro Year Number,10,5,0.1,,,pyro_year_number,,,,,,100,50
+*Pyrovision Only Display Only,10,5,0.1,,,pyrovision_only_DISPLAY_ONLY,,,,,,100,50
+*Pyrovision Opt In Display Only,10,5,0.1,,,pyrovision_opt_in_DISPLAY_ONLY,,,,,,100,50
+*Quality Text Override,10,5,0.1,,,quality_text_override,,,,,,100,50
+*Quest Earned Bonus Points,10,5,0.1,,,quest_earned_bonus_points,,,,,,100,50
+*Quest Earned Standard Points,10,5,0.1,,,quest_earned_standard_points,,,,,,100,50
+*Quest Loaner Id Hi,10,5,0.1,,,quest_loaner_id_hi,,,,,,100,50
+*Quest Loaner Id Low,10,5,0.1,,,quest_loaner_id_low,,,,,,100,50
+*Ragdolls Become Ash,60,30,1,1,0,ragdolls_become_ash,,,,,,600,300
+*Ragdolls Plasma Effect,60,30,1,1,0,ragdolls_plasma_effect,,,,,,600,300
+*Rage Giving Scale,45,22,1,5,0,rage_giving_scale,,,,,,450,225
+*Rage On Assists,10,5,0.1,,,rage_on_assists,,,,,,100,50
+*Rage On Kill,45,22,1,5,0,rage_on_kill,,,,,,450,225
+*Random Drop Line Item 0,10,5,0.1,,,random_drop_line_item_0,,,,,,100,50
+*Random Drop Line Item 1,10,5,0.1,,,random_drop_line_item_1,,,,,,100,50
+*Random Drop Line Item 2,10,5,0.1,,,random_drop_line_item_2,,,,,,100,50
+*Random Drop Line Item 3,10,5,0.1,,,random_drop_line_item_3,,,,,,100,50
+*Random Drop Line Item Footer Desc,10,5,0.1,,,random_drop_line_item_footer_desc,,,,,,100,50
+*Random Drop Line Item Unusual Chance,10,5,0.1,,,random_drop_line_item_unusual_chance,,,,,,100,50
+*Random Drop Line Item Unusual List,10,5,0.1,,,random_drop_line_item_unusual_list,,,,,,100,50
+*Recall,10,5,0.1,,,recall,,,,,,100,50
+*Recipe Component Defined Item 1,10,5,0.1,,,recipe_component_defined_item_1,,,,,,100,50
+*Recipe Component Defined Item 10,10,5,0.1,,,recipe_component_defined_item_10,,,,,,100,50
+*Recipe Component Defined Item 2,10,5,0.1,,,recipe_component_defined_item_2,,,,,,100,50
+*Recipe Component Defined Item 3,10,5,0.1,,,recipe_component_defined_item_3,,,,,,100,50
+*Recipe Component Defined Item 4,10,5,0.1,,,recipe_component_defined_item_4,,,,,,100,50
+*Recipe Component Defined Item 5,10,5,0.1,,,recipe_component_defined_item_5,,,,,,100,50
+*Recipe Component Defined Item 6,10,5,0.1,,,recipe_component_defined_item_6,,,,,,100,50
+*Recipe Component Defined Item 7,10,5,0.1,,,recipe_component_defined_item_7,,,,,,100,50
+*Recipe Component Defined Item 8,10,5,0.1,,,recipe_component_defined_item_8,,,,,,100,50
+*Recipe Component Defined Item 9,10,5,0.1,,,recipe_component_defined_item_9,,,,,,100,50
+*Recipe No Partial Complete,10,5,0.1,,,recipe_no_partial_complete,,,,,,100,50
+*Redirected Flame Size Mult,10,5,0.1,,,redirected_flame_size_mult,,,,,,100,50
+*Reduced Healing From Medics,10,5,0.1,,,reduced_healing_from_medics,,,,,,100,50
+*Less Cloak From Ammo,10,5,0.1,,,ReducedCloakFromAmmo,,,,,,100,50
+*Referenced Item Def Updated,10,5,0.1,,,referenced_item_def_UPDATED,,,,,,100,50
+*Referenced Item Id High,10,5,0.1,,,referenced_item_id_high,,,,,,100,50
+*Referenced Item Id Low,10,5,0.1,,,referenced_item_id_low,,,,,,100,50
+*Refill Ammo,10,5,0.1,,,refill_ammo,,,,,,100,50
+*Reflected Flame Dmg Reduction,10,5,0.1,,,reflected_flame_dmg_reduction,,,,,,100,50
+*Reload Time Decreased,20,10,-0.1,0.25,1,Reload_time_decreased,,,,,,200,100
+*Reload Time Decreased While Healed,10,5,0.1,,,reload_time_decreased_while_healed,,,,,,100,50
+*Reload Time Increased,10,5,0.1,,,Reload_time_increased,,,,,,100,50
+*Reload Time Increased Hidden,10,5,0.1,,,reload_time_increased_hidden,,,,,,100,50
+*Repair Health To Metal Ratio Display Only,10,5,0.1,,,repair_health_to_metal_ratio_DISPLAY_ONLY,,,,,,100,50
+*Repair Rate Decreased,10,5,0.1,,,Repair_rate_decreased,,,,,,100,50
+*Repair Rate Increased,30,15,0.2,10,1,Repair_rate_increased,,,,,,300,150
+*Restore Health On Kill,10,5,0.1,,,restore_health_on_kill,,,,,,100,50
+*Reveal Cloaked Victim On Hit,200,100,1,1,0,reveal_cloaked_victim_on_hit,,,,,,2000,1000
+*Reveal Disguised Victim On Hit,200,100,1,1,0,reveal_disguised_victim_on_hit,,,,,,2000,1000
+*Revive,10,5,0.1,,,revive,,,,,,100,50
+*Revolver Use Hit Locations,50,25,1,1,0,revolver_use_hit_locations,,,,,,500,250
+*Ring Of Fire While Aiming,40,20,1,1,0,ring_of_fire_while_aiming,,,,,,400,200
+*Rj Air Bombardment,10,5,0.1,,,rj_air_bombardment,,,,,,100,50
+*Robo Sapper,35,17,1,3,0,robo_sapper,,,,,,350,175
+*Rocket Jump Damage Reduction,50,25,-0.3,0.1,1,rocket_jump_damage_reduction,,,,,,500,250
+*Rocket Jump Damage Reduction Hidden,10,5,0.1,,,rocket_jump_damage_reduction_HIDDEN,,,,,,100,50
+*Rocket Launch Impulse,10,5,0.1,,,rocket_launch_impulse,,,,,,100,50
+*Rocket Specialist,10,5,0.1,,,rocket_specialist,,,,,,100,50
+*Rocketjump Attackrate Bonus,10,5,0.1,,,rocketjump_attackrate_bonus,,,,,,100,50
+*Sanguisuge,30,15,1,1,0,sanguisuge,,,,,,300,150
+*Sapper Damage Bonus,20,2,0.5,1500,1,sapper_damage_bonus,,,,,,200,20
+*Sapper Damage Leaches Health,20,2,1,1500,1,sapper_damage_leaches_health,,,,,,200,20
+*Sapper Damage Penalty,10,5,0.1,,,sapper_damage_penalty,,,,,,100,50
+*Sapper Damage Penalty Hidden,10,5,0.1,,,sapper_damage_penalty_hidden,,,,,,100,50
+*Sapper Degenerates Buildings,10,5,0.1,,,sapper_degenerates_buildings,,,,,,100,50
+*Sapper Health Bonus,40,4,0.5,500,1,sapper_health_bonus,,,,,,400,40
+*Sapper Health Penalty,10,5,0.1,,,sapper_health_penalty,,,,,,100,50
+*Sapper Kills Collect Crits,60,30,1,1,0,sapper_kills_collect_crits,,,,,,600,300
+*Sapper Voice Pak,30,15,1,1,0,sapper_voice_pak,,,,,,300,150
+*Sapper Voice Pak Idle Wait,20,10,1,1,0,sapper_voice_pak_idle_wait,,,,,,200,100
+*Saxxy Award Category,10,5,0.1,,,saxxy_award_category,,,,,,100,50
+*Scattergun Has Knockback,40,20,1,1,0,scattergun_has_knockback,,,,,,400,200
+*Scattergun Knockback Mult,20,10,0.5,20,1,scattergun_knockback_mult,,,,,,200,100
+*Scattergun No Reload Single,35,17,1,1,0,scattergun_no_reload_single,,,,,,350,175
+*Self Dmg Push Force Decreased,10,5,0.1,,,self_dmg_push_force_decreased,,,,,,100,50
+*Self Dmg Push Force Increased,10,5,0.3,10,1,self_dmg_push_force_increased,,,,,,100,50
+*Self Mark For Death,10,5,0.1,,,self_mark_for_death,,,,,,100,50
+*Selfdmg On Hit For Rapidfire,10,5,0.1,,,selfdmg_on_hit_for_rapidfire,,,,,,100,50
+*Selfdmg On Hit For Slowfire,10,5,0.1,,,selfdmg_on_hit_for_slowfire,,,,,,100,50
+*Selfmade Description,10,5,0.1,,,selfmade_description,,,,,,100,50
+*Series Number,10,5,0.1,,,series_number,,,,,,100,50
+*Alien Merc Malus,10,5,0.1,,,SET_BONUS:_alien_isolation_merc_bonus_neg,,,,,,100,50
+*Alien Merc Bonus,10,5,0.1,,,SET_BONUS:_alien_isolation_merc_bonus_pos,,,,,,100,50
+*Alien Xeno Malus,10,5,0.1,,,SET_BONUS:_alien_isolation_xeno_bonus_neg,,,,,,100,50
+*Alien Xeno Bonus,10,5,0.1,,,SET_BONUS:_alien_isolation_xeno_bonus_pos,,,,,,100,50
+*Calling Card,400,200,1,1,0,SET_BONUS:_calling_card_on_kill,,,,,,4000,2000
+*Lower Hunger Chance,10,5,0.1,,,SET_BONUS:_chance_of_hunger_decrease,,,,,,100,50
+*Cloak Blink Time Penalty,10,5,0.1,,,SET_BONUS:_cloak_blink_time_penalty,,,,,,100,50
+*Taunt Particle Attribute,10,5,0.1,,,SET_BONUS:_custom_taunt_particle_attr,,,,,,100,50
+*Sentry Damage Resistance,25,25,-0.1,0.1,1,SET_BONUS:_dmg_from_sentry_reduced,,,,,,250,250
+*Bullet Vulnerability,10,5,0.1,,,SET_BONUS:_dmg_taken_from_bullets_increased,,,,,,100,50
+*Crit Resistance (Sb),10,5,0.1,,,SET_BONUS:_dmg_taken_from_crit_reduced_set_bonus,,,,,,100,50
+*Fire Resistance (Sb),10,5,0.1,,,SET_BONUS:_dmg_taken_from_fire_reduced_set_bonus,,,,,,100,50
+*Health Regen (Sb),10,5,0.1,,,SET_BONUS:_health_regen_set_bonus,,,,,,100,50
+*Max Health (Sb),10,5,0.1,100000,,SET_BONUS:_max_health_additive_bonus,,,,,,100,50
+*Move Speed Bonus (Sb),10,5,0.1,,,SET_BONUS:_move_speed_set_bonus,,,,,,100,50
+*Less Mystery Solving Time,10,5,0.1,,,SET_BONUS:_mystery_solving_time_decrease,,,,,,100,50
+*No Death From Headshots,250,125,1,1,0,SET_BONUS:_no_death_from_headshots,,,,,,2500,1250
+*Quiet Unstealth,100,50,1,1,0,SET_BONUS:_quiet_unstealth,,,,,,1000,500
+*Set Bonus: Special Dsp,10,5,0.1,,,SET_BONUS:_special_dsp,,,,,,100,50
+*Set Cloak Is Feign Death,70,35,1,1,0,set_cloak_is_feign_death,,,,,,700,350
+*Set Cloak Is Movement Based,10,5,0.1,,,set_cloak_is_movement_based,,,,,,100,50
+*Set Damagetype Ignite,240,120,1,1,0,Set_DamageType_Ignite,,,,,,2400,1200
+*Set Icicle Knife Mode,10,5,0.1,,,set_icicle_knife_mode,,,,,,100,50
+*Set Item Texture Wear,10,5,0.1,,,set_item_texture_wear,,,,,,100,50
+*Set Item Tint Rgb,10,5,0.1,,,set_item_tint_RGB,,,,,,100,50
+*Set Item Tint Rgb 2,10,5,0.1,,,set_item_tint_RGB_2,,,,,,100,50
+*Set Supply Crate Series,10,5,0.1,,,set_supply_crate_series,,,,,,100,50
+*Set Throwable Type,10,5,0.1,,,set_throwable_type,,,,,,100,50
+*Share Consumable With Patient,60,30,1,1,0,share_consumable_with_patient,,,,,,600,300
+*Shot Penetrate All Players,100,50,1,1,0,shot_penetrate_all_players,,,,,,1000,500
+*Show Paint Description,10,5,0.1,,,show_paint_description,,,,,,100,50
+*Shuffle Crate Item Def Max,10,5,0.1,,,shuffle_crate_item_def_max,,,,,,100,50
+*Shuffle Crate Item Def Min,10,5,0.1,,,shuffle_crate_item_def_min,,,,,,100,50
+*Silent Killer,30,15,1,1,0,silent_killer,,,,,,300,150
+*Single Wep Deploy Time Decreased,10,5,0.1,,,single_wep_deploy_time_decreased,,,,,,100,50
+*Single Wep Deploy Time Increased,10,5,0.1,,,single_wep_deploy_time_increased,,,,,,100,50
+*Single Wep Holster Time Increased,10,5,0.1,,,single_wep_holster_time_increased,,,,,,100,50
+*Slow Enemy On Hit,10,5,0.1,,,slow_enemy_on_hit,,,,,,100,50
+*Slow Enemy On Hit Major,60,90,1,10,0,slow_enemy_on_hit_major,,,,,,600,900
+*Sniper Aiming Movespeed Decreased,10,5,0.1,,,sniper_aiming_movespeed_decreased,,,,,,100,50
+*Sniper Charge Per Sec,20,5,0.25,20,1,sniper_charge_per_sec,,,,,,200,50
+*Sniper Crit No Scope,10,5,0.1,,,sniper_crit_no_scope,,,,,,100,50
+*Sniper Fires Tracer,10,5,0.1,,,sniper_fires_tracer,,,,,,100,50
+*Sniper Fires Tracer Hidden,10,5,0.1,,,sniper_fires_tracer_HIDDEN,,,,,,100,50
+*Sniper Full Charge Damage Bonus,20,5,1,3000,1,sniper_full_charge_damage_bonus,,,,,,200,50
+*Sniper Independent Zoom Display Only,10,5,0.1,,,sniper_independent_zoom_DISPLAY_ONLY,,,,,,100,50
+*Sniper No Charge,10,5,0.1,,,sniper_no_charge,,,,,,100,50
+*Sniper No Headshot Without Full Charge,10,5,0.1,,,sniper_no_headshot_without_full_charge,,,,,,100,50
+*Sniper No Headshots,10,5,0.1,,,sniper_no_headshots,,,,,,100,50
+*Remove Sniper Only Fire Zoomed,100,50,-1,0,1,sniper_only_fire_zoomed,,,,,,1000,500
+*Sniper Penetrate Players When Charged,20,10,1,1,0,sniper_penetrate_players_when_charged,,,,,,200,100
+*Sniper Rage Display Only,10,5,0.1,,,sniper_rage_DISPLAY_ONLY,,,,,,100,50
+*Sniper Zoom Penalty,10,5,0.1,,,sniper_zoom_penalty,,,,,,100,50
+*Soldier Model Index,10,5,0.1,,,soldier_model_index,,,,,,100,50
+*Spawn With Physics Toy,10,5,0.1,,,spawn_with_physics_toy,,,,,,100,50
+*Special Taunt,10,5,0.1,,,special_taunt,,,,,,100,50
+*Speed Boost On Hit,10,5,0.1,,,speed_boost_on_hit,,,,,,100,50
+*Speed Boost On Hit Enemy,100,50,1,1,0,speed_boost_on_hit_enemy,,,,,,1000,500
+*Speed Boost On Kill,30,15,1,1,0,speed_boost_on_kill,,,,,,300,150
+*Speed Boost When Active,10,5,0.1,,,speed_boost_when_active,,,,,,100,50
+*Speed Buff Ally,30,15,1,1,0,speed_buff_ally,,,,,,300,150
+*Spell: Halloween Death Ghosts,10,5,0.1,,,SPELL:_Halloween_death_ghosts,,,,,,100,50
+*Spell: Halloween Green Flames,10,5,0.1,,,SPELL:_Halloween_green_flames,,,,,,100,50
+*Spell: Halloween Pumpkin Explosions,10,5,0.1,,,SPELL:_Halloween_pumpkin_explosions,,,,,,100,50
+*Spell: Halloween Voice Modulation,10,5,0.1,,,SPELL:_Halloween_voice_modulation,,,,,,100,50
+*Spell: Set Halloween Footstep Type,10,5,0.1,,,SPELL:_set_Halloween_footstep_type,,,,,,100,50
+*Spell: Set Item Tint Rgb,10,5,0.1,,,SPELL:_set_item_tint_RGB,,,,,,100,50
+*Spellbook Page Attr Id,10,5,0.1,,,spellbook_page_attr_id,,,,,,100,50
+*Spread Penalty,-40,-20,0.3,5,1,spread_penalty,,,,,,-400,-200
+*Spunup Damage Resistance,30,15,-0.1,0.4,1,spunup_damage_resistance,,,,,,300,150
+*Spunup Push Force Immunity,100,50,1,1,0,spunup_push_force_immunity,,,,,,1000,500
+*Rifle Charge Rate Decreased,10,5,0.1,,,SRifle_Charge_rate_decreased,,,,,,100,50
+*Rifle Charge Rate Increased,10,5,0.1,,,SRifle_Charge_rate_increased,,,,,,100,50
+*Start Drop Date,10,5,0.1,,,start_drop_date,,,,,,100,50
+*Stickies Detonate Stickies,15,7,1,1,0,stickies_detonate_stickies,,,,,,150,75
+*Sticky Air Burst Mode,80,40,2,2,0,sticky_air_burst_mode,,,,,,800,400
+*Sticky Arm Time Bonus,10,5,-0.2,-1,1,sticky_arm_time_bonus,,,,,,100,50
+*Sticky Arm Time Penalty,10,5,0.1,,,sticky_arm_time_penalty,,,,,,100,50
+*Sticky Detonate Mode,10,5,1,1,0,sticky_detonate_mode,,,,,,100,50
+*Stickybomb Charge Damage Increase,80,40,0.2,9,0,stickybomb_charge_damage_increase,,,,,,800,400
+*Stickybomb Charge Rate,25,18,-0.1,0.05,1,stickybomb_charge_rate,,,,,,250,187.5
+*Stickybomb Fizzle Time,10,5,0.1,,,stickybomb_fizzle_time,,,,,,100,50
+*Strange Part New Counter Id,10,5,0.1,,,strange_part_new_counter_ID,,,,,,100,50
+*Strange Restriction Type 1,10,5,0.1,,,strange_restriction_type_1,,,,,,100,50
+*Strange Restriction Type 2,10,5,0.1,,,strange_restriction_type_2,,,,,,100,50
+*Strange Restriction Type 3,10,5,0.1,,,strange_restriction_type_3,,,,,,100,50
+*Strange Restriction User Type 1,10,5,0.1,,,strange_restriction_user_type_1,,,,,,100,50
+*Strange Restriction User Type 2,10,5,0.1,,,strange_restriction_user_type_2,,,,,,100,50
+*Strange Restriction User Type 3,10,5,0.1,,,strange_restriction_user_type_3,,,,,,100,50
+*Strange Restriction User Value 1,10,5,0.1,,,strange_restriction_user_value_1,,,,,,100,50
+*Strange Restriction User Value 2,10,5,0.1,,,strange_restriction_user_value_2,,,,,,100,50
+*Strange Restriction User Value 3,10,5,0.1,,,strange_restriction_user_value_3,,,,,,100,50
+*Strange Restriction Value 1,10,5,0.1,,,strange_restriction_value_1,,,,,,100,50
+*Strange Restriction Value 2,10,5,0.1,,,strange_restriction_value_2,,,,,,100,50
+*Strange Restriction Value 3,10,5,0.1,,,strange_restriction_value_3,,,,,,100,50
+*Strange Score Selector,10,5,0.1,,,strange_score_selector,,,,,,100,50
+*Stun Enemies Wielding Same Weapon,200,100,1,1,0,stun_enemies_wielding_same_weapon,,,,,,2000,1000
+*Style Changes On Strange Level,10,5,0.1,,,style_changes_on_strange_level,,,,,,100,50
+*Subtract Victim Cloak On Hit,10,5,0.1,,,subtract_victim_cloak_on_hit,,,,,,100,50
+*Subtract Victim Medigun Charge On Hit,10,5,0.1,,,subtract_victim_medigun_charge_on_hit,,,,,,100,50
+*Switch From Wep Deploy Time Decreased,10,5,0.1,,,switch_from_wep_deploy_time_decreased,,,,,,100,50
+*Thermal Thruster,10,5,0.1,,,thermal_thruster,,,,,,100,50
+*Thermal Thruster Air Launch,50,25,1,1,0,thermal_thruster_air_launch,,,,,,500,250
+*Throwable Damage,10,5,0.1,,,throwable_damage,,,,,,100,50
+*Throwable Detonation Time,10,5,0.1,,,throwable_detonation_time,,,,,,100,50
+*Throwable Fire Speed,10,5,0.1,,,throwable_fire_speed,,,,,,100,50
+*Throwable Healing,10,5,0.1,,,throwable_healing,,,,,,100,50
+*Throwable Particle Trail Only,10,5,0.1,,,throwable_particle_trail_only,,,,,,100,50
+*Throwable Recharge Time,10,5,0.1,,,throwable_recharge_time,,,,,,100,50
+*Tickle Enemies Wielding Same Weapon,10,5,0.1,,,tickle_enemies_wielding_same_weapon,,,,,,100,50
+*Tmp Dmgbuff On Hit,10,5,0.1,,,tmp_dmgbuff_on_hit,,,,,,100,50
+*Tool Escrow Until Date,10,5,0.1,,,tool_escrow_until_date,,,,,,100,50
+*Tool Needs Giftwrap,10,5,0.1,,,tool_needs_giftwrap,,,,,,100,50
+*Tool Target Item,10,5,0.1,,,tool_target_item,,,,,,100,50
+*Tool Target Item Icon Offset,10,5,0.1,,,tool_target_item_icon_offset,,,,,,100,50
+*Torso Scale,10,5,0.1,,,torso_scale,,,,,,100,50
+*Tradable After Date,10,5,0.1,,,tradable_after_date,,,,,,100,50
+*Turn To Gold,10,5,0.1,,,turn_to_gold,,,,,,100,50
+*Uber Duration Bonus,40,22,1,40,0,uber_duration_bonus,,,,,,400,220
+*Ubercharge,10,5,0.1,,,ubercharge,,,,,,100,50
+*Ubercharge Overheal Rate Penalty,10,5,0.1,,,ubercharge_overheal_rate_penalty,,,,,,100,50
+*Ubercharge Preserved On Spawn,10,5,0.1,,,ubercharge_preserved_on_spawn_max,,,,,,100,50
+*Ubercharge Rate Bonus,60,30,1,50,1,ubercharge_rate_bonus,,,,,,600,300
+*Ubercharge Rate Bonus For Healer,20,10,0.25,100,1,ubercharge_rate_bonus_for_healer,,,,,,200,100
+*Ubercharge Rate Penalty,10,5,0.1,,,ubercharge_rate_penalty,,,,,,100,50
+*Unique Craft Index,10,5,0.1,,,unique_craft_index,,,,,,100,50
+*Unlimited Quantity,10,5,0.1,,,unlimited_quantity,,,,,,100,50
+*Unlimited Quantity Hidden,10,5,0.1,,,unlimited_quantity_hidden,,,,,,100,50
+*Unusualifier Attribute Template Name,10,5,0.1,,,unusualifier_attribute_template_name,,,,,,100,50
+*Upgrade Rate Decrease,40,20,1,8,1,upgrade_rate_decrease,,,,,,400,200
+*Use Large Smoke Explosion,2000,1000,1,1,0,use_large_smoke_explosion,,,,,,20000,10000
+*Use Model Cache Icon,10,5,0.1,,,use_model_cache_icon,,,,,,100,50
+*Uses Ammo While Aiming,-80,-40,4,50,0,uses_ammo_while_aiming,,,,,,-800,-400
+*Vision Opt In Flags,10,5,0.1,,,vision_opt_in_flags,,,,,,100,50
+*Voice Pitch Scale,10,5,0.1,,,voice_pitch_scale,,,,,,100,50
+*Weapon Allow Inspect,10,5,0.1,,,weapon_allow_inspect,,,,,,100,50
+*Weapon Burn Dmg Increased,30,15,0.25,1500,1,weapon_burn_dmg_increased,,,,,,300,150
+*Weapon Burn Dmg Reduced,10,5,0.1,,,weapon_burn_dmg_reduced,,,,,,100,50
+*Weapon Burn Time Increased,30,15,0.25,1500,1,weapon_burn_time_increased,,,,,,300,150
+*Weapon Burn Time Reduced,10,5,0.1,,,weapon_burn_time_reduced,,,,,,100,50
+*Weapon Spread Bonus,40,30,-0.1,0.05,1,weapon_spread_bonus,,,,,,400,300
+*Weapon Stattrak Module Scale,10,5,0.1,,,weapon_stattrak_module_scale,,,,,,100,50
+*Weapon Uses Stattrak Module,10,5,0.1,,,weapon_uses_stattrak_module,,,,,,100,50
+*Wide Item Level,10,5,0.1,,,wide_item_level,,,,,,100,50
+*Wrench Index,10,5,0.1,,,Wrench_index,,,,,,100,50
+*Zombiezombiezombiezombie,10,5,0.1,,,zombiezombiezombiezombie,,,,,,100,50
+*Zoom Speed Mod Disabled,35,17,1,1,1,zoom_speed_mod_disabled,,,,,,350,175
