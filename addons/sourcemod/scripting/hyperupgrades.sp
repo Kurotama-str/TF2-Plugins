@@ -136,6 +136,14 @@ enum struct ResistanceMapping
 }
 int g_iResistanceHudMode[MAXPLAYERS + 1]; // 0 = off, 1 = standard, 2 = abridged
 
+enum struct EquippedItem // Used to help with wearables
+{
+    int entity;
+    int defindex;
+    char alias[64];
+}
+
+
 public void OnPluginStart()
 {
     RegConsoleCmd("sm_buy", Command_OpenMenu);
@@ -1711,7 +1719,7 @@ int GetPlayerBalance(int client)
 
 void ShowCategoryMenu(int client, const char[] category)
 {
-    int weaponSlot = -1; // ✅ Declare once at the top to avoid undefined symbol errors
+    int weaponSlot = -1; // Declared once at the top to avoid undefined symbol errors
 
     char filePath[PLATFORM_MAX_PATH];
     BuildPath(Path_SM, filePath, sizeof(filePath), "configs/hu_attributes.cfg");
@@ -1737,41 +1745,45 @@ void ShowCategoryMenu(int client, const char[] category)
     {
         strcopy(alias, sizeof(alias), "buildings"); // Hardcoded special alias
         aliasFound = true;
-        weaponSlot = -2; // ✅ Special marker for non-slot items like buildings
+        weaponSlot = -2; // Special marker for non-slot items like buildings
     }
     else if (StrEqual(category, "Primary Upgrades"))
     {
-        int weapon = GetEquippedEntityForSlot(client, 0);
-        PrintToServer("[Debug] Slot %d: weapon entity index = %d", 0, weapon);
-        if (IsValidEntity(weapon))
+        EquippedItem item;
+        item = GetEquippedEntityForSlot(client, 0);
+        PrintToServer("[Debug] Slot %d: weapon entity index = %d", 0, item.entity);
+        if (IsValidEntity(item.entity))
         {
-            int defindex = GetEntProp(weapon, Prop_Send, "m_iItemDefinitionIndex");
-            aliasFound = GetWeaponAlias(defindex, alias, sizeof(alias));
+            strcopy(alias, sizeof(alias), item.alias);
+            aliasFound = true;
             weaponSlot = 0;
         }
     }
     else if (StrEqual(category, "Secondary Upgrades"))
     {
-        int weapon = GetEquippedEntityForSlot(client, 1);
-        PrintToServer("[Debug] Slot %d: weapon entity index = %d", 1, weapon);
-        if (IsValidEntity(weapon))
+        EquippedItem item;
+        item = GetEquippedEntityForSlot(client, 1);
+        PrintToServer("[Debug] Slot %d: weapon entity index = %d", 1, item.entity);
+        if (IsValidEntity(item.entity))
         {
-            int defindex = GetEntProp(weapon, Prop_Send, "m_iItemDefinitionIndex");
-            aliasFound = GetWeaponAlias(defindex, alias, sizeof(alias));
+            strcopy(alias, sizeof(alias), item.alias);
+            aliasFound = true;
             weaponSlot = 1;
         }
     }
     else if (StrEqual(category, "Melee Upgrades"))
     {
-        int weapon = GetEquippedEntityForSlot(client, 2);
-        PrintToServer("[Debug] Slot %d: weapon entity index = %d", 2, weapon);
-        if (IsValidEntity(weapon))
+        EquippedItem item;
+        item = GetEquippedEntityForSlot(client, 2);
+        PrintToServer("[Debug] Slot %d: weapon entity index = %d", 2, item.entity);
+        if (IsValidEntity(item.entity))
         {
-            int defindex = GetEntProp(weapon, Prop_Send, "m_iItemDefinitionIndex");
-            aliasFound = GetWeaponAlias(defindex, alias, sizeof(alias));
+            strcopy(alias, sizeof(alias), item.alias);
+            aliasFound = true;
             weaponSlot = 2;
         }
     }
+
     if (!aliasFound || StrEqual(alias, "unknown"))
     {
         PrintToChat(client, "[Hyper Upgrades] No upgrades found for this category.");
@@ -1819,8 +1831,13 @@ void ShowCategoryMenu(int client, const char[] category)
     delete kv;
 }
 
-int GetEquippedEntityForSlot(int client, int slot) // Used to get weapons that aren't in normal slots, comparing with hu_attributes. If conflict, takes the first option.
+EquippedItem GetEquippedEntityForSlot(int client, int slot) // Used to get equipped items not in expected slots (like wearables) | returns entity,index,alias
 {
+    EquippedItem result;
+    result.entity = -1;
+    result.defindex = -1;
+    strcopy(result.alias, sizeof(result.alias), "");
+
     // Step 1: Try normal weapon slot
     int weapon = GetPlayerWeaponSlot(client, slot);
     if (IsValidEntity(weapon))
@@ -1828,7 +1845,14 @@ int GetEquippedEntityForSlot(int client, int slot) // Used to get weapons that a
         int defindex = GetEntProp(weapon, Prop_Send, "m_iItemDefinitionIndex");
         if (defindex > 0)
         {
-            return weapon;
+            char alias[64];
+            if (GetWeaponAlias(defindex, alias, sizeof(alias)))
+            {
+                result.entity = weapon;
+                result.defindex = defindex;
+                strcopy(result.alias, sizeof(result.alias), alias);
+                return result;
+            }
         }
     }
 
@@ -1841,7 +1865,7 @@ int GetEquippedEntityForSlot(int client, int slot) // Used to get weapons that a
     {
         PrintToServer("[HU] Error loading hu_attributes.cfg");
         delete kv;
-        return -1;
+        return result;
     }
 
     char slotName[32];
@@ -1856,13 +1880,13 @@ int GetEquippedEntityForSlot(int client, int slot) // Used to get weapons that a
         default:
         {
             delete kv;
-            return -1;
+            return result;
         }
     }
 
     // Collect potential alias misses
-    ArrayList missingAliases = new ArrayList(64); // store alias strings
-    ArrayList missingDefindexes = new ArrayList(); // store corresponding defindexes
+    ArrayList missingAliases = new ArrayList(64);
+    ArrayList missingDefindexes = new ArrayList();
 
     for (int ent = MaxClients + 1; ent < GetMaxEntities(); ent++)
     {
@@ -1881,21 +1905,22 @@ int GetEquippedEntityForSlot(int client, int slot) // Used to get weapons that a
 
         if (kv.JumpToKey(alias, false))
         {
+            result.entity = ent;
+            result.defindex = defindex;
+            strcopy(result.alias, sizeof(result.alias), alias);
             delete kv;
             delete missingAliases;
             delete missingDefindexes;
-            return ent; // Found valid match
+            return result;
         }
 
         kv.GoBack(); // alias not found under this slot
-
         missingAliases.PushString(alias);
         missingDefindexes.Push(defindex);
     }
 
     delete kv;
 
-    // Print debug info only if no match found and there were valid aliases missed
     if (missingAliases.Length > 0)
     {
         PrintToServer("[HU] No valid upgrade match found for slot %d. The following equipped items have known aliases but are missing from hu_attributes.cfg:", slot);
@@ -1910,8 +1935,9 @@ int GetEquippedEntityForSlot(int client, int slot) // Used to get weapons that a
 
     delete missingAliases;
     delete missingDefindexes;
-    return -1;
+    return result;
 }
+
 
 public int MenuHandler_Submenu(Menu menu, MenuAction action, int client, int item)
 {
@@ -2463,10 +2489,11 @@ void ApplyPlayerUpgrades(int client)
     TF2Attrib_RemoveAll(client);
     for (int slot = 0; slot <= 5; slot++)
     {
-        int weapon = GetPlayerWeaponSlot(client, slot);
-        if (IsValidEntity(weapon))
+        EquippedItem item;
+        item = GetEquippedEntityForSlot(client, slot);
+        if (IsValidEntity(item.entity))
         {
-            TF2Attrib_RemoveAll(weapon);
+            TF2Attrib_RemoveAll(item.entity);
         }
     }
 
@@ -2488,7 +2515,11 @@ void ApplyPlayerUpgrades(int client)
         {
             // Extract slot number from "slotX"
             int slot = StringToInt(slotName[4]);
-            weapon = GetPlayerWeaponSlot(client, slot);
+
+            EquippedItem item;
+            item = GetEquippedEntityForSlot(client, slot);
+            weapon = item.entity;
+
             if (!IsValidEntity(weapon))
                 continue;
 
@@ -2513,8 +2544,6 @@ void ApplyPlayerUpgrades(int client)
             KvGetSectionName(g_hPlayerUpgrades[client], upgradeName, sizeof(upgradeName));
 
             float level = KvGetFloat(g_hPlayerUpgrades[client], NULL_STRING, 0.0);
-
-            // PrintToConsole(client, "[Debug] Applying upgrade: %s with stored level %d (parsed level %.2f)", upgradeName, storedLevel, level);
 
             // Lookup alias from name
             char upgradeAlias[64];
