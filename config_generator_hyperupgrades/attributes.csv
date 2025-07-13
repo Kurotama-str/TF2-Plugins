@@ -1,303 +1,612 @@
-upgradetype,upgradetarget,submenu,upgradenumber,upgradename
-Body Upgrades,body_scout,Protection Upgrades,1,*Max Health Bonus
-Body Upgrades,body_scout,Protection Upgrades,2,*Health Regen
-Body Upgrades,body_scout,Protection Upgrades,3,*Fire Resistance
-Body Upgrades,body_scout,Protection Upgrades,4,*Crit Resistance
-Body Upgrades,body_scout,Protection Upgrades,5,*Blast Resistance
-Body Upgrades,body_scout,Protection Upgrades,6,*Bullet Resistance
-Body Upgrades,body_scout,Protection Upgrades,7,*Melee Resistance
-Body Upgrades,body_scout,Protection Upgrades,8,*Sentry Damage Resistance
-Body Upgrades,body_scout,Protection Upgrades,9,*Dmg From Ranged Reduced
-Body Upgrades,body_scout,Protection Upgrades,10,*Dmg Taken Reduced
-Body Upgrades,body_scout,Protection Upgrades,11,*Cannot Be Backstabbed
-Body Upgrades,body_scout,Protection Upgrades,12,*No Death From Headshots
-Body Upgrades,body_scout,Protection Upgrades,13,*Damage Force Reduction
-Body Upgrades,body_scout,Protection Upgrades,14,*Airblast Vulnerability Multiplier
-Body Upgrades,body_scout,Protection Upgrades,15,*Drop Health Pack On Kill
-Body Upgrades,body_scout,Protection Upgrades,16,*Health From Healers Increased
-,,,,
-Body Upgrades,body_scout,Physical Upgrades,1,*Move Speed Bonus
-Body Upgrades,body_scout,Physical Upgrades,2,*Increased Jump Height
-Body Upgrades,body_scout,Physical Upgrades,3,*Increased Air Control
-Body Upgrades,body_scout,Physical Upgrades,4,*Air Dash Count
-Body Upgrades,body_scout,Physical Upgrades,5,*Increase Player Capture Value
-Body Upgrades,body_scout,Physical Upgrades,6,*Cancel Falling Damage
-Body Upgrades,body_scout,Physical Upgrades,7,*Parachute Attribute
-,,,,
-Body Upgrades,body_scout,Ammo Upgrades,1,*Maxammo Primary Increased
-Body Upgrades,body_scout,Ammo Upgrades,2,*Maxammo Secondary Increased
-Body Upgrades,body_scout,Ammo Upgrades,3,*Ammo Regen
-,,,,
-Body Upgrades,body_soldier,Protection Upgrades,1,*Max Health Bonus
-Body Upgrades,body_soldier,Protection Upgrades,2,*Health Regen
-Body Upgrades,body_soldier,Protection Upgrades,3,*Fire Resistance
-Body Upgrades,body_soldier,Protection Upgrades,4,*Crit Resistance
-Body Upgrades,body_soldier,Protection Upgrades,5,*Blast Resistance
-Body Upgrades,body_soldier,Protection Upgrades,6,*Bullet Resistance
-Body Upgrades,body_soldier,Protection Upgrades,7,*Melee Resistance
-Body Upgrades,body_soldier,Protection Upgrades,8,*Sentry Damage Resistance
-Body Upgrades,body_soldier,Protection Upgrades,9,*Dmg From Ranged Reduced
-Body Upgrades,body_soldier,Protection Upgrades,10,*Dmg Taken Reduced
-Body Upgrades,body_soldier,Protection Upgrades,11,*Cannot Be Backstabbed
-Body Upgrades,body_soldier,Protection Upgrades,12,*No Death From Headshots
-Body Upgrades,body_soldier,Protection Upgrades,13,*Damage Force Reduction
-Body Upgrades,body_soldier,Protection Upgrades,14,*Airblast Vulnerability Multiplier
-Body Upgrades,body_soldier,Protection Upgrades,15,*Drop Health Pack On Kill
-Body Upgrades,body_soldier,Protection Upgrades,16,*Health From Healers Increased
-,,,,
-Body Upgrades,body_soldier,Physical Upgrades,1,*Move Speed Bonus
-Body Upgrades,body_soldier,Physical Upgrades,2,*Increased Jump Height
-Body Upgrades,body_soldier,Physical Upgrades,3,*Increased Air Control
-Body Upgrades,body_soldier,Physical Upgrades,5,*Increase Player Capture Value
-Body Upgrades,body_soldier,Physical Upgrades,6,*Cancel Falling Damage
-Body Upgrades,body_soldier,Physical Upgrades,7,*Parachute Attribute
-,,,,
-Body Upgrades,body_soldier,Ammo Upgrades,1,*Maxammo Primary Increased
-Body Upgrades,body_soldier,Ammo Upgrades,2,*Maxammo Secondary Increased
-Body Upgrades,body_soldier,Ammo Upgrades,3,*Ammo Regen
-,,,,
-Body Upgrades,body_pyro,Protection Upgrades,1,*Max Health Bonus
-Body Upgrades,body_pyro,Protection Upgrades,2,*Health Regen
-Body Upgrades,body_pyro,Protection Upgrades,3,*Fire Resistance
-Body Upgrades,body_pyro,Protection Upgrades,4,*Crit Resistance
-Body Upgrades,body_pyro,Protection Upgrades,5,*Blast Resistance
-Body Upgrades,body_pyro,Protection Upgrades,6,*Bullet Resistance
-Body Upgrades,body_pyro,Protection Upgrades,7,*Melee Resistance
-Body Upgrades,body_pyro,Protection Upgrades,8,*Sentry Damage Resistance
-Body Upgrades,body_pyro,Protection Upgrades,9,*Dmg From Ranged Reduced
-Body Upgrades,body_pyro,Protection Upgrades,10,*Dmg Taken Reduced
-Body Upgrades,body_pyro,Protection Upgrades,11,*Cannot Be Backstabbed
-Body Upgrades,body_pyro,Protection Upgrades,12,*No Death From Headshots
-Body Upgrades,body_pyro,Protection Upgrades,13,*Damage Force Reduction
-Body Upgrades,body_pyro,Protection Upgrades,14,*Airblast Vulnerability Multiplier
-Body Upgrades,body_pyro,Protection Upgrades,15,*Drop Health Pack On Kill
-Body Upgrades,body_pyro,Protection Upgrades,16,*Health From Healers Increased
-,,,,
-Body Upgrades,body_pyro,Physical Upgrades,1,*Move Speed Bonus
-Body Upgrades,body_pyro,Physical Upgrades,2,*Increased Jump Height
-Body Upgrades,body_pyro,Physical Upgrades,3,*Increased Air Control
-Body Upgrades,body_pyro,Physical Upgrades,5,*Increase Player Capture Value
-Body Upgrades,body_pyro,Physical Upgrades,6,*Cancel Falling Damage
-Body Upgrades,body_pyro,Physical Upgrades,7,*Parachute Attribute
-,,,,
-Body Upgrades,body_pyro,Ammo Upgrades,1,*Maxammo Primary Increased
-Body Upgrades,body_pyro,Ammo Upgrades,2,*Maxammo Secondary Increased
-Body Upgrades,body_pyro,Ammo Upgrades,3,*Ammo Regen
-,,,,
-Body Upgrades,body_demoman,Protection Upgrades,1,*Max Health Bonus
-Body Upgrades,body_demoman,Protection Upgrades,2,*Health Regen
-Body Upgrades,body_demoman,Protection Upgrades,3,*Fire Resistance
-Body Upgrades,body_demoman,Protection Upgrades,4,*Crit Resistance
-Body Upgrades,body_demoman,Protection Upgrades,5,*Blast Resistance
-Body Upgrades,body_demoman,Protection Upgrades,6,*Bullet Resistance
-Body Upgrades,body_demoman,Protection Upgrades,7,*Melee Resistance
-Body Upgrades,body_demoman,Protection Upgrades,8,*Sentry Damage Resistance
-Body Upgrades,body_demoman,Protection Upgrades,9,*Dmg From Ranged Reduced
-Body Upgrades,body_demoman,Protection Upgrades,10,*Dmg Taken Reduced
-Body Upgrades,body_demoman,Protection Upgrades,11,*Cannot Be Backstabbed
-Body Upgrades,body_demoman,Protection Upgrades,12,*No Death From Headshots
-Body Upgrades,body_demoman,Protection Upgrades,13,*Damage Force Reduction
-Body Upgrades,body_demoman,Protection Upgrades,14,*Airblast Vulnerability Multiplier
-Body Upgrades,body_demoman,Protection Upgrades,15,*Drop Health Pack On Kill
-Body Upgrades,body_demoman,Protection Upgrades,16,*Health From Healers Increased
-,,,,
-Body Upgrades,body_demoman,Physical Upgrades,1,*Move Speed Bonus
-Body Upgrades,body_demoman,Physical Upgrades,2,*Increased Jump Height
-Body Upgrades,body_demoman,Physical Upgrades,3,*Increased Air Control
-Body Upgrades,body_demoman,Physical Upgrades,5,*Increase Player Capture Value
-Body Upgrades,body_demoman,Physical Upgrades,6,*Cancel Falling Damage
-Body Upgrades,body_demoman,Physical Upgrades,7,*Parachute Attribute
-,,,,
-Body Upgrades,body_demoman,Ammo Upgrades,1,*Maxammo Primary Increased
-Body Upgrades,body_demoman,Ammo Upgrades,2,*Maxammo Secondary Increased
-Body Upgrades,body_demoman,Ammo Upgrades,3,*Ammo Regen
-,,,,
-Body Upgrades,body_heavy,Protection Upgrades,1,*Max Health Bonus
-Body Upgrades,body_heavy,Protection Upgrades,2,*Health Regen
-Body Upgrades,body_heavy,Protection Upgrades,3,*Fire Resistance
-Body Upgrades,body_heavy,Protection Upgrades,4,*Crit Resistance
-Body Upgrades,body_heavy,Protection Upgrades,5,*Blast Resistance
-Body Upgrades,body_heavy,Protection Upgrades,6,*Bullet Resistance
-Body Upgrades,body_heavy,Protection Upgrades,7,*Melee Resistance
-Body Upgrades,body_heavy,Protection Upgrades,8,*Sentry Damage Resistance
-Body Upgrades,body_heavy,Protection Upgrades,9,*Dmg From Ranged Reduced
-Body Upgrades,body_heavy,Protection Upgrades,10,*Dmg Taken Reduced
-Body Upgrades,body_heavy,Protection Upgrades,11,*Cannot Be Backstabbed
-Body Upgrades,body_heavy,Protection Upgrades,12,*No Death From Headshots
-Body Upgrades,body_heavy,Protection Upgrades,13,*Damage Force Reduction
-Body Upgrades,body_heavy,Protection Upgrades,14,*Airblast Vulnerability Multiplier
-Body Upgrades,body_heavy,Protection Upgrades,15,*Drop Health Pack On Kill
-Body Upgrades,body_heavy,Protection Upgrades,16,*Health From Healers Increased
-,,,,
-Body Upgrades,body_heavy,Physical Upgrades,1,*Move Speed Bonus
-Body Upgrades,body_heavy,Physical Upgrades,2,*Increased Jump Height
-Body Upgrades,body_heavy,Physical Upgrades,3,*Increased Air Control
-Body Upgrades,body_heavy,Physical Upgrades,5,*Increase Player Capture Value
-Body Upgrades,body_heavy,Physical Upgrades,6,*Cancel Falling Damage
-Body Upgrades,body_heavy,Physical Upgrades,7,*Parachute Attribute
-,,,,
-Body Upgrades,body_heavy,Ammo Upgrades,1,*Maxammo Primary Increased
-Body Upgrades,body_heavy,Ammo Upgrades,2,*Maxammo Secondary Increased
-Body Upgrades,body_heavy,Ammo Upgrades,3,*Ammo Regen
-,,,,
-Body Upgrades,body_engineer,Protection Upgrades,1,*Max Health Bonus
-Body Upgrades,body_engineer,Protection Upgrades,2,*Health Regen
-Body Upgrades,body_engineer,Protection Upgrades,3,*Fire Resistance
-Body Upgrades,body_engineer,Protection Upgrades,4,*Crit Resistance
-Body Upgrades,body_engineer,Protection Upgrades,5,*Blast Resistance
-Body Upgrades,body_engineer,Protection Upgrades,6,*Bullet Resistance
-Body Upgrades,body_engineer,Protection Upgrades,7,*Melee Resistance
-Body Upgrades,body_engineer,Protection Upgrades,8,*Sentry Damage Resistance
-Body Upgrades,body_engineer,Protection Upgrades,9,*Dmg From Ranged Reduced
-Body Upgrades,body_engineer,Protection Upgrades,10,*Dmg Taken Reduced
-Body Upgrades,body_engineer,Protection Upgrades,11,*Cannot Be Backstabbed
-Body Upgrades,body_engineer,Protection Upgrades,12,*No Death From Headshots
-Body Upgrades,body_engineer,Protection Upgrades,13,*Damage Force Reduction
-Body Upgrades,body_engineer,Protection Upgrades,14,*Airblast Vulnerability Multiplier
-Body Upgrades,body_engineer,Protection Upgrades,15,*Drop Health Pack On Kill
-Body Upgrades,body_engineer,Protection Upgrades,16,*Health From Healers Increased
-,,,,
-Body Upgrades,body_engineer,Physical Upgrades,1,*Move Speed Bonus
-Body Upgrades,body_engineer,Physical Upgrades,2,*Increased Jump Height
-Body Upgrades,body_engineer,Physical Upgrades,3,*Increased Air Control
-Body Upgrades,body_engineer,Physical Upgrades,5,*Increase Player Capture Value
-Body Upgrades,body_engineer,Physical Upgrades,6,*Cancel Falling Damage
-Body Upgrades,body_engineer,Physical Upgrades,7,*Parachute Attribute
-,,,,
-Body Upgrades,body_engineer,Ammo Upgrades,1,*Maxammo Metal Increased
-Body Upgrades,body_engineer,Ammo Upgrades,2,*Metal Regen
-Body Upgrades,body_engineer,Ammo Upgrades,3,*Metal Pickup Increased
-Body Upgrades,body_engineer,Ammo Upgrades,4,*Maxammo Primary Increased
-Body Upgrades,body_engineer,Ammo Upgrades,5,*Maxammo Secondary Increased
-Body Upgrades,body_engineer,Ammo Upgrades,6,*Ammo Regen
-,,,,
-Body Upgrades,body_medic,Protection Upgrades,1,*Max Health Bonus
-Body Upgrades,body_medic,Protection Upgrades,2,*Health Regen
-Body Upgrades,body_medic,Protection Upgrades,3,*Fire Resistance
-Body Upgrades,body_medic,Protection Upgrades,4,*Crit Resistance
-Body Upgrades,body_medic,Protection Upgrades,5,*Blast Resistance
-Body Upgrades,body_medic,Protection Upgrades,6,*Bullet Resistance
-Body Upgrades,body_medic,Protection Upgrades,7,*Melee Resistance
-Body Upgrades,body_medic,Protection Upgrades,8,*Sentry Damage Resistance
-Body Upgrades,body_medic,Protection Upgrades,9,*Dmg From Ranged Reduced
-Body Upgrades,body_medic,Protection Upgrades,10,*Dmg Taken Reduced
-Body Upgrades,body_medic,Protection Upgrades,11,*Cannot Be Backstabbed
-Body Upgrades,body_medic,Protection Upgrades,12,*No Death From Headshots
-Body Upgrades,body_medic,Protection Upgrades,13,*Damage Force Reduction
-Body Upgrades,body_medic,Protection Upgrades,14,*Airblast Vulnerability Multiplier
-Body Upgrades,body_medic,Protection Upgrades,15,*Drop Health Pack On Kill
-Body Upgrades,body_medic,Protection Upgrades,16,*Health From Healers Increased
-,,,,
-Body Upgrades,body_medic,Physical Upgrades,1,*Move Speed Bonus
-Body Upgrades,body_medic,Physical Upgrades,2,*Increased Jump Height
-Body Upgrades,body_medic,Physical Upgrades,3,*Increased Air Control
-Body Upgrades,body_medic,Physical Upgrades,5,*Increase Player Capture Value
-Body Upgrades,body_medic,Physical Upgrades,6,*Cancel Falling Damage
-Body Upgrades,body_medic,Physical Upgrades,7,*Parachute Attribute
-,,,,
-Body Upgrades,body_medic,Ammo Upgrades,1,*Maxammo Primary Increased
-Body Upgrades,body_medic,Ammo Upgrades,2,*Maxammo Secondary Increased
-Body Upgrades,body_medic,Ammo Upgrades,3,*Ammo Regen
-,,,,
-Body Upgrades,body_sniper,Protection Upgrades,1,*Max Health Bonus
-Body Upgrades,body_sniper,Protection Upgrades,2,*Health Regen
-Body Upgrades,body_sniper,Protection Upgrades,3,*Fire Resistance
-Body Upgrades,body_sniper,Protection Upgrades,4,*Crit Resistance
-Body Upgrades,body_sniper,Protection Upgrades,5,*Blast Resistance
-Body Upgrades,body_sniper,Protection Upgrades,6,*Bullet Resistance
-Body Upgrades,body_sniper,Protection Upgrades,7,*Melee Resistance
-Body Upgrades,body_sniper,Protection Upgrades,8,*Sentry Damage Resistance
-Body Upgrades,body_sniper,Protection Upgrades,9,*Dmg From Ranged Reduced
-Body Upgrades,body_sniper,Protection Upgrades,10,*Dmg Taken Reduced
-Body Upgrades,body_sniper,Protection Upgrades,11,*Cannot Be Backstabbed
-Body Upgrades,body_sniper,Protection Upgrades,12,*No Death From Headshots
-Body Upgrades,body_sniper,Protection Upgrades,13,*Damage Force Reduction
-Body Upgrades,body_sniper,Protection Upgrades,14,*Airblast Vulnerability Multiplier
-Body Upgrades,body_sniper,Protection Upgrades,15,*Drop Health Pack On Kill
-Body Upgrades,body_sniper,Protection Upgrades,16,*Health From Healers Increased
-,,,,
-Body Upgrades,body_sniper,Physical Upgrades,1,*Move Speed Bonus
-Body Upgrades,body_sniper,Physical Upgrades,2,*Increased Jump Height
-Body Upgrades,body_sniper,Physical Upgrades,3,*Increased Air Control
-Body Upgrades,body_sniper,Physical Upgrades,5,*Increase Player Capture Value
-Body Upgrades,body_sniper,Physical Upgrades,6,*Cancel Falling Damage
-Body Upgrades,body_sniper,Physical Upgrades,7,*Parachute Attribute
-,,,,
-Body Upgrades,body_sniper,Ammo Upgrades,1,*Maxammo Primary Increased
-Body Upgrades,body_sniper,Ammo Upgrades,2,*Maxammo Secondary Increased
-Body Upgrades,body_sniper,Ammo Upgrades,3,*Ammo Regen
-,,,,
-Body Upgrades,body_spy,Protection Upgrades,1,*Max Health Bonus
-Body Upgrades,body_spy,Protection Upgrades,2,*Health Regen
-Body Upgrades,body_spy,Protection Upgrades,3,*Fire Resistance
-Body Upgrades,body_spy,Protection Upgrades,4,*Crit Resistance
-Body Upgrades,body_spy,Protection Upgrades,5,*Blast Resistance
-Body Upgrades,body_spy,Protection Upgrades,6,*Bullet Resistance
-Body Upgrades,body_spy,Protection Upgrades,7,*Melee Resistance
-Body Upgrades,body_spy,Protection Upgrades,8,*Sentry Damage Resistance
-Body Upgrades,body_spy,Protection Upgrades,9,*Dmg From Ranged Reduced
-Body Upgrades,body_spy,Protection Upgrades,10,*Dmg Taken Reduced
-Body Upgrades,body_spy,Protection Upgrades,11,*Cannot Be Backstabbed
-Body Upgrades,body_spy,Protection Upgrades,12,*No Death From Headshots
-Body Upgrades,body_spy,Protection Upgrades,13,*Damage Force Reduction
-Body Upgrades,body_spy,Protection Upgrades,14,*Airblast Vulnerability Multiplier
-Body Upgrades,body_spy,Protection Upgrades,15,*Drop Health Pack On Kill
-Body Upgrades,body_spy,Protection Upgrades,16,*Health From Healers Increased
-,,,,
-Body Upgrades,body_spy,Physical Upgrades,1,*Move Speed Bonus
-Body Upgrades,body_spy,Physical Upgrades,2,*Increased Jump Height
-Body Upgrades,body_spy,Physical Upgrades,3,*Increased Air Control
-Body Upgrades,body_spy,Physical Upgrades,5,*Increase Player Capture Value
-Body Upgrades,body_spy,Physical Upgrades,6,*Cancel Falling Damage
-Body Upgrades,body_spy,Physical Upgrades,7,*Parachute Attribute
-,,,,
-Body Upgrades,body_spy,Ammo Upgrades,1,*Maxammo Primary Increased
-Body Upgrades,body_spy,Ammo Upgrades,2,*Maxammo Secondary Increased
-Body Upgrades,body_spy,Ammo Upgrades,3,*Ammo Regen
-,,,,
-,,,,
-,,,,
-,,,,
-,,,,
-,,,,
-,,,,
-,,,,
-,,,,
-,,,,
-Primary Upgrades,tf_weapon_scattergun,Damage Upgrades,1,*Damage Bonus
-Primary Upgrades,tf_weapon_scattergun,Damage Upgrades,2,*Heal On Hit For Rapidfire
-Primary Upgrades,tf_weapon_scattergun,Damage Upgrades,3,*Heal On Kill
-Primary Upgrades,tf_weapon_scattergun,Damage Upgrades,4,*Slow Enemy On Hit
-Primary Upgrades,tf_weapon_scattergun,Damage Upgrades,5,*Reveal Cloaked Victim On Hit
-Primary Upgrades,tf_weapon_scattergun,Damage Upgrades,6,*Reveal Disguised Victim On Hit
-Primary Upgrades,tf_weapon_scattergun,Specific Upgrades,1,*Fire Rate Bonus
-Primary Upgrades,tf_weapon_scattergun,Specific Upgrades,2,*Faster Reload Rate
-Primary Upgrades,tf_weapon_scattergun,Specific Upgrades,3,*Clip Size Bonus
-Primary Upgrades,tf_weapon_scattergun,Specific Upgrades,4,*Bullets Per Shot Bonus
-Primary Upgrades,tf_weapon_scattergun,Specific Upgrades,5,*Weapon Spread Bonus
-Primary Upgrades,tf_weapon_scattergun,Specific Upgrades,6,*Projectile Penetration
-,,,,
-,,,,
-Secondary Upgrades,tf_weapon_pistol,Damage Upgrades,1,*Damage Bonus
-Secondary Upgrades,tf_weapon_pistol,Damage Upgrades,2,*Heal On Hit For Rapidfire
-Secondary Upgrades,tf_weapon_pistol,Damage Upgrades,3,*Heal On Kill
-Secondary Upgrades,tf_weapon_pistol,Damage Upgrades,4,*Slow Enemy On Hit
-Secondary Upgrades,tf_weapon_pistol,Specific Upgrades,1,*Fire Rate Bonus
-Secondary Upgrades,tf_weapon_pistol,Specific Upgrades,2,*Faster Reload Rate
-Secondary Upgrades,tf_weapon_pistol,Specific Upgrades,3,*Clip Size Bonus
-Secondary Upgrades,tf_weapon_pistol,Specific Upgrades,4,*Weapon Spread Bonus
-Secondary Upgrades,tf_weapon_pistol,Specific Upgrades,5,*Projectile Penetration
-,,,,
-,,,,
-Melee Upgrades,tf_weapon_bat,Damage Upgrades,1,*Damage Bonus
-Melee Upgrades,tf_weapon_bat,Damage Upgrades,2,*Heal On Hit For Rapidfire
-Melee Upgrades,tf_weapon_bat,Damage Upgrades,3,*Heal On Kill
-Melee Upgrades,tf_weapon_bat,Damage Upgrades,4,*Slow Enemy On Hit
-Melee Upgrades,tf_weapon_bat,Damage Upgrades,5,*Bleeding Duration
-Melee Upgrades,tf_weapon_bat,Specific Upgrades,1,*Fire Rate Bonus (Bat)
-Melee Upgrades,tf_weapon_bat,Specific Upgrades,2,*Melee Bounds Multiplier
-Melee Upgrades,tf_weapon_bat,Specific Upgrades,3,*Melee Range Multiplier
-Melee Upgrades,tf_weapon_bat,Specific Upgrades,4,*Critboost On Kill
-Melee Upgrades,tf_weapon_bat,Specific Upgrades,5,*Crit From Behind
-Melee Upgrades,tf_weapon_bat,Specific Upgrades,6,*Speed Buff Ally
-Melee Upgrades,tf_weapon_bat,Specific Upgrades,7,*Mark For Death
+﻿upgradetype,upgradetarget,submenu,upgradenumber,upgradename,,
+Body Upgrades,body_scout,Protection Upgrades,1,*Max Health Bonus,,
+Body Upgrades,body_scout,Protection Upgrades,2,*Health Regen,,
+Body Upgrades,body_scout,Protection Upgrades,3,*Fire Resistance,,
+Body Upgrades,body_scout,Protection Upgrades,4,*Crit Resistance,,
+Body Upgrades,body_scout,Protection Upgrades,5,*Blast Resistance,,
+Body Upgrades,body_scout,Protection Upgrades,6,*Bullet Resistance,,
+Body Upgrades,body_scout,Protection Upgrades,7,*Melee Resistance,,
+Body Upgrades,body_scout,Protection Upgrades,8,*Sentry Damage Resistance,,
+Body Upgrades,body_scout,Protection Upgrades,9,*Dmg From Ranged Reduced,,
+Body Upgrades,body_scout,Protection Upgrades,10,*Dmg Taken Reduced,,
+Body Upgrades,body_scout,Protection Upgrades,11,*Cannot Be Backstabbed,,
+Body Upgrades,body_scout,Protection Upgrades,12,*No Death From Headshots,,
+Body Upgrades,body_scout,Protection Upgrades,13,*Damage Force Reduction,,
+Body Upgrades,body_scout,Protection Upgrades,14,*Airblast Vulnerability Multiplier,,
+Body Upgrades,body_scout,Protection Upgrades,15,*Drop Health Pack On Kill,,
+Body Upgrades,body_scout,Protection Upgrades,16,*Health From Healers Increased,,
+,,,,,,
+Body Upgrades,body_scout,Physical Upgrades,1,*Move Speed Bonus,,
+Body Upgrades,body_scout,Physical Upgrades,2,*Increased Jump Height,,
+Body Upgrades,body_scout,Physical Upgrades,3,*Increased Air Control,,
+Body Upgrades,body_scout,Physical Upgrades,4,*Air Dash Count,,
+Body Upgrades,body_scout,Physical Upgrades,5,*Increase Player Capture Value,,
+Body Upgrades,body_scout,Physical Upgrades,6,*Cancel Falling Damage,,
+Body Upgrades,body_scout,Physical Upgrades,7,*Parachute Attribute,,
+,,,,,,
+Body Upgrades,body_scout,Ammo Upgrades,1,*Maxammo Primary Increased,,
+Body Upgrades,body_scout,Ammo Upgrades,2,*Maxammo Secondary Increased,,
+Body Upgrades,body_scout,Ammo Upgrades,3,*Ammo Regen,,
+,,,,,,
+Body Upgrades,body_soldier,Protection Upgrades,1,*Max Health Bonus,,
+Body Upgrades,body_soldier,Protection Upgrades,2,*Health Regen,,
+Body Upgrades,body_soldier,Protection Upgrades,3,*Fire Resistance,,
+Body Upgrades,body_soldier,Protection Upgrades,4,*Crit Resistance,,
+Body Upgrades,body_soldier,Protection Upgrades,5,*Blast Resistance,,
+Body Upgrades,body_soldier,Protection Upgrades,6,*Bullet Resistance,,
+Body Upgrades,body_soldier,Protection Upgrades,7,*Melee Resistance,,
+Body Upgrades,body_soldier,Protection Upgrades,8,*Sentry Damage Resistance,,
+Body Upgrades,body_soldier,Protection Upgrades,9,*Dmg From Ranged Reduced,,
+Body Upgrades,body_soldier,Protection Upgrades,10,*Dmg Taken Reduced,,
+Body Upgrades,body_soldier,Protection Upgrades,11,*Cannot Be Backstabbed,,
+Body Upgrades,body_soldier,Protection Upgrades,12,*No Death From Headshots,,
+Body Upgrades,body_soldier,Protection Upgrades,13,*Damage Force Reduction,,
+Body Upgrades,body_soldier,Protection Upgrades,14,*Airblast Vulnerability Multiplier,,
+Body Upgrades,body_soldier,Protection Upgrades,15,*Drop Health Pack On Kill,,
+Body Upgrades,body_soldier,Protection Upgrades,16,*Health From Healers Increased,,
+,,,,,,
+Body Upgrades,body_soldier,Physical Upgrades,1,*Move Speed Bonus,,
+Body Upgrades,body_soldier,Physical Upgrades,2,*Increased Jump Height,,
+Body Upgrades,body_soldier,Physical Upgrades,3,*Increased Air Control,,
+Body Upgrades,body_soldier,Physical Upgrades,5,*Increase Player Capture Value,,
+Body Upgrades,body_soldier,Physical Upgrades,6,*Cancel Falling Damage,,
+Body Upgrades,body_soldier,Physical Upgrades,7,*Parachute Attribute,,
+,,,,,,
+Body Upgrades,body_soldier,Ammo Upgrades,1,*Maxammo Primary Increased,,
+Body Upgrades,body_soldier,Ammo Upgrades,2,*Maxammo Secondary Increased,,
+Body Upgrades,body_soldier,Ammo Upgrades,3,*Ammo Regen,,
+,,,,,,
+Body Upgrades,body_pyro,Protection Upgrades,1,*Max Health Bonus,,
+Body Upgrades,body_pyro,Protection Upgrades,2,*Health Regen,,
+Body Upgrades,body_pyro,Protection Upgrades,3,*Fire Resistance,,
+Body Upgrades,body_pyro,Protection Upgrades,4,*Crit Resistance,,
+Body Upgrades,body_pyro,Protection Upgrades,5,*Blast Resistance,,
+Body Upgrades,body_pyro,Protection Upgrades,6,*Bullet Resistance,,
+Body Upgrades,body_pyro,Protection Upgrades,7,*Melee Resistance,,
+Body Upgrades,body_pyro,Protection Upgrades,8,*Sentry Damage Resistance,,
+Body Upgrades,body_pyro,Protection Upgrades,9,*Dmg From Ranged Reduced,,
+Body Upgrades,body_pyro,Protection Upgrades,10,*Dmg Taken Reduced,,
+Body Upgrades,body_pyro,Protection Upgrades,11,*Cannot Be Backstabbed,,
+Body Upgrades,body_pyro,Protection Upgrades,12,*No Death From Headshots,,
+Body Upgrades,body_pyro,Protection Upgrades,13,*Damage Force Reduction,,
+Body Upgrades,body_pyro,Protection Upgrades,14,*Airblast Vulnerability Multiplier,,
+Body Upgrades,body_pyro,Protection Upgrades,15,*Drop Health Pack On Kill,,
+Body Upgrades,body_pyro,Protection Upgrades,16,*Health From Healers Increased,,
+,,,,,,
+Body Upgrades,body_pyro,Physical Upgrades,1,*Move Speed Bonus,,
+Body Upgrades,body_pyro,Physical Upgrades,2,*Increased Jump Height,,
+Body Upgrades,body_pyro,Physical Upgrades,3,*Increased Air Control,,
+Body Upgrades,body_pyro,Physical Upgrades,5,*Increase Player Capture Value,,
+Body Upgrades,body_pyro,Physical Upgrades,6,*Cancel Falling Damage,,
+Body Upgrades,body_pyro,Physical Upgrades,7,*Parachute Attribute,,
+,,,,,,
+Body Upgrades,body_pyro,Ammo Upgrades,1,*Maxammo Primary Increased,,
+Body Upgrades,body_pyro,Ammo Upgrades,2,*Maxammo Secondary Increased,,
+Body Upgrades,body_pyro,Ammo Upgrades,3,*Ammo Regen,,
+,,,,,,
+Body Upgrades,body_demoman,Protection Upgrades,1,*Max Health Bonus,,
+Body Upgrades,body_demoman,Protection Upgrades,2,*Health Regen,,
+Body Upgrades,body_demoman,Protection Upgrades,3,*Fire Resistance,,
+Body Upgrades,body_demoman,Protection Upgrades,4,*Crit Resistance,,
+Body Upgrades,body_demoman,Protection Upgrades,5,*Blast Resistance,,
+Body Upgrades,body_demoman,Protection Upgrades,6,*Bullet Resistance,,
+Body Upgrades,body_demoman,Protection Upgrades,7,*Melee Resistance,,
+Body Upgrades,body_demoman,Protection Upgrades,8,*Sentry Damage Resistance,,
+Body Upgrades,body_demoman,Protection Upgrades,9,*Dmg From Ranged Reduced,,
+Body Upgrades,body_demoman,Protection Upgrades,10,*Dmg Taken Reduced,,
+Body Upgrades,body_demoman,Protection Upgrades,11,*Cannot Be Backstabbed,,
+Body Upgrades,body_demoman,Protection Upgrades,12,*No Death From Headshots,,
+Body Upgrades,body_demoman,Protection Upgrades,13,*Damage Force Reduction,,
+Body Upgrades,body_demoman,Protection Upgrades,14,*Airblast Vulnerability Multiplier,,
+Body Upgrades,body_demoman,Protection Upgrades,15,*Drop Health Pack On Kill,,
+Body Upgrades,body_demoman,Protection Upgrades,16,*Health From Healers Increased,,
+,,,,,,
+Body Upgrades,body_demoman,Physical Upgrades,1,*Move Speed Bonus,,
+Body Upgrades,body_demoman,Physical Upgrades,2,*Increased Jump Height,,
+Body Upgrades,body_demoman,Physical Upgrades,3,*Increased Air Control,,
+Body Upgrades,body_demoman,Physical Upgrades,5,*Increase Player Capture Value,,
+Body Upgrades,body_demoman,Physical Upgrades,6,*Cancel Falling Damage,,
+Body Upgrades,body_demoman,Physical Upgrades,7,*Parachute Attribute,,
+,,,,,,
+Body Upgrades,body_demoman,Ammo Upgrades,1,*Maxammo Primary Increased,,
+Body Upgrades,body_demoman,Ammo Upgrades,2,*Maxammo Secondary Increased,,
+Body Upgrades,body_demoman,Ammo Upgrades,3,*Ammo Regen,,
+,,,,,,
+Body Upgrades,body_heavy,Protection Upgrades,1,*Max Health Bonus,,
+Body Upgrades,body_heavy,Protection Upgrades,2,*Health Regen,,
+Body Upgrades,body_heavy,Protection Upgrades,3,*Fire Resistance,,
+Body Upgrades,body_heavy,Protection Upgrades,4,*Crit Resistance,,
+Body Upgrades,body_heavy,Protection Upgrades,5,*Blast Resistance,,
+Body Upgrades,body_heavy,Protection Upgrades,6,*Bullet Resistance,,
+Body Upgrades,body_heavy,Protection Upgrades,7,*Melee Resistance,,
+Body Upgrades,body_heavy,Protection Upgrades,8,*Sentry Damage Resistance,,
+Body Upgrades,body_heavy,Protection Upgrades,9,*Dmg From Ranged Reduced,,
+Body Upgrades,body_heavy,Protection Upgrades,10,*Dmg Taken Reduced,,
+Body Upgrades,body_heavy,Protection Upgrades,11,*Cannot Be Backstabbed,,
+Body Upgrades,body_heavy,Protection Upgrades,12,*No Death From Headshots,,
+Body Upgrades,body_heavy,Protection Upgrades,13,*Damage Force Reduction,,
+Body Upgrades,body_heavy,Protection Upgrades,14,*Airblast Vulnerability Multiplier,,
+Body Upgrades,body_heavy,Protection Upgrades,15,*Drop Health Pack On Kill,,
+Body Upgrades,body_heavy,Protection Upgrades,16,*Health From Healers Increased,,
+,,,,,,
+Body Upgrades,body_heavy,Physical Upgrades,1,*Move Speed Bonus,,
+Body Upgrades,body_heavy,Physical Upgrades,2,*Increased Jump Height,,
+Body Upgrades,body_heavy,Physical Upgrades,3,*Increased Air Control,,
+Body Upgrades,body_heavy,Physical Upgrades,5,*Increase Player Capture Value,,
+Body Upgrades,body_heavy,Physical Upgrades,6,*Cancel Falling Damage,,
+Body Upgrades,body_heavy,Physical Upgrades,7,*Parachute Attribute,,
+,,,,,,
+Body Upgrades,body_heavy,Ammo Upgrades,1,*Maxammo Primary Increased,,
+Body Upgrades,body_heavy,Ammo Upgrades,2,*Maxammo Secondary Increased,,
+Body Upgrades,body_heavy,Ammo Upgrades,3,*Ammo Regen,,
+,,,,,,
+Body Upgrades,body_engineer,Protection Upgrades,1,*Max Health Bonus,,
+Body Upgrades,body_engineer,Protection Upgrades,2,*Health Regen,,
+Body Upgrades,body_engineer,Protection Upgrades,3,*Fire Resistance,,
+Body Upgrades,body_engineer,Protection Upgrades,4,*Crit Resistance,,
+Body Upgrades,body_engineer,Protection Upgrades,5,*Blast Resistance,,
+Body Upgrades,body_engineer,Protection Upgrades,6,*Bullet Resistance,,
+Body Upgrades,body_engineer,Protection Upgrades,7,*Melee Resistance,,
+Body Upgrades,body_engineer,Protection Upgrades,8,*Sentry Damage Resistance,,
+Body Upgrades,body_engineer,Protection Upgrades,9,*Dmg From Ranged Reduced,,
+Body Upgrades,body_engineer,Protection Upgrades,10,*Dmg Taken Reduced,,
+Body Upgrades,body_engineer,Protection Upgrades,11,*Cannot Be Backstabbed,,
+Body Upgrades,body_engineer,Protection Upgrades,12,*No Death From Headshots,,
+Body Upgrades,body_engineer,Protection Upgrades,13,*Damage Force Reduction,,
+Body Upgrades,body_engineer,Protection Upgrades,14,*Airblast Vulnerability Multiplier,,
+Body Upgrades,body_engineer,Protection Upgrades,15,*Drop Health Pack On Kill,,
+Body Upgrades,body_engineer,Protection Upgrades,16,*Health From Healers Increased,,
+,,,,,,
+Body Upgrades,body_engineer,Physical Upgrades,1,*Move Speed Bonus,,
+Body Upgrades,body_engineer,Physical Upgrades,2,*Increased Jump Height,,
+Body Upgrades,body_engineer,Physical Upgrades,3,*Increased Air Control,,
+Body Upgrades,body_engineer,Physical Upgrades,5,*Increase Player Capture Value,,
+Body Upgrades,body_engineer,Physical Upgrades,6,*Cancel Falling Damage,,
+Body Upgrades,body_engineer,Physical Upgrades,7,*Parachute Attribute,,
+,,,,,,
+Body Upgrades,body_engineer,Ammo Upgrades,1,*Maxammo Metal Increased,,
+Body Upgrades,body_engineer,Ammo Upgrades,2,*Metal Regen,,
+Body Upgrades,body_engineer,Ammo Upgrades,3,*Metal Pickup Increased,,
+Body Upgrades,body_engineer,Ammo Upgrades,4,*Maxammo Primary Increased,,
+Body Upgrades,body_engineer,Ammo Upgrades,5,*Maxammo Secondary Increased,,
+Body Upgrades,body_engineer,Ammo Upgrades,6,*Ammo Regen,,
+,,,,,,
+Body Upgrades,body_engineer,Buildings Upgrades,1,*Engy Building Health Bonus,,
+Body Upgrades,body_engineer,Buildings Upgrades,2,*Engy Sentry Damage Bonus,,
+Body Upgrades,body_engineer,Buildings Upgrades,3,*Engy Sentry Fire Rate Increased,,
+Body Upgrades,body_engineer,Buildings Upgrades,4,*Engy Sentry Radius Increased,,
+Body Upgrades,body_engineer,Buildings Upgrades,5,*Engy Dispenser Radius Increased,,
+Body Upgrades,body_engineer,Buildings Upgrades,6,*Bidirectional Teleport,,
+Body Upgrades,body_engineer,Buildings Upgrades,7,*Upgrade Rate Decrease,,
+Body Upgrades,body_engineer,Buildings Upgrades,8,*Build Rate Bonus,,
+Body Upgrades,body_engineer,Buildings Upgrades,9,*Building Cost Reduction,,
+Body Upgrades,body_engineer,Buildings Upgrades,10,*Mod Teleporter Cost,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+Body Upgrades,body_medic,Protection Upgrades,1,*Max Health Bonus,,
+Body Upgrades,body_medic,Protection Upgrades,2,*Health Regen,,
+Body Upgrades,body_medic,Protection Upgrades,3,*Fire Resistance,,
+Body Upgrades,body_medic,Protection Upgrades,4,*Crit Resistance,,
+Body Upgrades,body_medic,Protection Upgrades,5,*Blast Resistance,,
+Body Upgrades,body_medic,Protection Upgrades,6,*Bullet Resistance,,
+Body Upgrades,body_medic,Protection Upgrades,7,*Melee Resistance,,
+Body Upgrades,body_medic,Protection Upgrades,8,*Sentry Damage Resistance,,
+Body Upgrades,body_medic,Protection Upgrades,9,*Dmg From Ranged Reduced,,
+Body Upgrades,body_medic,Protection Upgrades,10,*Dmg Taken Reduced,,
+Body Upgrades,body_medic,Protection Upgrades,11,*Cannot Be Backstabbed,,
+Body Upgrades,body_medic,Protection Upgrades,12,*No Death From Headshots,,
+Body Upgrades,body_medic,Protection Upgrades,13,*Damage Force Reduction,,
+Body Upgrades,body_medic,Protection Upgrades,14,*Airblast Vulnerability Multiplier,,
+Body Upgrades,body_medic,Protection Upgrades,15,*Drop Health Pack On Kill,,
+Body Upgrades,body_medic,Protection Upgrades,16,*Health From Healers Increased,,
+,,,,,,
+Body Upgrades,body_medic,Physical Upgrades,1,*Move Speed Bonus,,
+Body Upgrades,body_medic,Physical Upgrades,2,*Increased Jump Height,,
+Body Upgrades,body_medic,Physical Upgrades,3,*Increased Air Control,,
+Body Upgrades,body_medic,Physical Upgrades,5,*Increase Player Capture Value,,
+Body Upgrades,body_medic,Physical Upgrades,6,*Cancel Falling Damage,,
+Body Upgrades,body_medic,Physical Upgrades,7,*Parachute Attribute,,
+,,,,,,
+Body Upgrades,body_medic,Ammo Upgrades,1,*Maxammo Primary Increased,,
+Body Upgrades,body_medic,Ammo Upgrades,2,*Maxammo Secondary Increased,,
+Body Upgrades,body_medic,Ammo Upgrades,3,*Ammo Regen,,
+,,,,,,
+Body Upgrades,body_sniper,Protection Upgrades,1,*Max Health Bonus,,
+Body Upgrades,body_sniper,Protection Upgrades,2,*Health Regen,,
+Body Upgrades,body_sniper,Protection Upgrades,3,*Fire Resistance,,
+Body Upgrades,body_sniper,Protection Upgrades,4,*Crit Resistance,,
+Body Upgrades,body_sniper,Protection Upgrades,5,*Blast Resistance,,
+Body Upgrades,body_sniper,Protection Upgrades,6,*Bullet Resistance,,
+Body Upgrades,body_sniper,Protection Upgrades,7,*Melee Resistance,,
+Body Upgrades,body_sniper,Protection Upgrades,8,*Sentry Damage Resistance,,
+Body Upgrades,body_sniper,Protection Upgrades,9,*Dmg From Ranged Reduced,,
+Body Upgrades,body_sniper,Protection Upgrades,10,*Dmg Taken Reduced,,
+Body Upgrades,body_sniper,Protection Upgrades,11,*Cannot Be Backstabbed,,
+Body Upgrades,body_sniper,Protection Upgrades,12,*No Death From Headshots,,
+Body Upgrades,body_sniper,Protection Upgrades,13,*Damage Force Reduction,,
+Body Upgrades,body_sniper,Protection Upgrades,14,*Airblast Vulnerability Multiplier,,
+Body Upgrades,body_sniper,Protection Upgrades,15,*Drop Health Pack On Kill,,
+Body Upgrades,body_sniper,Protection Upgrades,16,*Health From Healers Increased,,
+,,,,,,
+Body Upgrades,body_sniper,Physical Upgrades,1,*Move Speed Bonus,,
+Body Upgrades,body_sniper,Physical Upgrades,2,*Increased Jump Height,,
+Body Upgrades,body_sniper,Physical Upgrades,3,*Increased Air Control,,
+Body Upgrades,body_sniper,Physical Upgrades,5,*Increase Player Capture Value,,
+Body Upgrades,body_sniper,Physical Upgrades,6,*Cancel Falling Damage,,
+Body Upgrades,body_sniper,Physical Upgrades,7,*Parachute Attribute,,
+,,,,,,
+Body Upgrades,body_sniper,Ammo Upgrades,1,*Maxammo Primary Increased,,
+Body Upgrades,body_sniper,Ammo Upgrades,2,*Maxammo Secondary Increased,,
+Body Upgrades,body_sniper,Ammo Upgrades,3,*Ammo Regen,,
+,,,,,,
+Body Upgrades,body_spy,Protection Upgrades,1,*Max Health Bonus,,
+Body Upgrades,body_spy,Protection Upgrades,2,*Health Regen,,
+Body Upgrades,body_spy,Protection Upgrades,3,*Fire Resistance,,
+Body Upgrades,body_spy,Protection Upgrades,4,*Crit Resistance,,
+Body Upgrades,body_spy,Protection Upgrades,5,*Blast Resistance,,
+Body Upgrades,body_spy,Protection Upgrades,6,*Bullet Resistance,,
+Body Upgrades,body_spy,Protection Upgrades,7,*Melee Resistance,,
+Body Upgrades,body_spy,Protection Upgrades,8,*Sentry Damage Resistance,,
+Body Upgrades,body_spy,Protection Upgrades,9,*Dmg From Ranged Reduced,,
+Body Upgrades,body_spy,Protection Upgrades,10,*Dmg Taken Reduced,,
+Body Upgrades,body_spy,Protection Upgrades,11,*Cannot Be Backstabbed,,
+Body Upgrades,body_spy,Protection Upgrades,12,*No Death From Headshots,,
+Body Upgrades,body_spy,Protection Upgrades,13,*Damage Force Reduction,,
+Body Upgrades,body_spy,Protection Upgrades,14,*Airblast Vulnerability Multiplier,,
+Body Upgrades,body_spy,Protection Upgrades,15,*Drop Health Pack On Kill,,
+Body Upgrades,body_spy,Protection Upgrades,16,*Health From Healers Increased,,
+,,,,,,
+Body Upgrades,body_spy,Physical Upgrades,1,*Move Speed Bonus,,
+Body Upgrades,body_spy,Physical Upgrades,2,*Increased Jump Height,,
+Body Upgrades,body_spy,Physical Upgrades,3,*Increased Air Control,,
+Body Upgrades,body_spy,Physical Upgrades,5,*Increase Player Capture Value,,
+Body Upgrades,body_spy,Physical Upgrades,6,*Cancel Falling Damage,,
+Body Upgrades,body_spy,Physical Upgrades,7,*Parachute Attribute,,
+,,,,,,
+Body Upgrades,body_spy,Ammo Upgrades,1,*Maxammo Primary Increased,,
+Body Upgrades,body_spy,Ammo Upgrades,2,*Maxammo Secondary Increased,,
+Body Upgrades,body_spy,Ammo Upgrades,3,*Ammo Regen,,
+,,,,,,
+Body Upgrades,body_spy,Spy Upgrades,1,*Mult Cloak Meter Consume Rate,,
+Body Upgrades,body_spy,Spy Upgrades,2,*Mult Cloak Meter Regen Rate,,
+Body Upgrades,body_spy,Spy Upgrades,3,*Mult Cloak Rate,,
+Body Upgrades,body_spy,Spy Upgrades,4,*Mult Decloak Rate,,
+Body Upgrades,body_spy,Spy Upgrades,5,*Quiet Unstealth,,
+,,,,,,
+,,,,,,
+,,,,,,
+Primary Upgrades,tf_weapon_shotgun,Damage Upgrades,1,*Damage Bonus,,allclass-shotguns - Prim
+Primary Upgrades,tf_weapon_shotgun,Damage Upgrades,2,*Heal On Hit For Rapidfire,,
+Primary Upgrades,tf_weapon_shotgun,Damage Upgrades,3,*Heal On Kill,,
+Primary Upgrades,tf_weapon_shotgun,Damage Upgrades,4,*Slow Enemy On Hit,,
+Primary Upgrades,tf_weapon_shotgun,Damage Upgrades,5,*Reveal Cloaked Victim On Hit,,
+Primary Upgrades,tf_weapon_shotgun,Damage Upgrades,6,*Reveal Disguised Victim On Hit,,
+Primary Upgrades,tf_weapon_shotgun,Specific Upgrades,1,*Fire Rate Bonus,,
+Primary Upgrades,tf_weapon_shotgun,Specific Upgrades,2,*Faster Reload Rate,,
+Primary Upgrades,tf_weapon_shotgun,Specific Upgrades,3,*Clip Size Bonus,,
+Primary Upgrades,tf_weapon_shotgun,Specific Upgrades,4,*Bullets Per Shot Bonus,,
+Primary Upgrades,tf_weapon_shotgun,Specific Upgrades,5,*Weapon Spread Bonus,,
+Primary Upgrades,tf_weapon_shotgun,Specific Upgrades,6,*Projectile Penetration,,
+,,,,,,
+Secondary Upgrades,tf_weapon_shotgun,Damage Upgrades,1,*Damage Bonus,,allclass-shotguns - Sec
+Secondary Upgrades,tf_weapon_shotgun,Damage Upgrades,2,*Heal On Hit For Rapidfire,,
+Secondary Upgrades,tf_weapon_shotgun,Damage Upgrades,3,*Heal On Kill,,
+Secondary Upgrades,tf_weapon_shotgun,Damage Upgrades,4,*Slow Enemy On Hit,,
+Secondary Upgrades,tf_weapon_shotgun,Damage Upgrades,5,*Reveal Cloaked Victim On Hit,,
+Secondary Upgrades,tf_weapon_shotgun,Damage Upgrades,6,*Reveal Disguised Victim On Hit,,
+Secondary Upgrades,tf_weapon_shotgun,Specific Upgrades,1,*Fire Rate Bonus,,
+Secondary Upgrades,tf_weapon_shotgun,Specific Upgrades,2,*Faster Reload Rate,,
+Secondary Upgrades,tf_weapon_shotgun,Specific Upgrades,3,*Clip Size Bonus,,
+Secondary Upgrades,tf_weapon_shotgun,Specific Upgrades,4,*Bullets Per Shot Bonus,,
+Secondary Upgrades,tf_weapon_shotgun,Specific Upgrades,5,*Weapon Spread Bonus,,
+Secondary Upgrades,tf_weapon_shotgun,Specific Upgrades,6,*Projectile Penetration,,
+,,,,,,
+Secondary Upgrades,tf_weapon_parachute,Specific Upgrades,1,*Bullet Resistance  (L),,parachute (all)
+Secondary Upgrades,tf_weapon_parachute,Specific Upgrades,2,*Blast Resistance  (L),,
+,,,,,,
+Melee Upgrades,saxxy,Damage Upgrades,1,*Damage Bonus,,all saxy
+Melee Upgrades,saxxy,Damage Upgrades,2,*Heal On Hit For Rapidfire,,
+Melee Upgrades,saxxy,Damage Upgrades,3,*Heal On Kill,,
+Melee Upgrades,saxxy,Damage Upgrades,4,*Slow Enemy On Hit,,
+Melee Upgrades,saxxy,Damage Upgrades,5,*Bleeding Duration,,
+Melee Upgrades,saxxy,Damage Upgrades,6,*Reveal Cloaked Victim On Hit,,
+Melee Upgrades,saxxy,Damage Upgrades,7,*Reveal Disguised Victim On Hit,,
+Melee Upgrades,saxxy,Specific Upgrades,1,*Fire Rate Bonus (Mel),,
+Melee Upgrades,saxxy,Specific Upgrades,2,*Melee Bounds Multiplier,,
+Melee Upgrades,saxxy,Specific Upgrades,3,*Melee Range Multiplier,,
+Melee Upgrades,saxxy,Specific Upgrades,4,*Critboost On Kill,,
+Melee Upgrades,saxxy,Specific Upgrades,5,*Crit From Behind,,
+Melee Upgrades,saxxy,Specific Upgrades,6,*Speed Buff Ally,,
+Melee Upgrades,saxxy,Specific Upgrades,7,*Mark For Death,,
+,,,,,,
+Melee Upgrades,tf_weapon_katana,Damage Upgrades,1,*Damage Bonus,,all katanas
+Melee Upgrades,tf_weapon_katana,Damage Upgrades,2,*Heal On Hit For Rapidfire,,
+Melee Upgrades,tf_weapon_katana,Damage Upgrades,3,*Heal On Kill,,
+Melee Upgrades,tf_weapon_katana,Damage Upgrades,4,*Slow Enemy On Hit,,
+Melee Upgrades,tf_weapon_katana,Damage Upgrades,5,*Bleeding Duration,,
+Melee Upgrades,tf_weapon_katana,Damage Upgrades,6,*Reveal Cloaked Victim On Hit,,
+Melee Upgrades,tf_weapon_katana,Damage Upgrades,7,*Reveal Disguised Victim On Hit,,
+Melee Upgrades,tf_weapon_katana,Specific Upgrades,1,*Fire Rate Bonus (Mel),,
+Melee Upgrades,tf_weapon_katana,Specific Upgrades,2,*Melee Bounds Multiplier,,
+Melee Upgrades,tf_weapon_katana,Specific Upgrades,3,*Melee Range Multiplier,,
+Melee Upgrades,tf_weapon_katana,Specific Upgrades,4,*Critboost On Kill,,
+Melee Upgrades,tf_weapon_katana,Specific Upgrades,5,*Crit From Behind,,
+Melee Upgrades,tf_weapon_katana,Specific Upgrades,6,*Speed Buff Ally,,
+Melee Upgrades,tf_weapon_katana,Specific Upgrades,7,*Mark For Death,,
+Melee Upgrades,tf_weapon_katana,Specific Upgrades,8,*Mult Patient Overheal Active,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+Primary Upgrades,tf_weapon_scattergun,Damage Upgrades,1,*Damage Bonus,,scout stock / default
+Primary Upgrades,tf_weapon_scattergun,Damage Upgrades,2,*Heal On Hit For Rapidfire,,
+Primary Upgrades,tf_weapon_scattergun,Damage Upgrades,3,*Heal On Kill,,
+Primary Upgrades,tf_weapon_scattergun,Damage Upgrades,4,*Slow Enemy On Hit,,
+Primary Upgrades,tf_weapon_scattergun,Damage Upgrades,5,*Reveal Cloaked Victim On Hit,,
+Primary Upgrades,tf_weapon_scattergun,Damage Upgrades,6,*Reveal Disguised Victim On Hit,,
+Primary Upgrades,tf_weapon_scattergun,Specific Upgrades,1,*Fire Rate Bonus,,
+Primary Upgrades,tf_weapon_scattergun,Specific Upgrades,2,*Faster Reload Rate,,
+Primary Upgrades,tf_weapon_scattergun,Specific Upgrades,3,*Clip Size Bonus,,
+Primary Upgrades,tf_weapon_scattergun,Specific Upgrades,4,*Bullets Per Shot Bonus,,
+Primary Upgrades,tf_weapon_scattergun,Specific Upgrades,5,*Weapon Spread Bonus,,
+Primary Upgrades,tf_weapon_scattergun,Specific Upgrades,6,*Projectile Penetration,,
+,,,,,,
+Primary Upgrades,tf_weapon_handgun_scout_primary,Damage Upgrades,1,*Damage Bonus,,scout shortstop
+Primary Upgrades,tf_weapon_handgun_scout_primary,Damage Upgrades,2,*Heal On Hit For Rapidfire,,
+Primary Upgrades,tf_weapon_handgun_scout_primary,Damage Upgrades,3,*Heal On Kill,,
+Primary Upgrades,tf_weapon_handgun_scout_primary,Damage Upgrades,4,*Slow Enemy On Hit,,
+Primary Upgrades,tf_weapon_handgun_scout_primary,Damage Upgrades,5,*Reveal Cloaked Victim On Hit,,
+Primary Upgrades,tf_weapon_handgun_scout_primary,Damage Upgrades,6,*Reveal Disguised Victim On Hit,,
+Primary Upgrades,tf_weapon_handgun_scout_primary,Specific Upgrades,1,*Fire Rate Bonus,,
+Primary Upgrades,tf_weapon_handgun_scout_primary,Specific Upgrades,2,*Faster Reload Rate,,
+Primary Upgrades,tf_weapon_handgun_scout_primary,Specific Upgrades,3,*Clip Size Bonus,,
+Primary Upgrades,tf_weapon_handgun_scout_primary,Specific Upgrades,4,*Bullets Per Shot Bonus,,
+Primary Upgrades,tf_weapon_handgun_scout_primary,Specific Upgrades,5,*Weapon Spread Bonus,,
+Primary Upgrades,tf_weapon_handgun_scout_primary,Specific Upgrades,6,*Projectile Penetration,,
+,,,,,,
+Primary Upgrades,tf_weapon_soda_popper,Damage Upgrades,1,*Damage Bonus,,scout soda poper
+Primary Upgrades,tf_weapon_soda_popper,Damage Upgrades,2,*Heal On Hit For Rapidfire,,
+Primary Upgrades,tf_weapon_soda_popper,Damage Upgrades,3,*Heal On Kill,,
+Primary Upgrades,tf_weapon_soda_popper,Damage Upgrades,4,*Slow Enemy On Hit,,
+Primary Upgrades,tf_weapon_soda_popper,Damage Upgrades,5,*Reveal Cloaked Victim On Hit,,
+Primary Upgrades,tf_weapon_soda_popper,Damage Upgrades,6,*Reveal Disguised Victim On Hit,,
+Primary Upgrades,tf_weapon_soda_popper,Specific Upgrades,1,*Fire Rate Bonus,,
+Primary Upgrades,tf_weapon_soda_popper,Specific Upgrades,2,*Faster Reload Rate,,
+Primary Upgrades,tf_weapon_soda_popper,Specific Upgrades,3,*Clip Size Bonus,,
+Primary Upgrades,tf_weapon_soda_popper,Specific Upgrades,4,*Bullets Per Shot Bonus,,
+Primary Upgrades,tf_weapon_soda_popper,Specific Upgrades,5,*Weapon Spread Bonus,,
+Primary Upgrades,tf_weapon_soda_popper,Specific Upgrades,6,*Projectile Penetration,,
+,,,,,,
+Primary Upgrades,tf_weapon_pep_brawler_blaster,Damage Upgrades,1,*Damage Bonus,,scout baby face blaster
+Primary Upgrades,tf_weapon_pep_brawler_blaster,Damage Upgrades,2,*Heal On Hit For Rapidfire,,
+Primary Upgrades,tf_weapon_pep_brawler_blaster,Damage Upgrades,3,*Heal On Kill,,
+Primary Upgrades,tf_weapon_pep_brawler_blaster,Damage Upgrades,4,*Slow Enemy On Hit,,
+Primary Upgrades,tf_weapon_pep_brawler_blaster,Damage Upgrades,5,*Reveal Cloaked Victim On Hit,,
+Primary Upgrades,tf_weapon_pep_brawler_blaster,Damage Upgrades,6,*Reveal Disguised Victim On Hit,,
+Primary Upgrades,tf_weapon_pep_brawler_blaster,Specific Upgrades,1,*Fire Rate Bonus,,
+Primary Upgrades,tf_weapon_pep_brawler_blaster,Specific Upgrades,2,*Faster Reload Rate,,
+Primary Upgrades,tf_weapon_pep_brawler_blaster,Specific Upgrades,3,*Clip Size Bonus,,
+Primary Upgrades,tf_weapon_pep_brawler_blaster,Specific Upgrades,4,*Bullets Per Shot Bonus,,
+Primary Upgrades,tf_weapon_pep_brawler_blaster,Specific Upgrades,5,*Weapon Spread Bonus,,
+Primary Upgrades,tf_weapon_pep_brawler_blaster,Specific Upgrades,6,*Projectile Penetration,,
+,,,,,,
+,,,,,,
+,,,,,,
+Secondary Upgrades,tf_weapon_pistol,Damage Upgrades,1,*Damage Bonus,,scout stock / default
+Secondary Upgrades,tf_weapon_pistol,Damage Upgrades,2,*Heal On Hit For Rapidfire,,
+Secondary Upgrades,tf_weapon_pistol,Damage Upgrades,3,*Heal On Kill,,
+Secondary Upgrades,tf_weapon_pistol,Damage Upgrades,4,*Slow Enemy On Hit,,
+Secondary Upgrades,tf_weapon_pistol,Damage Upgrades,5,*Reveal Cloaked Victim On Hit,,
+Secondary Upgrades,tf_weapon_pistol,Damage Upgrades,6,*Reveal Disguised Victim On Hit,,
+Secondary Upgrades,tf_weapon_pistol,Specific Upgrades,1,*Fire Rate Bonus,,
+Secondary Upgrades,tf_weapon_pistol,Specific Upgrades,2,*Faster Reload Rate,,
+Secondary Upgrades,tf_weapon_pistol,Specific Upgrades,3,*Clip Size Bonus,,
+Secondary Upgrades,tf_weapon_pistol,Specific Upgrades,4,*Weapon Spread Bonus,,
+Secondary Upgrades,tf_weapon_pistol,Specific Upgrades,5,*Projectile Penetration,,
+,,,,,,
+Secondary Upgrades,tf_weapon_handgun_scout_secondary,Damage Upgrades,1,*Damage Bonus,,scout winger + pretty boy
+Secondary Upgrades,tf_weapon_handgun_scout_secondary,Damage Upgrades,2,*Heal On Hit For Rapidfire,,
+Secondary Upgrades,tf_weapon_handgun_scout_secondary,Damage Upgrades,3,*Heal On Kill,,
+Secondary Upgrades,tf_weapon_handgun_scout_secondary,Damage Upgrades,4,*Slow Enemy On Hit,,
+Secondary Upgrades,tf_weapon_handgun_scout_secondary,Damage Upgrades,5,*Reveal Cloaked Victim On Hit,,
+Secondary Upgrades,tf_weapon_handgun_scout_secondary,Damage Upgrades,6,*Reveal Disguised Victim On Hit,,
+Secondary Upgrades,tf_weapon_handgun_scout_secondary,Specific Upgrades,1,*Fire Rate Bonus,,
+Secondary Upgrades,tf_weapon_handgun_scout_secondary,Specific Upgrades,2,*Faster Reload Rate,,
+Secondary Upgrades,tf_weapon_handgun_scout_secondary,Specific Upgrades,3,*Clip Size Bonus,,
+Secondary Upgrades,tf_weapon_handgun_scout_secondary,Specific Upgrades,4,*Weapon Spread Bonus,,
+Secondary Upgrades,tf_weapon_handgun_scout_secondary,Specific Upgrades,5,*Projectile Penetration,,
+,,,,,,
+Secondary Upgrades,tf_weapon_lunchbox_drink,Specific Upgrades,1,*Recharge Rate Increased,,scout bonks
+,,,,,,
+Secondary Upgrades,tf_weapon_jar_milk,Specific Upgrades,1,*Recharge Rate Increased,,scout milk
+Secondary Upgrades,tf_weapon_jar_milk,Specific Upgrades,2,*Liquid Duration,,
+Secondary Upgrades,tf_weapon_jar_milk,Specific Upgrades,3,*Fire Rate Bonus,,
+,,,,,,
+Secondary Upgrades,tf_weapon_cleaver,Damage Upgrades,1,*Damage Bonus,,scout cleaver
+Secondary Upgrades,tf_weapon_cleaver,Damage Upgrades,2,*Heal On Hit For Rapidfire,,
+Secondary Upgrades,tf_weapon_cleaver,Damage Upgrades,3,*Heal On Kill,,
+Secondary Upgrades,tf_weapon_cleaver,Damage Upgrades,4,*Slow Enemy On Hit,,
+Secondary Upgrades,tf_weapon_cleaver,Damage Upgrades,5,*Bleeding Duration,,
+Secondary Upgrades,tf_weapon_cleaver,Damage Upgrades,6,*Reveal Cloaked Victim On Hit,,
+Secondary Upgrades,tf_weapon_cleaver,Damage Upgrades,7,*Reveal Disguised Victim On Hit,,
+Secondary Upgrades,tf_weapon_cleaver,Specific Upgrades,1,*Recharge Rate Increased,,
+Secondary Upgrades,tf_weapon_cleaver,Specific Upgrades,2,*Fire Rate Bonus,,
+,,,,,,
+,,,,,,
+,,,,,,
+Melee Upgrades,tf_weapon_bat,Damage Upgrades,1,*Damage Bonus,,scout stock / default
+Melee Upgrades,tf_weapon_bat,Damage Upgrades,2,*Heal On Hit For Rapidfire,,
+Melee Upgrades,tf_weapon_bat,Damage Upgrades,3,*Heal On Kill,,
+Melee Upgrades,tf_weapon_bat,Damage Upgrades,4,*Slow Enemy On Hit,,
+Melee Upgrades,tf_weapon_bat,Damage Upgrades,5,*Bleeding Duration,,
+Melee Upgrades,tf_weapon_bat,Damage Upgrades,6,*Reveal Cloaked Victim On Hit,,
+Melee Upgrades,tf_weapon_bat,Damage Upgrades,7,*Reveal Disguised Victim On Hit,,
+Melee Upgrades,tf_weapon_bat,Specific Upgrades,1,*Fire Rate Bonus (Bat),,
+Melee Upgrades,tf_weapon_bat,Specific Upgrades,2,*Melee Bounds Multiplier,,
+Melee Upgrades,tf_weapon_bat,Specific Upgrades,3,*Melee Range Multiplier,,
+Melee Upgrades,tf_weapon_bat,Specific Upgrades,4,*Critboost On Kill,,
+Melee Upgrades,tf_weapon_bat,Specific Upgrades,5,*Crit From Behind,,
+Melee Upgrades,tf_weapon_bat,Specific Upgrades,6,*Speed Buff Ally,,
+Melee Upgrades,tf_weapon_bat,Specific Upgrades,7,*Mark For Death,,
+,,,,,,
+Melee Upgrades,tf_weapon_bat_wood,Damage Upgrades,1,*Damage Bonus,,scout sandman
+Melee Upgrades,tf_weapon_bat_wood,Damage Upgrades,2,*Heal On Hit For Rapidfire,,
+Melee Upgrades,tf_weapon_bat_wood,Damage Upgrades,3,*Heal On Kill,,
+Melee Upgrades,tf_weapon_bat_wood,Damage Upgrades,4,*Slow Enemy On Hit,,
+Melee Upgrades,tf_weapon_bat_wood,Damage Upgrades,5,*Bleeding Duration,,
+Melee Upgrades,tf_weapon_bat_wood,Damage Upgrades,6,*Reveal Cloaked Victim On Hit,,
+Melee Upgrades,tf_weapon_bat_wood,Damage Upgrades,7,*Reveal Disguised Victim On Hit,,
+Melee Upgrades,tf_weapon_bat_wood,Specific Upgrades,1,*Fire Rate Bonus (Bat),,
+Melee Upgrades,tf_weapon_bat_wood,Specific Upgrades,2,*Recharge Rate Increased,,
+Melee Upgrades,tf_weapon_bat_wood,Specific Upgrades,3,*Melee Bounds Multiplier,,
+Melee Upgrades,tf_weapon_bat_wood,Specific Upgrades,4,*Melee Range Multiplier,,
+Melee Upgrades,tf_weapon_bat_wood,Specific Upgrades,5,*Critboost On Kill,,
+Melee Upgrades,tf_weapon_bat_wood,Specific Upgrades,6,*Crit From Behind,,
+Melee Upgrades,tf_weapon_bat_wood,Specific Upgrades,7,*Speed Buff Ally,,
+Melee Upgrades,tf_weapon_bat_wood,Specific Upgrades,8,*Mark For Death,,
+,,,,,,
+Melee Upgrades,tf_weapon_bat_giftwrap,Damage Upgrades,1,*Damage Bonus,,scout giftwrap
+Melee Upgrades,tf_weapon_bat_giftwrap,Damage Upgrades,2,*Heal On Hit For Rapidfire,,
+Melee Upgrades,tf_weapon_bat_giftwrap,Damage Upgrades,3,*Heal On Kill,,
+Melee Upgrades,tf_weapon_bat_giftwrap,Damage Upgrades,4,*Slow Enemy On Hit,,
+Melee Upgrades,tf_weapon_bat_giftwrap,Damage Upgrades,5,*Bleeding Duration,,
+Melee Upgrades,tf_weapon_bat_giftwrap,Damage Upgrades,6,*Reveal Cloaked Victim On Hit,,
+Melee Upgrades,tf_weapon_bat_giftwrap,Damage Upgrades,7,*Reveal Disguised Victim On Hit,,
+Melee Upgrades,tf_weapon_bat_giftwrap,Specific Upgrades,1,*Fire Rate Bonus (Bat),,
+Melee Upgrades,tf_weapon_bat_giftwrap,Specific Upgrades,2,*Recharge Rate Increased,,
+Melee Upgrades,tf_weapon_bat_giftwrap,Specific Upgrades,3,*Maxammo Throwable Increased,,
+Melee Upgrades,tf_weapon_bat_giftwrap,Specific Upgrades,4,*Melee Bounds Multiplier,,
+Melee Upgrades,tf_weapon_bat_giftwrap,Specific Upgrades,5,*Melee Range Multiplier,,
+Melee Upgrades,tf_weapon_bat_giftwrap,Specific Upgrades,6,*Critboost On Kill,,
+Melee Upgrades,tf_weapon_bat_giftwrap,Specific Upgrades,7,*Crit From Behind,,
+Melee Upgrades,tf_weapon_bat_giftwrap,Specific Upgrades,8,*Speed Buff Ally,,
+Melee Upgrades,tf_weapon_bat_giftwrap,Specific Upgrades,9,*Mark For Death,,
+,,,,,,
+,,,,,,
+,,,,,,
+Primary Upgrades,tf_weapon_rocketlauncher,Damage Upgrades,1,*Damage Bonus,,soldier stock / default
+Primary Upgrades,tf_weapon_rocketlauncher,Damage Upgrades,2,*Heal On Hit For Slowfire,,
+Primary Upgrades,tf_weapon_rocketlauncher,Damage Upgrades,3,*Heal On Kill,,
+Primary Upgrades,tf_weapon_rocketlauncher,Damage Upgrades,4,*Slow Enemy On Hit Major,,
+Primary Upgrades,tf_weapon_rocketlauncher,Damage Upgrades,5,*Damage Blast Push,,
+Primary Upgrades,tf_weapon_rocketlauncher,Damage Upgrades,6,*Mod Mini-crit Airborne,,
+Primary Upgrades,tf_weapon_rocketlauncher,Damage Upgrades,7,*Reveal Cloaked Victim On Hit,,
+Primary Upgrades,tf_weapon_rocketlauncher,Damage Upgrades,8,*Reveal Disguised Victim On Hit,,
+Primary Upgrades,tf_weapon_rocketlauncher,Specific Upgrades,1,*Fire Rate Bonus,,
+Primary Upgrades,tf_weapon_rocketlauncher,Specific Upgrades,2,*Faster Reload Rate,,
+Primary Upgrades,tf_weapon_rocketlauncher,Specific Upgrades,3,*Clip Size Bonus,,
+Primary Upgrades,tf_weapon_rocketlauncher,Specific Upgrades,4,*Blast Radius Increased,,
+Primary Upgrades,tf_weapon_rocketlauncher,Specific Upgrades,5,*No Self Blast Dmg,,
+Primary Upgrades,tf_weapon_rocketlauncher,Specific Upgrades,6,*Damage Blast Push,,
+Primary Upgrades,tf_weapon_rocketlauncher,Specific Upgrades,7,*Projectile Speed Increased,,
+Primary Upgrades,tf_weapon_rocketlauncher,Specific Upgrades,8,*Self Dmg Push Force Increased,,
+,,,,,,
+Primary Upgrades,tf_weapon_rocketlauncher_directhit,Damage Upgrades,1,*Damage Bonus,,soldier direct hit
+Primary Upgrades,tf_weapon_rocketlauncher_directhit,Damage Upgrades,2,*Heal On Hit For Slowfire,,
+Primary Upgrades,tf_weapon_rocketlauncher_directhit,Damage Upgrades,3,*Heal On Kill,,
+Primary Upgrades,tf_weapon_rocketlauncher_directhit,Damage Upgrades,4,*Slow Enemy On Hit Major,,
+Primary Upgrades,tf_weapon_rocketlauncher_directhit,Damage Upgrades,5,*Damage Blast Push,,
+Primary Upgrades,tf_weapon_rocketlauncher_directhit,Damage Upgrades,6,*Mod Mini-crit Airborne,,
+Primary Upgrades,tf_weapon_rocketlauncher_directhit,Damage Upgrades,7,*Reveal Cloaked Victim On Hit,,
+Primary Upgrades,tf_weapon_rocketlauncher_directhit,Damage Upgrades,8,*Reveal Disguised Victim On Hit,,
+Primary Upgrades,tf_weapon_rocketlauncher_directhit,Specific Upgrades,1,*Fire Rate Bonus,,
+Primary Upgrades,tf_weapon_rocketlauncher_directhit,Specific Upgrades,2,*Faster Reload Rate,,
+Primary Upgrades,tf_weapon_rocketlauncher_directhit,Specific Upgrades,3,*Clip Size Bonus,,
+Primary Upgrades,tf_weapon_rocketlauncher_directhit,Specific Upgrades,4,*Blast Radius Increased,,
+Primary Upgrades,tf_weapon_rocketlauncher_directhit,Specific Upgrades,5,*No Self Blast Dmg,,
+Primary Upgrades,tf_weapon_rocketlauncher_directhit,Specific Upgrades,6,*Damage Blast Push,,
+Primary Upgrades,tf_weapon_rocketlauncher_directhit,Specific Upgrades,7,*Projectile Speed Increased,,
+Primary Upgrades,tf_weapon_rocketlauncher_directhit,Specific Upgrades,8,*Self Dmg Push Force Increased,,
+,,,,,,
+Primary Upgrades,tf_weapon_particle_cannon,Damage Upgrades,1,*Damage Bonus,,soldier cow mangler
+Primary Upgrades,tf_weapon_particle_cannon,Damage Upgrades,2,*Heal On Hit For Slowfire,,
+Primary Upgrades,tf_weapon_particle_cannon,Damage Upgrades,3,*Heal On Kill,,
+Primary Upgrades,tf_weapon_particle_cannon,Damage Upgrades,4,*Slow Enemy On Hit Major,,
+Primary Upgrades,tf_weapon_particle_cannon,Damage Upgrades,5,*Damage Blast Push,,
+Primary Upgrades,tf_weapon_particle_cannon,Damage Upgrades,6,*Dmg Bonus Vs Buildings,,
+Primary Upgrades,tf_weapon_particle_cannon,Damage Upgrades,7,*Mod Mini-crit Airborne,,
+Primary Upgrades,tf_weapon_particle_cannon,Damage Upgrades,8,*Reveal Cloaked Victim On Hit,,
+Primary Upgrades,tf_weapon_particle_cannon,Damage Upgrades,9,*Reveal Disguised Victim On Hit,,
+Primary Upgrades,tf_weapon_particle_cannon,Specific Upgrades,1,*Fire Rate Bonus,,
+Primary Upgrades,tf_weapon_particle_cannon,Specific Upgrades,2,*Faster Reload Rate,,
+Primary Upgrades,tf_weapon_particle_cannon,Specific Upgrades,3,*Clip Size Bonus,,
+Primary Upgrades,tf_weapon_particle_cannon,Specific Upgrades,4,*Blast Radius Increased,,
+Primary Upgrades,tf_weapon_particle_cannon,Specific Upgrades,5,*No Self Blast Dmg,,
+Primary Upgrades,tf_weapon_particle_cannon,Specific Upgrades,6,*Damage Blast Push,,
+Primary Upgrades,tf_weapon_particle_cannon,Specific Upgrades,7,*Projectile Speed Increased,,
+Primary Upgrades,tf_weapon_particle_cannon,Specific Upgrades,8,*Self Dmg Push Force Increased,,
+,,,,,,
+Primary Upgrades,tf_weapon_rocketlauncher_airstrike,Damage Upgrades,1,*Damage Bonus,,soldier airstrike
+Primary Upgrades,tf_weapon_rocketlauncher_airstrike,Damage Upgrades,2,*Heal On Hit For Slowfire,,
+Primary Upgrades,tf_weapon_rocketlauncher_airstrike,Damage Upgrades,3,*Heal On Kill,,
+Primary Upgrades,tf_weapon_rocketlauncher_airstrike,Damage Upgrades,4,*Slow Enemy On Hit Major,,
+Primary Upgrades,tf_weapon_rocketlauncher_airstrike,Damage Upgrades,5,*Damage Blast Push,,
+Primary Upgrades,tf_weapon_rocketlauncher_airstrike,Damage Upgrades,6,*Mod Mini-crit Airborne,,
+Primary Upgrades,tf_weapon_rocketlauncher_airstrike,Damage Upgrades,7,*Reveal Cloaked Victim On Hit,,
+Primary Upgrades,tf_weapon_rocketlauncher_airstrike,Damage Upgrades,8,*Reveal Disguised Victim On Hit,,
+Primary Upgrades,tf_weapon_rocketlauncher_airstrike,Specific Upgrades,1,*Fire Rate Bonus,,
+Primary Upgrades,tf_weapon_rocketlauncher_airstrike,Specific Upgrades,2,*Faster Reload Rate,,
+Primary Upgrades,tf_weapon_rocketlauncher_airstrike,Specific Upgrades,3,*Clip Size Bonus,,
+Primary Upgrades,tf_weapon_rocketlauncher_airstrike,Specific Upgrades,4,*Blast Radius Increased,,
+Primary Upgrades,tf_weapon_rocketlauncher_airstrike,Specific Upgrades,5,*No Self Blast Dmg,,
+Primary Upgrades,tf_weapon_rocketlauncher_airstrike,Specific Upgrades,6,*Damage Blast Push,,
+Primary Upgrades,tf_weapon_rocketlauncher_airstrike,Specific Upgrades,7,*Projectile Speed Increased,,
+Primary Upgrades,tf_weapon_rocketlauncher_airstrike,Specific Upgrades,8,*Self Dmg Push Force Increased,,
+,,,,,,
+,,,,,,
+,,,,,,
+Secondary Upgrades,tf_weapon_shotgun_soldier,Damage Upgrades,1,*Damage Bonus,,soldier shotgun
+Secondary Upgrades,tf_weapon_shotgun_soldier,Damage Upgrades,2,*Heal On Hit For Rapidfire,,
+Secondary Upgrades,tf_weapon_shotgun_soldier,Damage Upgrades,3,*Heal On Kill,,
+Secondary Upgrades,tf_weapon_shotgun_soldier,Damage Upgrades,4,*Slow Enemy On Hit,,
+Secondary Upgrades,tf_weapon_shotgun_soldier,Damage Upgrades,5,*Mod Mini-crit Airborne,,
+Secondary Upgrades,tf_weapon_shotgun_soldier,Damage Upgrades,6,*Reveal Cloaked Victim On Hit,,
+Secondary Upgrades,tf_weapon_shotgun_soldier,Damage Upgrades,7,*Reveal Disguised Victim On Hit,,
+Secondary Upgrades,tf_weapon_shotgun_soldier,Specific Upgrades,1,*Fire Rate Bonus,,
+Secondary Upgrades,tf_weapon_shotgun_soldier,Specific Upgrades,2,*Faster Reload Rate,,
+Secondary Upgrades,tf_weapon_shotgun_soldier,Specific Upgrades,3,*Clip Size Bonus,,
+Secondary Upgrades,tf_weapon_shotgun_soldier,Specific Upgrades,4,*Bullets Per Shot Bonus,,
+Secondary Upgrades,tf_weapon_shotgun_soldier,Specific Upgrades,5,*Weapon Spread Bonus,,
+Secondary Upgrades,tf_weapon_shotgun_soldier,Specific Upgrades,6,*Projectile Penetration,,
+,,,,,,
+Secondary Upgrades,tf_weapon_raygun,Damage Upgrades,1,*Damage Bonus,,soldier bison
+Secondary Upgrades,tf_weapon_raygun,Damage Upgrades,2,*Heal On Hit For Rapidfire,,
+Secondary Upgrades,tf_weapon_raygun,Damage Upgrades,3,*Heal On Kill,,
+Secondary Upgrades,tf_weapon_raygun,Damage Upgrades,4,*Slow Enemy On Hit,,
+Secondary Upgrades,tf_weapon_raygun,Damage Upgrades,5,*Reveal Cloaked Victim On Hit,,
+Secondary Upgrades,tf_weapon_raygun,Damage Upgrades,6,*Reveal Disguised Victim On Hit,,
+Secondary Upgrades,tf_weapon_raygun,Specific Upgrades,1,*Fire Rate Bonus,,
+Secondary Upgrades,tf_weapon_raygun,Specific Upgrades,2,*Faster Reload Rate,,
+Secondary Upgrades,tf_weapon_raygun,Specific Upgrades,3,*Clip Size Bonus,,
+Secondary Upgrades,tf_weapon_raygun,Specific Upgrades,4,*Weapon Spread Bonus,,
+Secondary Upgrades,tf_weapon_raygun,Specific Upgrades,5,*Projectile Penetration,,
+,,,,,,
+Secondary Upgrades,tf_weapon_buff_item,Specific Upgrades,1,*Increase Buff Duration,,soldier banners
+,,,,,,
+Secondary Upgrades,tf_boots_sol,Specific Upgrades,1,*Max Health Bonus (H),,soldier boots
+Secondary Upgrades,tf_boots_sol,Specific Upgrades,2,*Rocket Jump Damage Reduction,,
+Secondary Upgrades,tf_boots_sol,Specific Upgrades,3,*Boots Falling Stomp,,
+Secondary Upgrades,tf_boots_sol,Specific Upgrades,4,*Blast Resistance  (L),,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+,,,,,,
+Melee Upgrades,tf_weapon_shovel,Damage Upgrades,1,*Damage Bonus,,soldier shovel
+Melee Upgrades,tf_weapon_shovel,Damage Upgrades,2,*Heal On Hit For Rapidfire,,
+Melee Upgrades,tf_weapon_shovel,Damage Upgrades,3,*Heal On Kill,,
+Melee Upgrades,tf_weapon_shovel,Damage Upgrades,4,*Slow Enemy On Hit,,
+Melee Upgrades,tf_weapon_shovel,Damage Upgrades,5,*Bleeding Duration,,
+Melee Upgrades,tf_weapon_shovel,Damage Upgrades,6,*Mod Crit While Airborne,,
+Melee Upgrades,tf_weapon_shovel,Damage Upgrades,7,*Reveal Cloaked Victim On Hit,,
+Melee Upgrades,tf_weapon_shovel,Damage Upgrades,8,*Reveal Disguised Victim On Hit,,
+Melee Upgrades,tf_weapon_shovel,Specific Upgrades,1,*Fire Rate Bonus (Mel),,
+Melee Upgrades,tf_weapon_shovel,Specific Upgrades,2,*Melee Bounds Multiplier,,
+Melee Upgrades,tf_weapon_shovel,Specific Upgrades,3,*Melee Range Multiplier,,
+Melee Upgrades,tf_weapon_shovel,Specific Upgrades,4,*Critboost On Kill,,
+Melee Upgrades,tf_weapon_shovel,Specific Upgrades,5,*Crit From Behind,,
+Melee Upgrades,tf_weapon_shovel,Specific Upgrades,6,*Speed Buff Ally,,
+Melee Upgrades,tf_weapon_shovel,Specific Upgrades,7,*Mark For Death,,

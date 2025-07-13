@@ -135,7 +135,7 @@
 15105,tf_weapon_rocketlauncher
 15129,tf_weapon_rocketlauncher
 15130,tf_weapon_rocketlauncher
-15150,tf_weapon_rocketlauncher
+15150,tf_weapon_rocketlauncher40
 10,tf_weapon_shotgun_soldier
 442,tf_weapon_raygun
 6,tf_weapon_shovel
@@ -149,8 +149,8 @@
 226,tf_weapon_buff_item
 354,tf_weapon_buff_item
 1001,tf_weapon_buff_item
-133,tf_wearable
-444,tf_wearable
+133,tf_boots_sol
+444,tf_boots_sol
 21,tf_weapon_flamethrower
 208,tf_weapon_flamethrower
 40,tf_weapon_flamethrower
@@ -219,8 +219,8 @@
 15117,tf_weapon_grenadelauncher
 15142,tf_weapon_grenadelauncher
 15158,tf_weapon_grenadelauncher
-405,tf_wearable
-608,tf_wearable
+405,tf_boots_demo
+608,tf_boots_demo
 20,tf_weapon_pipebomblauncher
 207,tf_weapon_pipebomblauncher
 130,tf_weapon_pipebomblauncher
@@ -444,8 +444,8 @@
 15134,tf_weapon_smg
 15153,tf_weapon_smg
 57,tf_wearable_razorback
-231,tf_wearable
-642,tf_wearable
+231,tf_wearable_darwin
+642,tf_wearable_camper
 3,tf_weapon_club
 193,tf_weapon_club
 171,tf_weapon_club

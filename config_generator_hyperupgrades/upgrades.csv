@@ -13,9 +13,9 @@ name,cost,costincrease,increment,limit,initvalue,alias,,,,,,oldcost,oldcostincre
 *Get Ammo On Hit,10,5,1,1,,add_onhit_addammo,,,,,,100,50
 *Get Uber Charge On Hit,80,32,0.05,0.5,0,add_uber_charge_on_hit,,,,,,800,320
 *Additional Halloween Response Criteria Name,10,5,0.1,,,additional_halloween_response_criteria_name,,,,,,100,50
-*Afterburn Duration Bonus,10,5,0.1,,,afterburn_duration_bonus,,,,,,100,50
-*Afterburn Duration Penalty,10,5,0.1,,,afterburn_duration_penalty,,,,,,100,50
-*Afterburn Immunity,10,5,0.1,,,afterburn_immunity,,,,,,100,50
+*Afterburn Duration Bonus,10,5,0.1,1,,afterburn_duration_bonus,,,,,,100,50
+*Afterburn Duration Penalty,10,5,0.1,1,,afterburn_duration_penalty,,,,,,100,50
+*Afterburn Immunity,10,5,0.1,1,,afterburn_immunity,,,,,,100,50
 *Aiming Knockback Resistance,10,5,0.1,,,aiming_knockback_resistance,,,,,,100,50
 *Aiming Movespeed Decreased,40,20,-0.2,0.1,1,aiming_movespeed_decreased,,,,,,400,200
 *Aiming Movespeed Increased,40,20,0.1,1.5,1,aiming_movespeed_increased,,,,,,400,200
@@ -68,13 +68,14 @@ name,cost,costincrease,increment,limit,initvalue,alias,,,,,,oldcost,oldcostincre
 *Backstab Shield,10,5,0.1,,,backstab_shield,,,,,,100,50
 *Become Fireproof On Hit By Fire,190,142,1,100,0,become_fireproof_on_hit_by_fire,,,,,,1900,1425
 *Bidirectional Teleport,50,25,1,1,0,bidirectional_teleport,,,,,,500,250
-*Blast Dmg To Self Increased,10,5,0.1,,,blast_dmg_to_self_increased,,,,,,100,50
+*Blast Dmg To Self Decreased,15,15,-0.1,0.1,1,,,,,,,,
+*Blast Dmg To Self Increased,10,5,0.5,1,10,blast_dmg_to_self_increased,,,,,,100,50
 *Blast Radius Decreased,-120,-60,-0.34,0.3,1,Blast_radius_decreased,,,,,,-1200,-600
 *Blast Radius Increased,80,40,0.1,2,1,Blast_radius_increased,,,,,,800,400
 *Bleeding Duration,15,15,1,60,1,bleeding_duration,,,,,,150,150
 *Bombinomicon Effect On Death,100,50,1,1,0,bombinomicon_effect_on_death,,,,,,1000,500
 *Boost On Damage,100,50,1,1,0,boost_on_damage,,,,,,1000,500
-*Boots Falling Stomp,5,2,0.75,55,3,boots_falling_stomp,,,,,,50,25
+*Boots Falling Stomp,5,2,1,55,3,boots_falling_stomp,,,,,,50,25
 *Bot Custom Jump Particle,10,5,0.1,,,bot_custom_jump_particle,,,,,,100,50
 *Bot Medic Uber Deploy Delay Duration,10,5,0.1,,,bot_medic_uber_deploy_delay_duration,,,,,,100,50
 *Bot Medic Uber Health Threshold,10,5,0.1,,,bot_medic_uber_health_threshold,,,,,,100,50
@@ -186,11 +187,12 @@ name,cost,costincrease,increment,limit,initvalue,alias,,,,,,oldcost,oldcostincre
 *Disguise On Backstab,60,30,1,1,0,disguise_on_backstab,,,,,,600,300
 *Disguise Speed,20,10,-0.1,-1.5,0,disguise_speed_penalty,,,,,,200,100
 *Display Duck Leaderboard,10,5,0.1,,,display_duck_leaderboard,,,,,,100,50
-*Dmg Bonus Vs Buildings,80,16,0.1,500,1,dmg_bonus_vs_buildings,,,,,,800,160
+*Dmg Bonus Vs Buildings,40,16,0.1,500,1,dmg_bonus_vs_buildings,,,,,,800,160
 *Dmg Bonus While Half Dead,40,20,0.25,1500,1,dmg_bonus_while_half_dead,,,,,,400,200
 *Dmg Falloff Decreased,10,5,-0.25,0.05,1,dmg_falloff_decreased,,,,,,100,50
 *Dmg Falloff Increased,10,5,0.1,,,dmg_falloff_increased,,,,,,100,50
 *Melee Resistance,25,25,-0.1,0.1,1,dmg_from_melee_increased,,,,,,250,250
+*Melee Resistance (L),25,25,-0.1,0.4,1,dmg_from_melee_increased,,,,,,250,250
 *Dmg From Ranged Reduced,75,90,-0.05,0.15,1,dmg_from_ranged_reduced,,,,,,750,900
 *Dmg Penalty Vs Buildings,10,5,0.1,,,dmg_penalty_vs_buildings,,,,,,100,50
 *Dmg Penalty Vs Nonburning,10,5,0.1,,,dmg_penalty_vs_nonburning,,,,,,100,50
@@ -201,12 +203,16 @@ name,cost,costincrease,increment,limit,initvalue,alias,,,,,,oldcost,oldcostincre
 *Dmg Penalty While Half Alive,10,5,0.1,,,dmg_penalty_while_half_alive,,,,,,100,50
 *Dmg Pierces Resists Absorbs,10,5,0.1,,,dmg_pierces_resists_absorbs,,,,,,100,50
 *Dmg Taken From Blast Increased,35,35,-0.1,0.1,1,dmg_taken_from_blast_increased,,,,,,350,350
+*Blast Resistance  (L),35,35,-0.1,0.4,1,dmg_taken_from_blast_reduced,,,,,,350,350
 *Blast Resistance,35,35,-0.1,0.1,1,dmg_taken_from_blast_reduced,,,,,,350,350
 *Dmg Taken From Bullets Increased,35,35,-0.1,0.1,1,dmg_taken_from_bullets_increased,,,,,,350,350
+*Bullet Resistance  (L),35,35,-0.1,0.4,1,dmg_taken_from_bullets_reduced,,,,,,350,350
 *Bullet Resistance,35,35,-0.1,0.1,1,dmg_taken_from_bullets_reduced,,,,,,350,350
 *Dmg Taken From Crit Increased,35,31,-0.1,0.1,1,dmg_taken_from_crit_increased,,,,,,350,315
+*Crit Resistance  (L),35,31,-0.1,0.4,1,dmg_taken_from_crit_reduced,,,,,,350,315
 *Crit Resistance,35,31,-0.1,0.1,1,dmg_taken_from_crit_reduced,,,,,,350,315
 *Dmg Taken From Fire Increased,35,35,-0.1,0.1,1,dmg_taken_from_fire_increased,,,,,,350,350
+*Fire Resistance  (L),35,35,-0.1,0.4,1,dmg_taken_from_fire_reduced,,,,,,350,350
 *Fire Resistance,35,35,-0.1,0.1,1,dmg_taken_from_fire_reduced,,,,,,350,350
 *Fire Resistance On Active,30,30,-0.1,0.1,1,dmg_taken_from_fire_reduced_on_active,,,,,,300,300
 *Dmg Taken Reduced,90,126,-0.05,0.15,1,dmg_taken_increased,,,,,,900,1260
@@ -218,7 +224,7 @@ name,cost,costincrease,increment,limit,initvalue,alias,,,,,,oldcost,oldcostincre
 *Duck Rating,10,5,0.1,,,duck_rating,,,,,,100,50
 *Duckstreaks Active,10,5,0.1,,,duckstreaks_active,,,,,,100,50
 *Duel Loser Account Id,10,5,0.1,,,duel_loser_account_id,,,,,,100,50
-*Effect Bar Recharge Rate Increased,25,18,-0.1,0.01,1,effect_bar_recharge_rate_increased,,,,,,250,187.5
+*Recharge Rate Increased,25,18,-0.1,0.01,1,effect_bar_recharge_rate_increased,< effect bar,,,,,250,187.5
 *Electrical Airblast Display Only,10,5,0.1,,,electrical_airblast_DISPLAY_ONLY,,,,,,100,50
 *Elevate Quality,10,5,0.1,,,elevate_quality,,,,,,100,50
 *Elevate To Unusual If Applicable,10,5,0.1,,,elevate_to_unusual_if_applicable,,,,,,100,50
@@ -256,6 +262,7 @@ name,cost,costincrease,increment,limit,initvalue,alias,,,,,,oldcost,oldcostincre
 *Fire Particle Red,10,5,0.1,,,fire_particle_red,,,,,,100,50
 *Fire Particle Red Crit,10,5,0.1,,,fire_particle_red_crit,,,,,,100,50
 *Fire Rate Bonus,30,15,-0.1,0.1,1,fire_rate_bonus,,,,,,300,150
+*Fire Rate Bonus (Mel),30,15,-0.1,0.3,1,fire_rate_bonus,,,,,,300,150
 *Fire Rate Bonus (Bat),30,15,-0.1,0.4,1,fire_rate_bonus,,,,,,300,150
 *Fire Rate Bonus Hidden,40,20,-0.1,0.5,1,fire_rate_bonus_HIDDEN,,,,,,400,200
 *Fire Rate Bonus With Reduced Health,40,20,-0.1,0.5,1,fire_rate_bonus_with_reduced_health,,,,,,400,200
@@ -357,7 +364,7 @@ name,cost,costincrease,increment,limit,initvalue,alias,,,,,,oldcost,oldcostincre
 *Hype Decays Over Time,10,5,0.1,,,hype_decays_over_time,,,,,,100,50
 *Hype On Damage,10,5,0.1,,,hype_on_damage,,,,,,100,50
 *Hype Resets On Jump,10,5,0.1,,,hype_resets_on_jump,,,,,,100,50
-*Increase Buff Duration,100,35,0.2,90,1,increase_buff_duration,,,,,,1000,350
+*Increase Buff Duration,20,10,0.2,90,1,increase_buff_duration,,,,,,1000,350
 *Increase Buff Duration Hidden,100,35,0.2,90,1,increase_buff_duration_HIDDEN,,,,,,1000,350
 *Increase Player Capture Value,60,30,1,3,0,increase_player_capture_value,,,,,,600,300
 *Increased Air Control,40,20,5,25,0,increased_air_control,,,,,,400,200
@@ -403,7 +410,7 @@ name,cost,costincrease,increment,limit,initvalue,alias,,,,,,oldcost,oldcostincre
 *Items Traded In For,10,5,0.1,,,items_traded_in_for,,,,,,100,50
 *Jarate Backstabber,10,5,0.1,,,jarate_backstabber,,,,,,100,50
 *Jarate Description,10,5,0.1,,,jarate_description,,,,,,100,50
-*Jarate Duration,20,15,1,30,1,jarate_duration,,,,,,200,150
+*Liquid Duration,20,15,1,30,1,jarate_duration,,,,,,200,150
 *Kill Eater,10,5,0.1,,,kill_eater,,,,,,100,50
 *Kill Eater 2,10,5,0.1,,,kill_eater_2,,,,,,100,50
 *Kill Eater 3,10,5,0.1,,,kill_eater_3,,,,,,100,50
@@ -438,11 +445,12 @@ name,cost,costincrease,increment,limit,initvalue,alias,,,,,,oldcost,oldcostincre
 *Mark For Death,10,5,0.1,,,mark_for_death,,,,,,100,50
 *Mark For Death On Building Pickup,10,5,0.1,,,mark_for_death_on_building_pickup,,,,,,100,50
 *Max Flame Reflection Count,10,5,0.1,,,max_flame_reflection_count,,,,,,100,50
+*Max Health Bonus (H),25,25,50,20000,0,max_health_additive_bonus,,,,,,,
 *Max Health Bonus,30,15,25,50000,0,max_health_additive_bonus,,,,,,300,150
 *Max Health Additive Penalty,-20,-10,-25,-100,0,max_health_additive_penalty,,,,,,-200,-100
 *Max Pipebombs Decreased,10,5,0.1,,,max_pipebombs_decreased,,,,,,100,50
 *Max Pipebombs Increased,50,25,1,12,0,max_pipebombs_increased,,,,,,500,250
-*Maxammo Grenades1 Increased,30,15,1,20,1,maxammo_grenades1_increased,,,,,,300,150
+*Maxammo Throwable Increased,30,15,1,20,1,maxammo_grenades1_increased,,,,,,300,150
 *Maxammo Metal Increased,20,10,0.25,25,1,maxammo_metal_increased,,,,,,200,100
 *Maxammo Metal Reduced,-40,-20,-0.05,0.64,1,maxammo_metal_reduced,,,,,,-400,-200
 *Maxammo Primary Increased,60,30,0.25,20,1,maxammo_primary_increased,,,,,,600,300
@@ -536,6 +544,7 @@ name,cost,costincrease,increment,limit,initvalue,alias,,,,,,oldcost,oldcostincre
 *Dragon Fury Increased Recharge Rate,125,93,-0.1,0.4,1,mult_item_meter_charge_rate,,,,,,1250,937.5
 *Gas Passer Increased Recharge Rate,250,125,-0.2,0.001,0,mult_item_meter_charge_rate,,,,,,2500,1250
 *Mult Patient Overheal Penalty Active,10,5,0.1,,,mult_patient_overheal_penalty_active,,,,,,100,50
+*Mult Patient Overheal Active,40,20,0.25,4,1,mult_patient_overheal_penalty_active,,,,,,100,50
 *Mult Player Movespeed Active,10,5,0.1,,,mult_player_movespeed_active,,,,,,100,50
 *Mult Sniper Charge After Bodyshot,50,25,-0.1,0.2,1,mult_sniper_charge_after_bodyshot,,,,,,500,250
 *Mult Sniper Charge After Headshot,20,10,-0.25,0.1,1,mult_sniper_charge_after_headshot,,,,,,200,100
