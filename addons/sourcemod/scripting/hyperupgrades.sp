@@ -141,8 +141,8 @@ public void OnPluginStart()
     RegConsoleCmd("sm_buy", Command_OpenMenu);
     RegConsoleCmd("sm_shop", Command_OpenMenu);
 
-    RegAdminCmd("sm_addmoney", Command_AddMoney, ADMFLAG_GENERIC, "Add money to the pool.");
-    RegAdminCmd("sm_subtractmoney", Command_SubtractMoney, ADMFLAG_GENERIC, "Subtract money from the pool.");
+    RegAdminCmd("hu_addmoney", Command_AddMoney, ADMFLAG_GENERIC, "Add money to the pool.");
+    RegAdminCmd("hu_subtractmoney", Command_SubtractMoney, ADMFLAG_GENERIC, "Subtract money from the pool.");
 
     HookEvent("player_death", Event_PlayerDeath, EventHookMode_Post);
     HookEvent("teamplay_point_captured", Event_ObjectiveComplete, EventHookMode_Post);
@@ -162,9 +162,9 @@ public void OnPluginStart()
 
     GenerateConfigFiles();
 
-    RegAdminCmd("sm_reloadweapons", Command_ReloadWeaponAliases, ADMFLAG_GENERIC, "Reload the weapon aliases.");
-    RegAdminCmd("sm_reloadattalias", Command_ReloadAttributesAliases, ADMFLAG_GENERIC, "Reload the attributes aliases.");
-    RegAdminCmd("sm_reloadupgrades", Command_ReloadUpgrades, ADMFLAG_GENERIC, "Reload the upgrade data from hu_upgrades.cfg");
+    RegAdminCmd("hu_reloadweapons", Command_ReloadWeaponAliases, ADMFLAG_GENERIC, "Reload the weapon aliases.");
+    RegAdminCmd("hu_reloadattalias", Command_ReloadAttributesAliases, ADMFLAG_GENERIC, "Reload the attributes aliases.");
+    RegAdminCmd("hu_reloadupgrades", Command_ReloadUpgrades, ADMFLAG_GENERIC, "Reload the upgrade data from hu_upgrades.cfg");
 
     g_weaponAliases = new ArrayList(sizeof(WeaponAlias));
     LoadWeaponAliases();
@@ -208,12 +208,122 @@ public void OnPluginStart()
 
 public void OnPluginEnd()
 {
+    // Notify and clean up each player
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        if (!IsClientInGame(i))
+            continue;
+
+        PrintToChat(i, "\x04[HU] \x01Hyper Upgrades reloaded, you may need to change class.");
+
+        TF2_RemoveAllWeapons(i);
+
+        int ent = -1;
+        while ((ent = FindEntityByClassname(ent, "tf_wearable")) != -1)
+        {
+            if (GetEntPropEnt(ent, Prop_Send, "m_hOwnerEntity") == i)
+            {
+                AcceptEntityInput(ent, "Kill");
+            }
+        }
+
+        // Kill any per-player refresh timers
+        if (g_hRefreshTimer[i] != INVALID_HANDLE)
+        {
+            KillTimer(g_hRefreshTimer[i]);
+            g_hRefreshTimer[i] = INVALID_HANDLE;
+        }
+
+        // Delete per-player upgrade maps
+        if (g_hPlayerUpgrades[i] != null)
+        {
+            delete g_hPlayerUpgrades[i];
+            g_hPlayerUpgrades[i] = null;
+        }
+
+        // Delete per-player resistance source maps
+        for (DamageType d = view_as<DamageType>(0); d < DAMAGE_COUNT; d++)
+        {
+            if (g_resistanceSources[i][d] != null)
+            {
+                delete g_resistanceSources[i][d];
+                g_resistanceSources[i][d] = null;
+            }
+        }
+
+    }
+
+    // Delete global lists/maps
     if (g_weaponAliases != null)
     {
         delete g_weaponAliases;
         g_weaponAliases = null;
     }
+
+    if (g_attributeMappings != null)
+    {
+        delete g_attributeMappings;
+        g_attributeMappings = null;
+    }
+
+    if (g_upgrades != null)
+    {
+        delete g_upgrades;
+        g_upgrades = null;
+    }
+
+    if (g_upgradeIndex != null)
+    {
+        delete g_upgradeIndex;
+        g_upgradeIndex = null;
+    }
+
+    if (g_resistanceMappings != null)
+    {
+        delete g_resistanceMappings;
+        g_resistanceMappings = null;
+    }
+
+    // Delete HUD synchronizers
+    if (g_hHudMoneySync != null)
+    {
+        delete g_hHudMoneySync;
+        g_hHudMoneySync = null;
+    }
+
+    if (g_hHudResistSync != null)
+    {
+        delete g_hHudResistSync;
+        g_hHudResistSync = null;
+    }
+
+    // Delete database handle if open
+    if (g_hSettingsDB != null)
+    {
+        delete g_hSettingsDB;
+        g_hSettingsDB = null;
+    }
+
+    // Delete convars
+    if (g_hMoneyPool != null)
+    {
+        delete g_hMoneyPool;
+        g_hMoneyPool = null;
+    }
+
+    if (g_hMoneyBossMultiplier != null)
+    {
+        delete g_hMoneyBossMultiplier;
+        g_hMoneyBossMultiplier = null;
+    }
+
+    if (g_hResetMoneyPoolOnMapStart != null)
+    {
+        delete g_hResetMoneyPoolOnMapStart;
+        g_hResetMoneyPoolOnMapStart = null;
+    }
 }
+
 
 public void OnClientPutInServer(int client)
 {
@@ -417,7 +527,6 @@ void LoadUpgradeData()
         }
     }
 }
-
 
 
 // Settings
@@ -1632,7 +1741,8 @@ void ShowCategoryMenu(int client, const char[] category)
     }
     else if (StrEqual(category, "Primary Upgrades"))
     {
-        int weapon = GetPlayerWeaponSlot(client, 0);
+        int weapon = GetEquippedEntityForSlot(client, 0);
+        PrintToServer("[Debug] Slot %d: weapon entity index = %d", 0, weapon);
         if (IsValidEntity(weapon))
         {
             int defindex = GetEntProp(weapon, Prop_Send, "m_iItemDefinitionIndex");
@@ -1642,7 +1752,8 @@ void ShowCategoryMenu(int client, const char[] category)
     }
     else if (StrEqual(category, "Secondary Upgrades"))
     {
-        int weapon = GetPlayerWeaponSlot(client, 1);
+        int weapon = GetEquippedEntityForSlot(client, 1);
+        PrintToServer("[Debug] Slot %d: weapon entity index = %d", 1, weapon);
         if (IsValidEntity(weapon))
         {
             int defindex = GetEntProp(weapon, Prop_Send, "m_iItemDefinitionIndex");
@@ -1652,7 +1763,8 @@ void ShowCategoryMenu(int client, const char[] category)
     }
     else if (StrEqual(category, "Melee Upgrades"))
     {
-        int weapon = GetPlayerWeaponSlot(client, 2);
+        int weapon = GetEquippedEntityForSlot(client, 2);
+        PrintToServer("[Debug] Slot %d: weapon entity index = %d", 2, weapon);
         if (IsValidEntity(weapon))
         {
             int defindex = GetEntProp(weapon, Prop_Send, "m_iItemDefinitionIndex");
@@ -1660,7 +1772,6 @@ void ShowCategoryMenu(int client, const char[] category)
             weaponSlot = 2;
         }
     }
-
     if (!aliasFound || StrEqual(alias, "unknown"))
     {
         PrintToChat(client, "[Hyper Upgrades] No upgrades found for this category.");
@@ -1708,7 +1819,99 @@ void ShowCategoryMenu(int client, const char[] category)
     delete kv;
 }
 
+int GetEquippedEntityForSlot(int client, int slot) // Used to get weapons that aren't in normal slots, comparing with hu_attributes. If conflict, takes the first option.
+{
+    // Step 1: Try normal weapon slot
+    int weapon = GetPlayerWeaponSlot(client, slot);
+    if (IsValidEntity(weapon))
+    {
+        int defindex = GetEntProp(weapon, Prop_Send, "m_iItemDefinitionIndex");
+        if (defindex > 0)
+        {
+            return weapon;
+        }
+    }
 
+    // Step 2: Fallback – scan equipped items with known aliases
+    KeyValues kv = new KeyValues("Upgrades");
+    char filePath[PLATFORM_MAX_PATH];
+    BuildPath(Path_SM, filePath, sizeof(filePath), "configs/hu_attributes.cfg");
+
+    if (!kv.ImportFromFile(filePath))
+    {
+        PrintToServer("[HU] Error loading hu_attributes.cfg");
+        delete kv;
+        return -1;
+    }
+
+    char slotName[32];
+    switch (slot)
+    {
+        case 0: strcopy(slotName, sizeof(slotName), "Primary Upgrades");
+        case 1: strcopy(slotName, sizeof(slotName), "Secondary Upgrades");
+        case 2: strcopy(slotName, sizeof(slotName), "Melee Upgrades");
+        case 3: strcopy(slotName, sizeof(slotName), "Slot3 Upgrades");
+        case 4: strcopy(slotName, sizeof(slotName), "Slot4 Upgrades");
+        case 5: strcopy(slotName, sizeof(slotName), "Slot5 Upgrades");
+        default:
+        {
+            delete kv;
+            return -1;
+        }
+    }
+
+    // Collect potential alias misses
+    ArrayList missingAliases = new ArrayList(64); // store alias strings
+    ArrayList missingDefindexes = new ArrayList(); // store corresponding defindexes
+
+    for (int ent = MaxClients + 1; ent < GetMaxEntities(); ent++)
+    {
+        if (!IsValidEntity(ent)) continue;
+        if (!HasEntProp(ent, Prop_Send, "m_hOwnerEntity")) continue;
+        if (GetEntPropEnt(ent, Prop_Send, "m_hOwnerEntity") != client) continue;
+        if (!HasEntProp(ent, Prop_Send, "m_iItemDefinitionIndex")) continue;
+
+        int defindex = GetEntProp(ent, Prop_Send, "m_iItemDefinitionIndex");
+        char alias[64];
+        if (!GetWeaponAlias(defindex, alias, sizeof(alias)))
+            continue;
+
+        if (!kv.JumpToKey(slotName, false))
+            continue;
+
+        if (kv.JumpToKey(alias, false))
+        {
+            delete kv;
+            delete missingAliases;
+            delete missingDefindexes;
+            return ent; // Found valid match
+        }
+
+        kv.GoBack(); // alias not found under this slot
+
+        missingAliases.PushString(alias);
+        missingDefindexes.Push(defindex);
+    }
+
+    delete kv;
+
+    // Print debug info only if no match found and there were valid aliases missed
+    if (missingAliases.Length > 0)
+    {
+        PrintToServer("[HU] No valid upgrade match found for slot %d. The following equipped items have known aliases but are missing from hu_attributes.cfg:", slot);
+        for (int i = 0; i < missingAliases.Length; i++)
+        {
+            char alias[64];
+            missingAliases.GetString(i, alias, sizeof(alias));
+            int defindex = missingDefindexes.Get(i);
+            PrintToServer("  • alias = \"%s\" (defindex = %d) is not listed under \"%s\"", alias, defindex, slotName);
+        }
+    }
+
+    delete missingAliases;
+    delete missingDefindexes;
+    return -1;
+}
 
 public int MenuHandler_Submenu(Menu menu, MenuAction action, int client, int item)
 {
