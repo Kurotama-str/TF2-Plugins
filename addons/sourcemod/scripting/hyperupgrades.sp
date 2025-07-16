@@ -17,7 +17,7 @@
 #define MAX_EDICTS 2048
 
 #define PLUGIN_NAME "Hyper Upgrades"
-#define PLUGIN_VERSION "0.75"
+#define PLUGIN_VERSION "0.76"
 #define CONFIG_ATTR "hu_attributes.cfg"
 #define CONFIG_UPGR "hu_upgrades.cfg"
 #define CONFIG_WEAP "hu_weapons_list.txt"
@@ -173,6 +173,8 @@ public void OnPluginStart()
     RegAdminCmd("hu_reloadweapons", Command_ReloadWeaponAliases, ADMFLAG_GENERIC, "Reload the weapon aliases.");
     RegAdminCmd("hu_reloadattalias", Command_ReloadAttributesAliases, ADMFLAG_GENERIC, "Reload the attributes aliases.");
     RegAdminCmd("hu_reloadupgrades", Command_ReloadUpgrades, ADMFLAG_GENERIC, "Reload the upgrade data from hu_upgrades.cfg");
+
+    RegAdminCmd("hu_debugupgarray", Command_DebugUpgradeHandle, ADMFLAG_ROOT, "Dump the current upgrade array of the first valid player.");
 
     g_weaponAliases = new ArrayList(sizeof(WeaponAlias));
     LoadWeaponAliases();
@@ -1285,7 +1287,8 @@ void ShowMainMenu(int client)
     //}
     //else if (class == TFClass_Engineer)
     //{
-    //    menu.AddItem("engineer", "Engineer Upgrades");
+    //    menu.AddItem("engineer", "PDA Upgrades");
+    //    menu.AddItem("engineer", "Building Upgrades");
     //}
 
     menu.AddItem("refund", "Upgrades List / Refund");
@@ -1331,15 +1334,17 @@ public int MenuHandler_MainMenu(Menu menu, MenuAction action, int client, int pa
         {
             ShowRefundSlotMenu(client); // ✅ Launch the refund menu
         }
-        //  else if (StrEqual(info, "engineer"))
-        // {
-        //     ShowCategoryMenu(client, "Engineer Upgrades");
-        //     // PrintToServer("[Debug] Showing class-specific upgrades: %s", info);
-        // }
         // else if (StrEqual(info, "spy"))
         // {
         //     ShowCategoryMenu(client, "Spy Upgrades");
         //     PrintToServer("[Debug] Showing class-specific upgrades: %s", info);
+        // }
+        //  else if (StrEqual(info, "engineer"))
+        // {
+        //     ShowCategoryMenu(client, "PDA Upgrades");
+        //     // PrintToServer("[Debug] Showing class-specific upgrades: %s", info);
+        //     ShowCategoryMenu(client, "Building Upgrades");
+        //     // PrintToServer("[Debug] Showing class-specific upgrades: %s", info);
         // }
         else if (StrEqual(info, "settings"))
         {
@@ -1525,7 +1530,7 @@ void RefundSpecificUpgrade(int client, const char[] upgradeName, const char[] sl
     if (g_hPlayerUpgrades[client] == null)
         return;
 
-    // Navigate directly to the upgrade slot section
+    // Step 1: Go to the slot section
     KvRewind(g_hPlayerUpgrades[client]);
     if (!KvJumpToKey(g_hPlayerUpgrades[client], slotKey, false))
     {
@@ -1536,7 +1541,7 @@ void RefundSpecificUpgrade(int client, const char[] upgradeName, const char[] sl
     float level = KvGetFloat(g_hPlayerUpgrades[client], upgradeName, 0.0);
     if (level == 0.0)
     {
-        KvGoBack(g_hPlayerUpgrades[client]); // Clean up key state
+        KvGoBack(g_hPlayerUpgrades[client]);
         return;
     }
 
@@ -1547,11 +1552,75 @@ void RefundSpecificUpgrade(int client, const char[] upgradeName, const char[] sl
     if (g_iMoneySpent[client] < 0)
         g_iMoneySpent[client] = 0;
 
-    KvDeleteKey(g_hPlayerUpgrades[client], upgradeName);
-    KvGoBack(g_hPlayerUpgrades[client]); // Exit from slotKey section
+    // Step 2: Create a temporary replacement handle
+    KeyValues temp = CreateKeyValues("Upgrades");
 
+    KvRewind(g_hPlayerUpgrades[client]);
+    if (KvGotoFirstSubKey(g_hPlayerUpgrades[client], false))
+    {
+        do
+        {
+            char currentSlot[64];
+            KvGetSectionName(g_hPlayerUpgrades[client], currentSlot, sizeof(currentSlot));
+
+            if (StrEqual(currentSlot, slotKey))
+            {
+                // Enter this slot and selectively copy keys, skipping the one to refund
+                if (KvGotoFirstSubKey(g_hPlayerUpgrades[client], false))
+                {
+
+                    do
+                    {
+                        char upgrade[64];
+                        KvGetSectionName(g_hPlayerUpgrades[client], upgrade, sizeof(upgrade));
+
+                        if (!StrEqual(upgrade, upgradeName))
+                        {
+                            float val = KvGetFloat(g_hPlayerUpgrades[client], NULL_STRING, 0.0);
+
+                            KvJumpToKey(temp, currentSlot, true);
+                            KvSetFloat(temp, upgrade, val);
+                            KvGoBack(temp);
+                        }
+                    }
+                    while (KvGotoNextKey(g_hPlayerUpgrades[client], false));
+
+                    KvGoBack(g_hPlayerUpgrades[client]);
+                }
+            }
+            else
+            {
+                // Copy entire slot untouched
+                if (KvGotoFirstSubKey(g_hPlayerUpgrades[client], false))
+                {
+                    do
+                    {
+                        char upgrade[64];
+                        KvGetSectionName(g_hPlayerUpgrades[client], upgrade, sizeof(upgrade));
+                        float val = KvGetFloat(g_hPlayerUpgrades[client], NULL_STRING, 0.0);
+
+                        KvJumpToKey(temp, currentSlot, true);
+                        KvSetFloat(temp, upgrade, val);
+                        KvGoBack(temp);
+                    }
+                    while (KvGotoNextKey(g_hPlayerUpgrades[client], false));
+
+                    KvGoBack(g_hPlayerUpgrades[client]);
+                }
+            }
+
+        } while (KvGotoNextKey(g_hPlayerUpgrades[client], false));
+    }
+
+    KvRewind(g_hPlayerUpgrades[client]);
+    CloseHandle(g_hPlayerUpgrades[client]);
+    g_hPlayerUpgrades[client] = temp;
+
+    //PrintToServer("[Debug] Slot '%s' will be gone if empty. Refund complete.", slotKey);
     PrintToConsole(client, "[Hyper Upgrades] Refunded upgrade: %s. Amount refunded: %.0f$", upgradeName, refundAmount);
 }
+
+
 
 // I like explicit names. Just to be clear, this calculates it for one specific upgrade.
 int CalculateRefundAmount(const char[] upgradeName, float currentLevel)
@@ -1741,17 +1810,23 @@ void ShowCategoryMenu(int client, const char[] category)
         aliasFound = true; // We assume body upgrades always resolve to a valid alias
         weaponSlot = -1;   // Body upgrades tracked as slot -1
     }
-    else if (StrEqual(category, "Engineer Upgrades"))
+    else if (StrEqual(category, "PDA Upgrades"))
     {
         strcopy(alias, sizeof(alias), "buildings"); // Hardcoded special alias
         aliasFound = true;
-        weaponSlot = -2; // Special marker for non-slot items like buildings
+        weaponSlot = 3; // Slot 3 or non slotted
+    }
+    else if (StrEqual(category, "Building Upgrades"))
+    {
+        strcopy(alias, sizeof(alias), "buildings"); // Hardcoded special alias
+        aliasFound = true;
+        weaponSlot = -2; // Building specific
     }
     else if (StrEqual(category, "Primary Upgrades"))
     {
         EquippedItem item;
         item = GetEquippedEntityForSlot(client, 0);
-        PrintToServer("[Debug] Slot %d: weapon entity index = %d", 0, item.entity);
+        PrintToServer("[Debug] Slot %d: weapon defindex = %d", 0, item.defindex);
         if (IsValidEntity(item.entity))
         {
             strcopy(alias, sizeof(alias), item.alias);
@@ -1763,7 +1838,7 @@ void ShowCategoryMenu(int client, const char[] category)
     {
         EquippedItem item;
         item = GetEquippedEntityForSlot(client, 1);
-        PrintToServer("[Debug] Slot %d: weapon entity index = %d", 1, item.entity);
+        PrintToServer("[Debug] Slot %d: weapon defindex = %d", 1, item.defindex);
         if (IsValidEntity(item.entity))
         {
             strcopy(alias, sizeof(alias), item.alias);
@@ -1775,7 +1850,7 @@ void ShowCategoryMenu(int client, const char[] category)
     {
         EquippedItem item;
         item = GetEquippedEntityForSlot(client, 2);
-        PrintToServer("[Debug] Slot %d: weapon entity index = %d", 2, item.entity);
+        PrintToServer("[Debug] Slot %d: weapon defindex = %d", 2, item.defindex);
         if (IsValidEntity(item.entity))
         {
             strcopy(alias, sizeof(alias), item.alias);
@@ -2272,7 +2347,7 @@ void ShowUpgradeListMenu(int client, const char[] upgradeGroup)
         char upgradeAlias[64];
         if (!GetUpgradeAliasFromName(upgradeName, upgradeAlias, sizeof(upgradeAlias)))
         {
-            PrintToServer("[Hyper Upgrades] Skipping upgrade with no alias (or name conflicts with alias): \"%s\" in group \"%s\"", upgradeName, upgradeGroup);
+            PrintToServer("[Hyper Upgrades] Skipping upgrade: \"%s\" (alias: \"%s\") in group \"%s\" — alias missing or conflicts with upgrade name", upgradeName, upgradeAlias, upgradeGroup);
             continue;
         }
 
@@ -2480,8 +2555,60 @@ int GetUpgradeMultiplier(int client)
     return 1; // Default if neither key is pressed
 }
 
+
+public Action Command_DebugUpgradeHandle(int client, int args)
+{
+    PrintToServer("[Hyper Upgrades] Dumping g_hPlayerUpgrades contents...");
+
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        if (!IsClientInGame(i) || g_hPlayerUpgrades[i] == null)
+            continue;
+
+        PrintToServer("---- Client %N (%d) ----", i, i);
+
+        KvRewind(g_hPlayerUpgrades[i]);
+
+        if (!KvGotoFirstSubKey(g_hPlayerUpgrades[i], false))
+        {
+            PrintToServer("  (No upgrades)");
+            continue;
+        }
+
+        do
+        {
+            char slotName[64];
+            KvGetSectionName(g_hPlayerUpgrades[i], slotName, sizeof(slotName));
+            PrintToServer("  [%s]", slotName);
+
+            if (KvGotoFirstSubKey(g_hPlayerUpgrades[i], false))
+            {
+                do
+                {
+                    char upgradeName[64];
+                    KvGetSectionName(g_hPlayerUpgrades[i], upgradeName, sizeof(upgradeName));
+                    float level = KvGetFloat(g_hPlayerUpgrades[i], NULL_STRING, 0.0);
+                    PrintToServer("    %s: %.2f", upgradeName, level);
+                }
+                while (KvGotoNextKey(g_hPlayerUpgrades[i], false));
+
+                KvGoBack(g_hPlayerUpgrades[i]);
+            }
+
+        }
+        while (KvGotoNextKey(g_hPlayerUpgrades[i], false));
+
+        KvRewind(g_hPlayerUpgrades[i]);
+    }
+
+    PrintToServer("[Hyper Upgrades] End of dump.");
+    return Plugin_Handled;
+}
+
+
 void ApplyPlayerUpgrades(int client)
 {
+
     if (g_hPlayerUpgrades[client] == null)
         return;
 
@@ -2810,605 +2937,6 @@ void ApplyBuildingUpgrades(int client, int entity, const char[] classname)
 void GenerateConfigFiles()
 {
     char filePath[PLATFORM_MAX_PATH];
-
-    
-
-    // Generate hu_weapons_list.txt
-    BuildPath(Path_SM, filePath, sizeof(filePath), "configs/%s", CONFIG_WEAP);
-    if (!FileExists(filePath))
-    {
-        Handle file = OpenFile(filePath, "w");
-        if (file != null)
-        {
-
-
-            // indexID,alias
-
-            // Class: All/Multiple
-            WriteFileLine(file, "1152,tf_weapon_grapplinghook");
-            WriteFileLine(file, "1069,tf_weapon_spellbook");
-            WriteFileLine(file, "1070,tf_weapon_spellbook");
-            WriteFileLine(file, "1132,tf_weapon_spellbook");
-            WriteFileLine(file, "5605,tf_weapon_spellbook");
-            WriteFileLine(file, "30015,tf_powerup_bottle");
-            WriteFileLine(file, "489,tf_powerup_bottle");
-
-            WriteFileLine(file, "264,saxxy");
-            WriteFileLine(file, "423,saxxy");
-            WriteFileLine(file, "474,saxxy");
-            WriteFileLine(file, "880,saxxy");
-            WriteFileLine(file, "939,saxxy");
-            WriteFileLine(file, "954,saxxy");
-            WriteFileLine(file, "1013,saxxy");
-            WriteFileLine(file, "1071,saxxy");
-            WriteFileLine(file, "1123,saxxy");
-            WriteFileLine(file, "1127,saxxy");
-            WriteFileLine(file, "30758,saxxy");
-
-            WriteFileLine(file, "357,tf_weapon_katana");
-
-            WriteFileLine(file, "199,tf_weapon_shotgun");
-            WriteFileLine(file, "415,tf_weapon_shotgun");
-            WriteFileLine(file, "1141,tf_weapon_shotgun");
-            WriteFileLine(file, "1153,tf_weapon_shotgun");
-            WriteFileLine(file, "15003,tf_weapon_shotgun");
-            WriteFileLine(file, "15016,tf_weapon_shotgun");
-            WriteFileLine(file, "15044,tf_weapon_shotgun");
-            WriteFileLine(file, "15047,tf_weapon_shotgun");
-            WriteFileLine(file, "15085,tf_weapon_shotgun");
-            WriteFileLine(file, "15109,tf_weapon_shotgun");
-            WriteFileLine(file, "15132,tf_weapon_shotgun");
-            WriteFileLine(file, "15133,tf_weapon_shotgun");
-            WriteFileLine(file, "15152,tf_weapon_shotgun");
-
-            WriteFileLine(file, "1101,tf_weapon_parachute");
-            WriteFileLine(file, "160,tf_weapon_pistol");
-            WriteFileLine(file, "209,tf_weapon_pistol");
-            WriteFileLine(file, "294,tf_weapon_pistol");
-            WriteFileLine(file, "15013,tf_weapon_pistol");
-            WriteFileLine(file, "15018,tf_weapon_pistol");
-            WriteFileLine(file, "15035,tf_weapon_pistol");
-            WriteFileLine(file, "15041,tf_weapon_pistol");
-            WriteFileLine(file, "15046,tf_weapon_pistol");
-            WriteFileLine(file, "15056,tf_weapon_pistol");
-            WriteFileLine(file, "15060,tf_weapon_pistol");
-            WriteFileLine(file, "15061,tf_weapon_pistol");
-            WriteFileLine(file, "15100,tf_weapon_pistol");
-            WriteFileLine(file, "15101,tf_weapon_pistol");
-            WriteFileLine(file, "15102,tf_weapon_pistol");
-            WriteFileLine(file, "15126,tf_weapon_pistol");
-            WriteFileLine(file, "15148,tf_weapon_pistol");
-            WriteFileLine(file, "30666,tf_weapon_pistol");
-
-            // Class: Scout, Slot: 0
-            WriteFileLine(file, "13,tf_weapon_scattergun");
-            WriteFileLine(file, "200,tf_weapon_scattergun");
-            WriteFileLine(file, "45,tf_weapon_scattergun");
-            WriteFileLine(file, "220,tf_weapon_handgun_scout_primary");
-            WriteFileLine(file, "448,tf_weapon_soda_popper");
-            WriteFileLine(file, "669,tf_weapon_scattergun");
-            WriteFileLine(file, "772,tf_weapon_pep_brawler_blaster");
-            WriteFileLine(file, "799,tf_weapon_scattergun");
-            WriteFileLine(file, "808,tf_weapon_scattergun");
-            WriteFileLine(file, "888,tf_weapon_scattergun");
-            WriteFileLine(file, "897,tf_weapon_scattergun");
-            WriteFileLine(file, "906,tf_weapon_scattergun");
-            WriteFileLine(file, "915,tf_weapon_scattergun");
-            WriteFileLine(file, "964,tf_weapon_scattergun");
-            WriteFileLine(file, "973,tf_weapon_scattergun");
-            WriteFileLine(file, "1078,tf_weapon_scattergun");
-            WriteFileLine(file, "1103,tf_weapon_scattergun");
-            WriteFileLine(file, "15002,tf_weapon_scattergun");
-            WriteFileLine(file, "15015,tf_weapon_scattergun");
-            WriteFileLine(file, "15021,tf_weapon_scattergun");
-            WriteFileLine(file, "15029,tf_weapon_scattergun");
-            WriteFileLine(file, "15036,tf_weapon_scattergun");
-            WriteFileLine(file, "15053,tf_weapon_scattergun");
-            WriteFileLine(file, "15065,tf_weapon_scattergun");
-            WriteFileLine(file, "15069,tf_weapon_scattergun");
-            WriteFileLine(file, "15106,tf_weapon_scattergun");
-            WriteFileLine(file, "15107,tf_weapon_scattergun");
-            WriteFileLine(file, "15108,tf_weapon_scattergun");
-            WriteFileLine(file, "15131,tf_weapon_scattergun");
-            WriteFileLine(file, "15151,tf_weapon_scattergun");
-            WriteFileLine(file, "15157,tf_weapon_scattergun");
-
-            // Class: Scout, Slot: 1
-            WriteFileLine(file, "23,tf_weapon_pistol");
-            WriteFileLine(file, "46,tf_weapon_lunchbox_drink");
-            WriteFileLine(file, "163,tf_weapon_lunchbox_drink");
-            WriteFileLine(file, "222,tf_weapon_jar_milk");
-            WriteFileLine(file, "449,tf_weapon_handgun_scout_secondary");
-            WriteFileLine(file, "773,tf_weapon_handgun_scout_secondary");
-            WriteFileLine(file, "812,tf_weapon_cleaver");
-            WriteFileLine(file, "833,tf_weapon_cleaver");
-            WriteFileLine(file, "1121,tf_weapon_jar_milk");
-            WriteFileLine(file, "1145,tf_weapon_lunchbox_drink");
-
-            // Class: Scout, Slot: 2
-            WriteFileLine(file, "0,tf_weapon_bat");
-            WriteFileLine(file, "190,tf_weapon_bat");
-            WriteFileLine(file, "44,tf_weapon_bat_wood");
-            WriteFileLine(file, "221,tf_weapon_bat_fish");
-            WriteFileLine(file, "317,tf_weapon_bat");
-            WriteFileLine(file, "325,tf_weapon_bat");
-            WriteFileLine(file, "349,tf_weapon_bat");
-            WriteFileLine(file, "355,tf_weapon_bat");
-            WriteFileLine(file, "450,tf_weapon_bat");
-            WriteFileLine(file, "452,tf_weapon_bat");
-            WriteFileLine(file, "572,tf_weapon_bat_fish");
-            WriteFileLine(file, "648,tf_weapon_bat_giftwrap");
-            WriteFileLine(file, "660,tf_weapon_bat");
-            WriteFileLine(file, "999,tf_weapon_bat_fish");
-            WriteFileLine(file, "30667,tf_weapon_bat");
-
-            // Class: Soldier, Slot: 0
-            WriteFileLine(file, "18,tf_weapon_rocketlauncher");
-            WriteFileLine(file, "205,tf_weapon_rocketlauncher");
-            WriteFileLine(file, "127,tf_weapon_rocketlauncher_directhit");
-            WriteFileLine(file, "228,tf_weapon_rocketlauncher");
-            WriteFileLine(file, "237,tf_weapon_rocketlauncher");
-            WriteFileLine(file, "414,tf_weapon_rocketlauncher");
-            WriteFileLine(file, "441,tf_weapon_particle_cannon");
-            WriteFileLine(file, "513,tf_weapon_rocketlauncher");
-            WriteFileLine(file, "658,tf_weapon_rocketlauncher");
-            WriteFileLine(file, "730,tf_weapon_rocketlauncher");
-            WriteFileLine(file, "800,tf_weapon_rocketlauncher");
-            WriteFileLine(file, "809,tf_weapon_rocketlauncher");
-            WriteFileLine(file, "889,tf_weapon_rocketlauncher");
-            WriteFileLine(file, "898,tf_weapon_rocketlauncher");
-            WriteFileLine(file, "907,tf_weapon_rocketlauncher");
-            WriteFileLine(file, "916,tf_weapon_rocketlauncher");
-            WriteFileLine(file, "965,tf_weapon_rocketlauncher");
-            WriteFileLine(file, "974,tf_weapon_rocketlauncher");
-            WriteFileLine(file, "1085,tf_weapon_rocketlauncher");
-            WriteFileLine(file, "1104,tf_weapon_rocketlauncher_airstrike");
-            WriteFileLine(file, "15006,tf_weapon_rocketlauncher");
-            WriteFileLine(file, "15014,tf_weapon_rocketlauncher");
-            WriteFileLine(file, "15028,tf_weapon_rocketlauncher");
-            WriteFileLine(file, "15043,tf_weapon_rocketlauncher");
-            WriteFileLine(file, "15052,tf_weapon_rocketlauncher");
-            WriteFileLine(file, "15057,tf_weapon_rocketlauncher");
-            WriteFileLine(file, "15081,tf_weapon_rocketlauncher");
-            WriteFileLine(file, "15104,tf_weapon_rocketlauncher");
-            WriteFileLine(file, "15105,tf_weapon_rocketlauncher");
-            WriteFileLine(file, "15129,tf_weapon_rocketlauncher");
-            WriteFileLine(file, "15130,tf_weapon_rocketlauncher");
-            WriteFileLine(file, "15150,tf_weapon_rocketlauncher");
-
-            // Class: Soldier, Slot: 1
-            WriteFileLine(file, "10,tf_weapon_shotgun_soldier");
-            WriteFileLine(file, "442,tf_weapon_raygun");
-
-            // Class: Soldier, Slot: 2
-            WriteFileLine(file, "6,tf_weapon_shovel");
-            WriteFileLine(file, "196,tf_weapon_shovel");
-            WriteFileLine(file, "128,tf_weapon_shovel");
-            WriteFileLine(file, "154,tf_weapon_shovel");
-            WriteFileLine(file, "416,tf_weapon_shovel");
-            WriteFileLine(file, "447,tf_weapon_shovel");
-            WriteFileLine(file, "775,tf_weapon_shovel");
-
-            // Class: Soldier, Wearables
-            WriteFileLine(file, "129,tf_weapon_buff_item"); // Buff Banner
-            WriteFileLine(file, "226,tf_weapon_buff_item"); // Battalion's Backup
-            WriteFileLine(file, "354,tf_weapon_buff_item"); // Concheror
-            WriteFileLine(file, "1001,tf_weapon_buff_item"); // Festive Buff Banner
-            WriteFileLine(file, "133,tf_wearable"); // Gunboats
-            WriteFileLine(file, "444,tf_wearable"); // Mantreads
-
-            // Class: Pyro, Slot: 0
-            WriteFileLine(file, "21,tf_weapon_flamethrower");
-            WriteFileLine(file, "208,tf_weapon_flamethrower");
-            WriteFileLine(file, "40,tf_weapon_flamethrower");
-            WriteFileLine(file, "215,tf_weapon_flamethrower");
-            WriteFileLine(file, "594,tf_weapon_flamethrower");
-            WriteFileLine(file, "659,tf_weapon_flamethrower");
-            WriteFileLine(file, "741,tf_weapon_flamethrower");
-            WriteFileLine(file, "798,tf_weapon_flamethrower");
-            WriteFileLine(file, "807,tf_weapon_flamethrower");
-            WriteFileLine(file, "887,tf_weapon_flamethrower");
-            WriteFileLine(file, "896,tf_weapon_flamethrower");
-            WriteFileLine(file, "905,tf_weapon_flamethrower");
-            WriteFileLine(file, "914,tf_weapon_flamethrower");
-            WriteFileLine(file, "963,tf_weapon_flamethrower");
-            WriteFileLine(file, "972,tf_weapon_flamethrower");
-            WriteFileLine(file, "1146,tf_weapon_flamethrower");
-            WriteFileLine(file, "1178,tf_weapon_rocketlauncher_fireball");
-            WriteFileLine(file, "15005,tf_weapon_flamethrower");
-            WriteFileLine(file, "15017,tf_weapon_flamethrower");
-            WriteFileLine(file, "15030,tf_weapon_flamethrower");
-            WriteFileLine(file, "15034,tf_weapon_flamethrower");
-            WriteFileLine(file, "15049,tf_weapon_flamethrower");
-            WriteFileLine(file, "15054,tf_weapon_flamethrower");
-            WriteFileLine(file, "15066,tf_weapon_flamethrower");
-            WriteFileLine(file, "15067,tf_weapon_flamethrower");
-            WriteFileLine(file, "15068,tf_weapon_flamethrower");
-            WriteFileLine(file, "15089,tf_weapon_flamethrower");
-            WriteFileLine(file, "15090,tf_weapon_flamethrower");
-            WriteFileLine(file, "15115,tf_weapon_flamethrower");
-            WriteFileLine(file, "15141,tf_weapon_flamethrower");
-            WriteFileLine(file, "30474,tf_weapon_flamethrower");
-
-            // Class: Pyro, Slot: 1
-            WriteFileLine(file, "12,tf_weapon_shotgun_pyro");
-            WriteFileLine(file, "39,tf_weapon_flaregun");
-            WriteFileLine(file, "351,tf_weapon_flaregun");
-            WriteFileLine(file, "595,tf_weapon_flaregun_revenge");
-            WriteFileLine(file, "740,tf_weapon_flaregun");
-            WriteFileLine(file, "1081,tf_weapon_flaregun");
-            WriteFileLine(file, "1179,tf_weapon_rocketpack");
-            WriteFileLine(file, "1180,tf_weapon_jar_gas");
-
-            // Class: Pyro, Slot: 2
-            WriteFileLine(file, "2,tf_weapon_fireaxe");
-            WriteFileLine(file, "192,tf_weapon_fireaxe");
-            WriteFileLine(file, "38,tf_weapon_fireaxe");
-            WriteFileLine(file, "153,tf_weapon_fireaxe");
-            WriteFileLine(file, "214,tf_weapon_fireaxe");
-            WriteFileLine(file, "326,tf_weapon_fireaxe");
-            WriteFileLine(file, "348,tf_weapon_fireaxe");
-            WriteFileLine(file, "457,tf_weapon_fireaxe");
-            WriteFileLine(file, "466,tf_weapon_fireaxe");
-            WriteFileLine(file, "593,tf_weapon_fireaxe");
-            WriteFileLine(file, "739,tf_weapon_fireaxe");
-            WriteFileLine(file, "813,tf_weapon_breakable_sign");
-            WriteFileLine(file, "834,tf_weapon_breakable_sign");
-            WriteFileLine(file, "1000,tf_weapon_fireaxe");
-            WriteFileLine(file, "1181,tf_weapon_slap");
-
-            // Class: Demoman, Slot: 0
-            WriteFileLine(file, "19,tf_weapon_grenadelauncher");
-            WriteFileLine(file, "206,tf_weapon_grenadelauncher");
-            WriteFileLine(file, "308,tf_weapon_grenadelauncher");
-            WriteFileLine(file, "996,tf_weapon_cannon");
-            WriteFileLine(file, "1007,tf_weapon_grenadelauncher");
-            WriteFileLine(file, "1151,tf_weapon_grenadelauncher");
-            WriteFileLine(file, "15077,tf_weapon_grenadelauncher");
-            WriteFileLine(file, "15079,tf_weapon_grenadelauncher");
-            WriteFileLine(file, "15091,tf_weapon_grenadelauncher");
-            WriteFileLine(file, "15092,tf_weapon_grenadelauncher");
-            WriteFileLine(file, "15116,tf_weapon_grenadelauncher");
-            WriteFileLine(file, "15117,tf_weapon_grenadelauncher");
-            WriteFileLine(file, "15142,tf_weapon_grenadelauncher");
-            WriteFileLine(file, "15158,tf_weapon_grenadelauncher");
-            WriteFileLine(file, "405,tf_wearable");
-            WriteFileLine(file, "608,tf_wearable");
-
-            // Class: Demoman, Slot: 1
-            WriteFileLine(file, "20,tf_weapon_pipebomblauncher");
-            WriteFileLine(file, "207,tf_weapon_pipebomblauncher");
-            WriteFileLine(file, "130,tf_weapon_pipebomblauncher");
-            WriteFileLine(file, "131,tf_wearable_demoshield");
-            WriteFileLine(file, "265,tf_weapon_pipebomblauncher");
-            WriteFileLine(file, "406,tf_wearable_demoshield");
-            WriteFileLine(file, "661,tf_weapon_pipebomblauncher");
-            WriteFileLine(file, "797,tf_weapon_pipebomblauncher");
-            WriteFileLine(file, "806,tf_weapon_pipebomblauncher");
-            WriteFileLine(file, "886,tf_weapon_pipebomblauncher");
-            WriteFileLine(file, "895,tf_weapon_pipebomblauncher");
-            WriteFileLine(file, "904,tf_weapon_pipebomblauncher");
-            WriteFileLine(file, "913,tf_weapon_pipebomblauncher");
-            WriteFileLine(file, "962,tf_weapon_pipebomblauncher");
-            WriteFileLine(file, "971,tf_weapon_pipebomblauncher");
-            WriteFileLine(file, "1099,tf_wearable_demoshield");
-            WriteFileLine(file, "1144,tf_wearable_demoshield");
-            WriteFileLine(file, "1150,tf_weapon_pipebomblauncher");
-            WriteFileLine(file, "15009,tf_weapon_pipebomblauncher");
-            WriteFileLine(file, "15012,tf_weapon_pipebomblauncher");
-            WriteFileLine(file, "15024,tf_weapon_pipebomblauncher");
-            WriteFileLine(file, "15038,tf_weapon_pipebomblauncher");
-            WriteFileLine(file, "15045,tf_weapon_pipebomblauncher");
-            WriteFileLine(file, "15048,tf_weapon_pipebomblauncher");
-            WriteFileLine(file, "15082,tf_weapon_pipebomblauncher");
-            WriteFileLine(file, "15083,tf_weapon_pipebomblauncher");
-            WriteFileLine(file, "15084,tf_weapon_pipebomblauncher");
-            WriteFileLine(file, "15113,tf_weapon_pipebomblauncher");
-            WriteFileLine(file, "15137,tf_weapon_pipebomblauncher");
-            WriteFileLine(file, "15138,tf_weapon_pipebomblauncher");
-            WriteFileLine(file, "15155,tf_weapon_pipebomblauncher");
-
-            // Class: Demoman, Slot: 2
-            WriteFileLine(file, "1,tf_weapon_bottle");
-            WriteFileLine(file, "191,tf_weapon_bottle");
-            WriteFileLine(file, "132,tf_weapon_sword");
-            WriteFileLine(file, "172,tf_weapon_sword");
-            WriteFileLine(file, "266,tf_weapon_sword");
-            WriteFileLine(file, "307,tf_weapon_stickbomb");
-            WriteFileLine(file, "327,tf_weapon_sword");
-            WriteFileLine(file, "404,tf_weapon_sword");
-            WriteFileLine(file, "482,tf_weapon_sword");
-            WriteFileLine(file, "609,tf_weapon_bottle");
-            WriteFileLine(file, "1082,tf_weapon_sword");
-
-            // Class: Heavy, Slot: 0
-            WriteFileLine(file, "15,tf_weapon_minigun");
-            WriteFileLine(file, "202,tf_weapon_minigun");
-            WriteFileLine(file, "41,tf_weapon_minigun");
-            WriteFileLine(file, "298,tf_weapon_minigun");
-            WriteFileLine(file, "312,tf_weapon_minigun");
-            WriteFileLine(file, "424,tf_weapon_minigun");
-            WriteFileLine(file, "654,tf_weapon_minigun");
-            WriteFileLine(file, "793,tf_weapon_minigun");
-            WriteFileLine(file, "802,tf_weapon_minigun");
-            WriteFileLine(file, "811,tf_weapon_minigun");
-            WriteFileLine(file, "832,tf_weapon_minigun");
-            WriteFileLine(file, "850,tf_weapon_minigun");
-            WriteFileLine(file, "882,tf_weapon_minigun");
-            WriteFileLine(file, "891,tf_weapon_minigun");
-            WriteFileLine(file, "900,tf_weapon_minigun");
-            WriteFileLine(file, "909,tf_weapon_minigun");
-            WriteFileLine(file, "958,tf_weapon_minigun");
-            WriteFileLine(file, "967,tf_weapon_minigun");
-            WriteFileLine(file, "15004,tf_weapon_minigun");
-            WriteFileLine(file, "15020,tf_weapon_minigun");
-            WriteFileLine(file, "15026,tf_weapon_minigun");
-            WriteFileLine(file, "15031,tf_weapon_minigun");
-            WriteFileLine(file, "15040,tf_weapon_minigun");
-            WriteFileLine(file, "15055,tf_weapon_minigun");
-            WriteFileLine(file, "15086,tf_weapon_minigun");
-            WriteFileLine(file, "15087,tf_weapon_minigun");
-            WriteFileLine(file, "15088,tf_weapon_minigun");
-            WriteFileLine(file, "15098,tf_weapon_minigun");
-            WriteFileLine(file, "15099,tf_weapon_minigun");
-            WriteFileLine(file, "15123,tf_weapon_minigun");
-            WriteFileLine(file, "15124,tf_weapon_minigun");
-            WriteFileLine(file, "15125,tf_weapon_minigun");
-            WriteFileLine(file, "15147,tf_weapon_minigun");
-
-            // Class: Heavy, Slot: 1
-            WriteFileLine(file, "11,tf_weapon_shotgun_hwg");
-            WriteFileLine(file, "42,tf_weapon_lunchbox");
-            WriteFileLine(file, "159,tf_weapon_lunchbox");
-            WriteFileLine(file, "311,tf_weapon_lunchbox");
-            WriteFileLine(file, "425,tf_weapon_shotgun_hwg");
-            WriteFileLine(file, "433,tf_weapon_lunchbox");
-            WriteFileLine(file, "863,tf_weapon_lunchbox");
-            WriteFileLine(file, "1002,tf_weapon_lunchbox");
-            WriteFileLine(file, "1190,tf_weapon_lunchbox");
-
-            // Class: Heavy, Slot: 2
-            WriteFileLine(file, "5,tf_weapon_fists");
-            WriteFileLine(file, "195,tf_weapon_fists");
-            WriteFileLine(file, "43,tf_weapon_fists");
-            WriteFileLine(file, "239,tf_weapon_fists");
-            WriteFileLine(file, "310,tf_weapon_fists");
-            WriteFileLine(file, "331,tf_weapon_fists");
-            WriteFileLine(file, "426,tf_weapon_fists");
-            WriteFileLine(file, "587,tf_weapon_fists");
-            WriteFileLine(file, "656,tf_weapon_fists");
-            WriteFileLine(file, "1084,tf_weapon_fists");
-            WriteFileLine(file, "1100,tf_weapon_fists");
-            WriteFileLine(file, "1184,tf_weapon_fists");
-
-            // Class: Engineer, Slot: 0
-            WriteFileLine(file, "9,tf_weapon_shotgun_primary");
-            WriteFileLine(file, "141,tf_weapon_sentry_revenge");
-            WriteFileLine(file, "527,tf_weapon_shotgun_primary");
-            WriteFileLine(file, "588,tf_weapon_drg_pomson");
-            WriteFileLine(file, "997,tf_weapon_shotgun_building_rescue");
-            WriteFileLine(file, "1004,tf_weapon_sentry_revenge");
-
-            // Class: Engineer, Slot: 1
-            WriteFileLine(file, "22,tf_weapon_pistol");
-            WriteFileLine(file, "140,tf_weapon_laser_pointer");
-            WriteFileLine(file, "528,tf_weapon_mechanical_arm");
-            WriteFileLine(file, "1086,tf_weapon_laser_pointer");
-            WriteFileLine(file, "30668,tf_weapon_laser_pointer");
-
-            // Class: Engineer, Slot: 2
-            WriteFileLine(file, "7,tf_weapon_wrench");
-            WriteFileLine(file, "197,tf_weapon_wrench");
-            WriteFileLine(file, "142,tf_weapon_robot_arm");
-            WriteFileLine(file, "155,tf_weapon_wrench");
-            WriteFileLine(file, "169,tf_weapon_wrench");
-            WriteFileLine(file, "329,tf_weapon_wrench");
-            WriteFileLine(file, "589,tf_weapon_wrench");
-            WriteFileLine(file, "662,tf_weapon_wrench");
-            WriteFileLine(file, "795,tf_weapon_wrench");
-            WriteFileLine(file, "804,tf_weapon_wrench");
-            WriteFileLine(file, "884,tf_weapon_wrench");
-            WriteFileLine(file, "893,tf_weapon_wrench");
-            WriteFileLine(file, "902,tf_weapon_wrench");
-            WriteFileLine(file, "911,tf_weapon_wrench");
-            WriteFileLine(file, "960,tf_weapon_wrench");
-            WriteFileLine(file, "969,tf_weapon_wrench");
-            WriteFileLine(file, "15073,tf_weapon_wrench");
-            WriteFileLine(file, "15074,tf_weapon_wrench");
-            WriteFileLine(file, "15075,tf_weapon_wrench");
-            WriteFileLine(file, "15139,tf_weapon_wrench");
-            WriteFileLine(file, "15140,tf_weapon_wrench");
-            WriteFileLine(file, "15114,tf_weapon_wrench");
-            WriteFileLine(file, "15156,tf_weapon_wrench");
-
-            // Class: Engineer, Slot: 3
-            WriteFileLine(file, "25,tf_weapon_pda_engineer_build");
-            WriteFileLine(file, "737,tf_weapon_pda_engineer_build");
-
-            // Class: Medic, Slot: 0
-            WriteFileLine(file, "17,tf_weapon_syringegun_medic");
-            WriteFileLine(file, "204,tf_weapon_syringegun_medic");
-            WriteFileLine(file, "36,tf_weapon_syringegun_medic");
-            WriteFileLine(file, "305,tf_weapon_crossbow");
-            WriteFileLine(file, "412,tf_weapon_syringegun_medic");
-            WriteFileLine(file, "1079,tf_weapon_crossbow");
-
-            // Class: Medic, Slot: 1
-            WriteFileLine(file, "29,tf_weapon_medigun");
-            WriteFileLine(file, "211,tf_weapon_medigun");
-            WriteFileLine(file, "35,tf_weapon_medigun");
-            WriteFileLine(file, "411,tf_weapon_medigun");
-            WriteFileLine(file, "663,tf_weapon_medigun");
-            WriteFileLine(file, "796,tf_weapon_medigun");
-            WriteFileLine(file, "805,tf_weapon_medigun");
-            WriteFileLine(file, "885,tf_weapon_medigun");
-            WriteFileLine(file, "894,tf_weapon_medigun");
-            WriteFileLine(file, "903,tf_weapon_medigun");
-            WriteFileLine(file, "912,tf_weapon_medigun");
-            WriteFileLine(file, "961,tf_weapon_medigun");
-            WriteFileLine(file, "970,tf_weapon_medigun");
-            WriteFileLine(file, "15008,tf_weapon_medigun");
-            WriteFileLine(file, "15010,tf_weapon_medigun");
-            WriteFileLine(file, "15025,tf_weapon_medigun");
-            WriteFileLine(file, "15039,tf_weapon_medigun");
-            WriteFileLine(file, "15050,tf_weapon_medigun");
-            WriteFileLine(file, "15078,tf_weapon_medigun");
-            WriteFileLine(file, "15097,tf_weapon_medigun");
-            WriteFileLine(file, "15121,tf_weapon_medigun");
-            WriteFileLine(file, "15122,tf_weapon_medigun");
-            WriteFileLine(file, "15123,tf_weapon_medigun");
-            WriteFileLine(file, "15145,tf_weapon_medigun");
-            WriteFileLine(file, "15146,tf_weapon_medigun");
-
-            // Class: Medic, Slot: 2
-            WriteFileLine(file, "8,tf_weapon_bonesaw");
-            WriteFileLine(file, "198,tf_weapon_bonesaw");
-            WriteFileLine(file, "37,tf_weapon_bonesaw");
-            WriteFileLine(file, "173,tf_weapon_bonesaw");
-            WriteFileLine(file, "304,tf_weapon_bonesaw");
-            WriteFileLine(file, "413,tf_weapon_bonesaw");
-            WriteFileLine(file, "1003,tf_weapon_bonesaw");
-            WriteFileLine(file, "1143,tf_weapon_bonesaw");
-
-            // Class: Sniper, Slot: 0
-            WriteFileLine(file, "14,tf_weapon_sniperrifle");
-            WriteFileLine(file, "201,tf_weapon_sniperrifle");
-            WriteFileLine(file, "56,tf_weapon_compound_bow");
-            WriteFileLine(file, "230,tf_weapon_sniperrifle");
-            WriteFileLine(file, "402,tf_weapon_sniperrifle_decap");
-            WriteFileLine(file, "526,tf_weapon_sniperrifle");
-            WriteFileLine(file, "664,tf_weapon_sniperrifle");
-            WriteFileLine(file, "752,tf_weapon_sniperrifle");
-            WriteFileLine(file, "792,tf_weapon_sniperrifle");
-            WriteFileLine(file, "801,tf_weapon_sniperrifle");
-            WriteFileLine(file, "851,tf_weapon_sniperrifle");
-            WriteFileLine(file, "881,tf_weapon_sniperrifle");
-            WriteFileLine(file, "890,tf_weapon_sniperrifle");
-            WriteFileLine(file, "899,tf_weapon_sniperrifle");
-            WriteFileLine(file, "908,tf_weapon_sniperrifle");
-            WriteFileLine(file, "957,tf_weapon_sniperrifle");
-            WriteFileLine(file, "966,tf_weapon_sniperrifle");
-            WriteFileLine(file, "1005,tf_weapon_compound_bow");
-            WriteFileLine(file, "1092,tf_weapon_compound_bow");
-            WriteFileLine(file, "1098,tf_weapon_sniperrifle_classic");
-            WriteFileLine(file, "15000,tf_weapon_sniperrifle");
-            WriteFileLine(file, "15007,tf_weapon_sniperrifle");
-            WriteFileLine(file, "15019,tf_weapon_sniperrifle");
-            WriteFileLine(file, "15023,tf_weapon_sniperrifle");
-            WriteFileLine(file, "15033,tf_weapon_sniperrifle");
-            WriteFileLine(file, "15059,tf_weapon_sniperrifle");
-            WriteFileLine(file, "15070,tf_weapon_sniperrifle");
-            WriteFileLine(file, "15071,tf_weapon_sniperrifle");
-            WriteFileLine(file, "15072,tf_weapon_sniperrifle");
-            WriteFileLine(file, "15111,tf_weapon_sniperrifle");
-            WriteFileLine(file, "15112,tf_weapon_sniperrifle");
-            WriteFileLine(file, "15135,tf_weapon_sniperrifle");
-            WriteFileLine(file, "15136,tf_weapon_sniperrifle");
-            WriteFileLine(file, "15154,tf_weapon_sniperrifle");
-            WriteFileLine(file, "30665,tf_weapon_sniperrifle");
-
-            // Class: Sniper, Slot: 1
-            WriteFileLine(file, "16,tf_weapon_smg");
-            WriteFileLine(file, "203,tf_weapon_smg");
-            WriteFileLine(file, "58,tf_weapon_jar");
-            WriteFileLine(file, "751,tf_weapon_charged_smg");
-            WriteFileLine(file, "1083,tf_weapon_jar");
-            WriteFileLine(file, "1105,tf_weapon_jar");
-            WriteFileLine(file, "1149,tf_weapon_smg");
-            WriteFileLine(file, "15001,tf_weapon_smg");
-            WriteFileLine(file, "15022,tf_weapon_smg");
-            WriteFileLine(file, "15032,tf_weapon_smg");
-            WriteFileLine(file, "15037,tf_weapon_smg");
-            WriteFileLine(file, "15058,tf_weapon_smg");
-            WriteFileLine(file, "15076,tf_weapon_smg");
-            WriteFileLine(file, "15110,tf_weapon_smg");
-            WriteFileLine(file, "15134,tf_weapon_smg");
-            WriteFileLine(file, "15153,tf_weapon_smg");
-            WriteFileLine(file, "57,tf_wearable_razorback");
-            WriteFileLine(file, "231,tf_wearable");
-            WriteFileLine(file, "642,tf_wearable");
-
-            // Class: Sniper, Slot: 2
-            WriteFileLine(file, "3,tf_weapon_club");
-            WriteFileLine(file, "193,tf_weapon_club");
-            WriteFileLine(file, "171,tf_weapon_club");
-            WriteFileLine(file, "232,tf_weapon_club");
-            WriteFileLine(file, "401,tf_weapon_club");
-
-            // Class: Spy, Slot: 0
-            WriteFileLine(file, "24,tf_weapon_revolver");
-            WriteFileLine(file, "210,tf_weapon_revolver");
-            WriteFileLine(file, "61,tf_weapon_revolver");
-            WriteFileLine(file, "161,tf_weapon_revolver");
-            WriteFileLine(file, "224,tf_weapon_revolver");
-            WriteFileLine(file, "460,tf_weapon_revolver");
-            WriteFileLine(file, "525,tf_weapon_revolver");
-            WriteFileLine(file, "1006,tf_weapon_revolver");
-            WriteFileLine(file, "1142,tf_weapon_revolver");
-            WriteFileLine(file, "15011,tf_weapon_revolver");
-            WriteFileLine(file, "15027,tf_weapon_revolver");
-            WriteFileLine(file, "15042,tf_weapon_revolver");
-            WriteFileLine(file, "15051,tf_weapon_revolver");
-            WriteFileLine(file, "15062,tf_weapon_revolver");
-            WriteFileLine(file, "15063,tf_weapon_revolver");
-            WriteFileLine(file, "15064,tf_weapon_revolver");
-            WriteFileLine(file, "15103,tf_weapon_revolver");
-            WriteFileLine(file, "15128,tf_weapon_revolver");
-            WriteFileLine(file, "15127,tf_weapon_revolver");
-            WriteFileLine(file, "15149,tf_weapon_revolver");
-
-            // Class: Spy, Slot: 1
-            WriteFileLine(file, "735,tf_weapon_builder");
-            WriteFileLine(file, "736,tf_weapon_builder");
-            WriteFileLine(file, "810,tf_weapon_sapper");
-            WriteFileLine(file, "831,tf_weapon_sapper");
-            WriteFileLine(file, "933,tf_weapon_sapper");
-            WriteFileLine(file, "1080,tf_weapon_sapper");
-            WriteFileLine(file, "1102,tf_weapon_sapper");
-
-            // Class: Spy, Slot: 2
-            WriteFileLine(file, "4,tf_weapon_knife");
-            WriteFileLine(file, "194,tf_weapon_knife");
-            WriteFileLine(file, "225,tf_weapon_knife");
-            WriteFileLine(file, "356,tf_weapon_knife");
-            WriteFileLine(file, "461,tf_weapon_knife");
-            WriteFileLine(file, "574,tf_weapon_knife");
-            WriteFileLine(file, "638,tf_weapon_knife");
-            WriteFileLine(file, "649,tf_weapon_knife");
-            WriteFileLine(file, "665,tf_weapon_knife");
-            WriteFileLine(file, "727,tf_weapon_knife");
-            WriteFileLine(file, "794,tf_weapon_knife");
-            WriteFileLine(file, "803,tf_weapon_knife");
-            WriteFileLine(file, "883,tf_weapon_knife");
-            WriteFileLine(file, "892,tf_weapon_knife");
-            WriteFileLine(file, "901,tf_weapon_knife");
-            WriteFileLine(file, "910,tf_weapon_knife");
-            WriteFileLine(file, "959,tf_weapon_knife");
-            WriteFileLine(file, "968,tf_weapon_knife");
-            WriteFileLine(file, "15062,tf_weapon_knife");
-            WriteFileLine(file, "15094,tf_weapon_knife");
-            WriteFileLine(file, "15095,tf_weapon_knife");
-            WriteFileLine(file, "15096,tf_weapon_knife");
-            WriteFileLine(file, "15118,tf_weapon_knife");
-            WriteFileLine(file, "15119,tf_weapon_knife");
-            WriteFileLine(file, "15143,tf_weapon_knife");
-            WriteFileLine(file, "15144,tf_weapon_knife");
-
-            // Class: Spy, Slot: 4
-            WriteFileLine(file, "30,tf_weapon_invis");
-            WriteFileLine(file, "212,tf_weapon_invis");
-            WriteFileLine(file, "59,tf_weapon_invis");
-            WriteFileLine(file, "60,tf_weapon_invis");
-            WriteFileLine(file, "297,tf_weapon_invis");
-            WriteFileLine(file, "947,tf_weapon_invis");
-
-            // Fallback option for some other weapons, keep last
-            WriteFileLine(file, "all,all weapons and body");
-            
-            CloseHandle(file);
-        }
-    }
-
     
     // Generate hu_translations.txt
     BuildPath(Path_SM, filePath, sizeof(filePath), "translations/%s", TRANSLATION_FILE);
@@ -3427,4 +2955,5 @@ void GenerateConfigFiles()
             CloseHandle(file);
         }
     }
+
 }
