@@ -8,6 +8,7 @@ Made with the help of AI (sorry, not enough time or energy to learn sourcepawn i
 Made for source 1.12 \
 Based on Uber Upgrade in mind \
 Made with the help of AI (sorry, not enough time or energy to learn sourcepawn in details, I just proofread and test the code on my server)
+I heavily recommend pairing it with Bot Upgrades and Custom Attributes, like nosoop's starter pack : https://github.com/nosoop/SM-TFCustomAttributeStarterPack.
 
 
 ---
