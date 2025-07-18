@@ -17,7 +17,7 @@
 #define MAX_EDICTS 2048
 
 #define PLUGIN_NAME "Hyper Upgrades"
-#define PLUGIN_VERSION "0.81"
+#define PLUGIN_VERSION "0.82"
 #define CONFIG_ATTR "hu_attributes.cfg"
 #define CONFIG_UPGR "hu_upgrades.cfg"
 #define CONFIG_WEAP "hu_weapons_list.txt"
@@ -1560,7 +1560,7 @@ void RefundSpecificUpgrade(int client, const char[] upgradeName, const char[] sl
 
     KvGoBack(g_hPlayerPurchases[client]);
 
-    // Step 2: Lookup the actual value for console/debug
+    // Step 2: Lookup the actual value for debug info
     KvRewind(g_hPlayerUpgrades[client]);
     if (!KvJumpToKey(g_hPlayerUpgrades[client], slotKey, false))
     {
@@ -1578,10 +1578,11 @@ void RefundSpecificUpgrade(int client, const char[] upgradeName, const char[] sl
     if (g_iMoneySpent[client] < 0)
         g_iMoneySpent[client] = 0;
 
-    // Step 3: Create new KeyValues handles with the refunded upgrade removed
+    // Step 3: Build new handles
     KeyValues tempUpgrades = CreateKeyValues("Upgrades");
     KeyValues tempPurchases = CreateKeyValues("Purchases");
 
+    // Rebuild UPGRADES handle
     KvRewind(g_hPlayerUpgrades[client]);
     if (KvGotoFirstSubKey(g_hPlayerUpgrades[client], false))
     {
@@ -1589,7 +1590,6 @@ void RefundSpecificUpgrade(int client, const char[] upgradeName, const char[] sl
         {
             char currentSlot[64];
             KvGetSectionName(g_hPlayerUpgrades[client], currentSlot, sizeof(currentSlot));
-
             bool matchSlot = StrEqual(currentSlot, slotKey);
 
             if (KvGotoFirstSubKey(g_hPlayerUpgrades[client], false))
@@ -1602,24 +1602,9 @@ void RefundSpecificUpgrade(int client, const char[] upgradeName, const char[] sl
                     if (!matchSlot || !StrEqual(upgrade, upgradeName))
                     {
                         float val = KvGetFloat(g_hPlayerUpgrades[client], NULL_STRING, 0.0);
-
                         KvJumpToKey(tempUpgrades, currentSlot, true);
                         KvSetFloat(tempUpgrades, upgrade, val);
                         KvGoBack(tempUpgrades);
-
-                        // If also present in purchases, copy that too
-                        KvRewind(g_hPlayerPurchases[client]);
-                        if (KvJumpToKey(g_hPlayerPurchases[client], currentSlot, false))
-                        {
-                            int count = KvGetNum(g_hPlayerPurchases[client], upgrade, 0);
-                            if (count > 0)
-                            {
-                                KvJumpToKey(tempPurchases, currentSlot, true);
-                                KvSetNum(tempPurchases, upgrade, count);
-                                KvGoBack(tempPurchases);
-                            }
-                            KvGoBack(g_hPlayerPurchases[client]);
-                        }
                     }
                 }
                 while (KvGotoNextKey(g_hPlayerUpgrades[client], false));
@@ -1630,6 +1615,40 @@ void RefundSpecificUpgrade(int client, const char[] upgradeName, const char[] sl
         } while (KvGotoNextKey(g_hPlayerUpgrades[client], false));
     }
 
+    // Rebuild PURCHASES handle (exact same pattern)
+    KvRewind(g_hPlayerPurchases[client]);
+    if (KvGotoFirstSubKey(g_hPlayerPurchases[client], false))
+    {
+        do
+        {
+            char currentSlot[64];
+            KvGetSectionName(g_hPlayerPurchases[client], currentSlot, sizeof(currentSlot));
+            bool matchSlot = StrEqual(currentSlot, slotKey);
+
+            if (KvGotoFirstSubKey(g_hPlayerPurchases[client], false))
+            {
+                do
+                {
+                    char upgrade[64];
+                    KvGetSectionName(g_hPlayerPurchases[client], upgrade, sizeof(upgrade));
+
+                    if (!matchSlot || !StrEqual(upgrade, upgradeName))
+                    {
+                        int count = KvGetNum(g_hPlayerPurchases[client], NULL_STRING, 0);
+                        KvJumpToKey(tempPurchases, currentSlot, true);
+                        KvSetNum(tempPurchases, upgrade, count);
+                        KvGoBack(tempPurchases);
+                    }
+                }
+                while (KvGotoNextKey(g_hPlayerPurchases[client], false));
+
+                KvGoBack(g_hPlayerPurchases[client]);
+            }
+
+        } while (KvGotoNextKey(g_hPlayerPurchases[client], false));
+    }
+
+    // Swap handles
     KvRewind(g_hPlayerUpgrades[client]);
     CloseHandle(g_hPlayerUpgrades[client]);
     g_hPlayerUpgrades[client] = tempUpgrades;
@@ -1640,6 +1659,7 @@ void RefundSpecificUpgrade(int client, const char[] upgradeName, const char[] sl
 
     PrintToConsole(client, "[Hyper Upgrades] Refunded upgrade: %s. Amount refunded: %d$", upgradeName, refundAmount);
 }
+
 
 
 // I like explicit names. Just to be clear, this calculates it for one specific upgrade.
@@ -2180,7 +2200,7 @@ public int MenuHandler_UpgradeMenu(Menu menu, MenuAction action, int client, int
         KvGoBack(g_hPlayerUpgrades[client]);
 
         // Track purchase count
-        KvJumpToKey(g_hPlayerPurchases[client], slotPath, true);
+        KvRewind(g_hPlayerPurchases[client]); // upgrades a rewound in helper getvaluefromslot
         int prevCount = KvGetNum(g_hPlayerPurchases[client], upgradeName, 0);
         KvSetNum(g_hPlayerPurchases[client], upgradeName, prevCount + legalMultiplier);
         KvGoBack(g_hPlayerPurchases[client]);
