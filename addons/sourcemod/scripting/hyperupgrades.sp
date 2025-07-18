@@ -17,7 +17,7 @@
 #define MAX_EDICTS 2048
 
 #define PLUGIN_NAME "Hyper Upgrades"
-#define PLUGIN_VERSION "0.80"
+#define PLUGIN_VERSION "0.81"
 #define CONFIG_ATTR "hu_attributes.cfg"
 #define CONFIG_UPGR "hu_upgrades.cfg"
 #define CONFIG_WEAP "hu_weapons_list.txt"
@@ -28,6 +28,7 @@
 //#define IN_RELOAD (1 << 13)  // Reload key already defined
 
 ConVar g_hMoneyBossMultiplier;
+ConVar g_hMoreUpgrades;
 
 bool g_bBossRewarded[MAX_EDICTS + 1];
 bool g_bMenuPressed[MAXPLAYERS + 1];
@@ -160,12 +161,14 @@ public void OnPluginStart()
     HookEvent("player_changeclass", Event_PlayerChangeClass, EventHookMode_Post);
     HookEvent("player_spawn", Event_PlayerSpawn, EventHookMode_Post);
 
+    CreateConVar("hu_money_pool", "0", "Current money pool shared by all players.");
     CreateConVar("hu_money_per_kill", "10", "Money gained per kill.");
     CreateConVar("hu_money_per_objective", "30", "Money gained per objective.");
-    CreateConVar("hu_money_boss_multiplier", "3", "Multiplier for boss kills."); // advise 3.5 for 130k on ultrarasmus
+    CreateConVar("hu_money_boss_multiplier", "2", "Multiplier for boss kills.");
+    CreateConVar("hu_moreupgrades", "0", "Allow precise limit upgrade behavior. 0 = snap to limit, 1 = divide increment, else =  old behavior");
     g_hMoneyBossMultiplier = FindConVar("hu_money_boss_multiplier");
-
-    g_hMoneyPool = CreateConVar("hu_money_pool", "0", "Current money pool shared by all players.", FCVAR_NOTIFY);
+    g_hMoreUpgrades = FindConVar("hu_moreupgrades");
+    g_hMoneyPool = FindConVar("hu_money_pool");
 
     LoadTranslations(TRANSLATION_FILE);
 
@@ -2068,9 +2071,8 @@ public int MenuHandler_UpgradeMenu(Menu menu, MenuAction action, int client, int
         {
             if (g_MenuClient[i] == i)
             {
-                // PrintToServer("[Menu Exit] Client %d exited a menu", i);
                 g_bInUpgradeList[i] = false;
-                g_MenuClient[i] = 0; // Cleanup
+                g_MenuClient[i] = 0;
                 break;
             }
         }
@@ -2084,20 +2086,18 @@ public int MenuHandler_UpgradeMenu(Menu menu, MenuAction action, int client, int
         g_iUpgradeMenuPage[client] = menu.Selection;
 
         char parts[3][64];
-        int count = ExplodeString(itemData, "|", parts, sizeof(parts), sizeof(parts[]));
-        if (count != 3)
+        if (ExplodeString(itemData, "|", parts, sizeof(parts), sizeof(parts[])) != 3)
         {
             PrintToChat(client, "[Hyper Upgrades] Failed to parse item string.");
             return 0;
         }
 
-        int weaponSlot = StringToInt(parts[0]); // Extract weapon slot
+        int weaponSlot = StringToInt(parts[0]);
         char upgradeName[64];
-        strcopy(upgradeName, sizeof(upgradeName), parts[1]); // Extract upgrade name
+        strcopy(upgradeName, sizeof(upgradeName), parts[1]);
         char upgradeGroup[64];
-        strcopy(upgradeGroup, sizeof(upgradeGroup), parts[2]); // Extract upgrade group
+        strcopy(upgradeGroup, sizeof(upgradeGroup), parts[2]);
 
-        // Lookup upgrade from memory
         int idx;
         if (!g_upgradeIndex.GetValue(upgradeName, idx))
         {
@@ -2121,49 +2121,29 @@ public int MenuHandler_UpgradeMenu(Menu menu, MenuAction action, int client, int
         float currentLevel = GetPlayerUpgradeValueForSlot(client, weaponSlot, upgradeName);
         int upgradeMultiplier = g_bInUpgradeList[client] ? GetUpgradeMultiplier(client) : 1;
 
-        // --- Integer scaling for precision ---
-        int scale = 100000;
-        if (FloatAbs(limit) > 2000.0 || FloatAbs(currentLevel) > 2000.0)
-        {
-            scale = 1000;
-        }
+        int scale = (FloatAbs(limit) > 2000.0 || FloatAbs(currentLevel) > 2000.0) ? 1000 : 100000;
 
-        int IntCurrentLevel = RoundToNearest(currentLevel * scale);
-        int IntInitValue    = RoundToNearest(initValue * scale);
-        int IntIncrement    = RoundToNearest(increment * scale);
-
-        int purchases = (IntIncrement != 0) ? (IntCurrentLevel / IntIncrement) : 0;
+        int purchases = GetPlayerUpgradePurchasesForSlot(client, weaponSlot, upgradeName);
         int legalMultiplier = upgradeMultiplier;
+        float legalIncrement = increment;
 
-        // --- Limit enforcement using int scaling ---
         if (hasLimit)
         {
-            int IntAppliedCurrent   = IntInitValue + IntCurrentLevel;
-            int IntAppliedPotential = IntAppliedCurrent + (IntIncrement * upgradeMultiplier);
-            int IntLimit            = RoundToNearest(limit * scale);
+            int cvarMode = (g_hMoreUpgrades != null) ? g_hMoreUpgrades.IntValue : -1;
+            int outMult = 0;
+            float outInc = 0.0;
 
-            if (IntIncrement > 0 && IntAppliedPotential > IntLimit)
-            {
-                int room = IntLimit - IntAppliedCurrent;
-                legalMultiplier = room / IntIncrement;
-            }
-            else if (IntIncrement < 0 && IntAppliedPotential < IntLimit)
-            {
-                int room = IntAppliedCurrent - IntLimit;
-                legalMultiplier = room / -IntIncrement;
-            }
-
-            if (legalMultiplier > upgradeMultiplier)
-                legalMultiplier = upgradeMultiplier;
-
-            if (legalMultiplier <= 0)
+            if (!GetLegalUpgradeIncrementEx(currentLevel, initValue, increment, limit, scale, upgradeMultiplier, cvarMode, outMult, outInc))
             {
                 PrintToChat(client, "[Hyper Upgrades] Cannot purchase: would exceed upgrade limit.");
                 return 0;
             }
+
+            legalMultiplier = outMult;
+            legalIncrement = outInc;
         }
 
-        // 🔸 Linear cost calculation (integer, consistent with refund logic)
+        // Cost calculation
         int b = baseCost;
         int n = legalMultiplier;
         int p = purchases;
@@ -2171,28 +2151,30 @@ public int MenuHandler_UpgradeMenu(Menu menu, MenuAction action, int client, int
 
         if (g_iMoneySpent[client] + totalCost > GetConVarInt(g_hMoneyPool))
         {
-            PrintToChat(client, "[Hyper Upgrades] Not enough money to buy %d levels of this upgrade.", legalMultiplier);
-            return 0;
+            int result[2] = {0, 0};
+            GetAffordableUpgradeResult(client, upgradeName, purchases, result);
+
+            legalMultiplier = result[0];
+            if (legalMultiplier <= 0)
+            {
+                PrintToChat(client, "[Hyper Upgrades] Not enough money to buy this upgrade.");
+                return 0;
+            }
+
+            totalCost = result[1];
         }
 
-        // Apply the upgrade
-        float newLevel = currentLevel + (increment * legalMultiplier);
+        float newLevel = currentLevel + (legalIncrement * legalMultiplier);
 
         char slotPath[16];
         if (weaponSlot == -1)
-        {
             strcopy(slotPath, sizeof(slotPath), "body");
-        }
         else if (weaponSlot == -2)
-        {
-            strcopy(slotPath, sizeof(slotPath), "buildings"); // special handling
-        }
+            strcopy(slotPath, sizeof(slotPath), "buildings");
         else
-        {
             Format(slotPath, sizeof(slotPath), "slot%d", weaponSlot);
-        }
 
-        // Store the new level
+        // Write upgrade value
         KvJumpToKey(g_hPlayerUpgrades[client], slotPath, true);
         KvSetFloat(g_hPlayerUpgrades[client], upgradeName, newLevel);
         KvGoBack(g_hPlayerUpgrades[client]);
@@ -2203,17 +2185,12 @@ public int MenuHandler_UpgradeMenu(Menu menu, MenuAction action, int client, int
         KvSetNum(g_hPlayerPurchases[client], upgradeName, prevCount + legalMultiplier);
         KvGoBack(g_hPlayerPurchases[client]);
 
-
         ApplyPlayerUpgrades(client);
-
-        // Deduct money
         g_iMoneySpent[client] += totalCost;
 
-        // Feedback
-        PrintToConsole(client, "[Hyper Upgrades] Purchased upgrade: %s (+%.2f x%d). Total Cost: %d$",
-            upgradeAlias, increment, legalMultiplier, totalCost);
+        PrintToConsole(client, "[Hyper Upgrades] Purchased upgrade: %s (+%.4f x%d). Total Cost: %d$",
+            upgradeAlias, legalIncrement, legalMultiplier, totalCost);
 
-        // Refresh menu
         DataPack dp = new DataPack();
         dp.WriteCell(client);
         dp.WriteString(upgradeGroup);
@@ -2221,13 +2198,9 @@ public int MenuHandler_UpgradeMenu(Menu menu, MenuAction action, int client, int
     }
     else if (action == MenuAction_Cancel)
     {
-        // PrintToServer("[Menu Cancel] client = %d, item = %d", client, item);
         g_bInUpgradeList[client] = false;
-
         if (item == MenuCancel_ExitBack)
-        {
             ShowCategoryMenu(client, g_sPlayerCategory[client]);
-        }
     }
 
     return 0;
@@ -2249,6 +2222,140 @@ public Action Timer_DeferMenuReopen(Handle timer, DataPack dp)
     return Plugin_Stop;
 }
 
+// Returns an array: result[0] = purchases, result[1] = totalCost
+void GetAffordableUpgradeResult(int client, const char[] upgradeName, int currentPurchases, int result[2])
+{
+    result[0] = 0;
+    result[1] = 0;
+
+    int idx;
+    if (!g_upgradeIndex.GetValue(upgradeName, idx))
+        return;
+
+    UpgradeData upgrade;
+    g_upgrades.GetArray(idx, upgrade);
+
+    int baseCost = upgrade.cost;
+    int costIncrease = upgrade.costIncrease;
+    int moneyLeft = GetConVarInt(g_hMoneyPool) - g_iMoneySpent[client];
+
+    int cost = 0;
+    for (int i = 1; i <= 1000; i++)
+    {
+        int thisCost = baseCost + costIncrease * (currentPurchases + i - 1);
+        if (cost + thisCost > moneyLeft)
+        {
+            result[0] = i - 1;
+            result[1] = cost;
+            return;
+        }
+
+        cost += thisCost;
+    }
+
+    result[0] = 1000;
+    result[1] = cost;
+}
+
+// Limit Handler :
+/**
+ * Determines the maximum legal upgrade multiplier and increment value that can be applied,
+ * based on the player's current level, the upgrade configuration, and the hu_moreupgrades mode.
+ *
+ * @param currentValue     Player's current level (unscaled)
+ * @param initValue        Initial value of the upgrade
+ * @param increment        Normal increment per purchase (can be negative)
+ * @param limit            Upgrade limit (same sign as increment)
+ * @param scale            Integer scaling factor (e.g. 100000)
+ * @param requestedMult    Multiplier the player wants to apply (e.g. 1000)
+ * @param cvarMode         hu_moreupgrades mode (0, 1, or fallback)
+ * @param outMult          OUTPUT: number of upgrades allowed
+ * @param outIncrement     OUTPUT: increment to apply
+ *
+ * @return true if at least 1 upgrade is allowed, false otherwise.
+ */
+bool GetLegalUpgradeIncrementEx(float currentValue, float initValue, float increment, float limit, int scale, int requestedMult, int cvarMode, int &outMult, float &outIncrement)
+{
+    int IntInit = RoundToNearest(initValue * scale);
+    int IntCurrent = RoundToNearest(currentValue * scale);
+    int IntIncrement = RoundToNearest(increment * scale);
+    int IntLimit = RoundToNearest(limit * scale);
+    int IntApplied = IntInit + IntCurrent;
+
+    if (IntIncrement == 0 || requestedMult <= 0)
+    {
+        outMult = 0;
+        outIncrement = 0.0;
+        return false;
+    }
+
+    int direction = IntIncrement > 0 ? 1 : -1;
+    int maxSteps;
+
+    if (direction > 0)
+    {
+        maxSteps = (IntLimit - IntApplied) / IntIncrement;
+    }
+    else
+    {
+        maxSteps = (IntApplied - IntLimit) / -IntIncrement;
+    }
+
+    if (maxSteps >= requestedMult)
+    {
+        outMult = requestedMult;
+        outIncrement = increment;
+        return true;
+    }
+
+    if (maxSteps > 0)
+    {
+        // Partially allowed before hitting the limit
+        outMult = maxSteps;
+        outIncrement = increment;
+        return true;
+    }
+
+    // Can't apply even one full step — now check cvar behavior
+    if (cvarMode == 0)
+    {
+        if ((direction > 0 && IntApplied < IntLimit) || (direction < 0 && IntApplied > IntLimit))
+        {
+            outMult = 1;
+            outIncrement = float(IntLimit - IntApplied) / float(scale);
+            return true;
+        }
+    }
+    else if (cvarMode == 1)
+    {
+        for (int i = 2; i <= 10; i++)
+        {
+            int step = IntIncrement / i;
+            int testApplied = IntApplied + step;
+
+            if ((direction > 0 && testApplied <= IntLimit) ||
+                (direction < 0 && testApplied >= IntLimit))
+            {
+                outMult = 1;
+                outIncrement = float(step) / float(scale);
+                return true;
+            }
+        }
+
+        // fallback to mode 0 behavior
+        if ((direction > 0 && IntApplied < IntLimit) || (direction < 0 && IntApplied > IntLimit))
+        {
+            outMult = 1;
+            outIncrement = float(IntLimit - IntApplied) / float(scale);
+            return true;
+        }
+    }
+
+    // Nothing allowed
+    outMult = 0;
+    outIncrement = 0.0;
+    return false;
+}
 
 
 public Action Timer_CheckMenuRefresh(Handle timer, any client)
@@ -2305,7 +2412,6 @@ void ShowUpgradeListMenu(int client, const char[] upgradeGroup)
         return;
     }
 
-    // Load hu_attributes.cfg to find the upgrades in the selected group
     char attrFile[PLATFORM_MAX_PATH];
     BuildPath(Path_SM, attrFile, sizeof(attrFile), "configs/hu_attributes.cfg");
 
@@ -2318,7 +2424,6 @@ void ShowUpgradeListMenu(int client, const char[] upgradeGroup)
         return;
     }
 
-    // Jump to the correct location: Category -> Alias -> Group
     bool foundPath = kv.JumpToKey(g_sPlayerCategory[client], false)
                   && kv.JumpToKey(g_sPlayerAlias[client], false)
                   && kv.JumpToKey(upgradeGroup, false);
@@ -2331,11 +2436,9 @@ void ShowUpgradeListMenu(int client, const char[] upgradeGroup)
         return;
     }
 
-    // Get the current multiplier when building the menu
     int multiplier = g_bInUpgradeList[client] ? GetUpgradeMultiplier(client) : 1; 
-    g_iPlayerLastMultiplier[client] = multiplier; // Save it for refresh tracking
+    g_iPlayerLastMultiplier[client] = multiplier;
 
-    // Build the upgrade menu
     Menu upgradeMenu = new Menu(MenuHandler_UpgradeMenu);
     upgradeMenu.SetTitle("%s - %s\nBalance: %d/%d$ | Multiplier: x%d",
         g_sPlayerCategory[client], upgradeGroup,
@@ -2356,7 +2459,7 @@ void ShowUpgradeListMenu(int client, const char[] upgradeGroup)
         char upgradeAlias[64];
         if (!GetUpgradeAliasFromName(upgradeName, upgradeAlias, sizeof(upgradeAlias)))
         {
-            PrintToServer("[Hyper Upgrades] Skipping upgrade: \"%s\" (alias: \"%s\") in group \"%s\" — alias missing or conflicts with upgrade name", upgradeName, upgradeAlias, upgradeGroup);
+            PrintToServer("[Hyper Upgrades] Skipping upgrade: \"%s\" (alias: \"%s\") in group \"%s\"", upgradeName, upgradeAlias, upgradeGroup);
             continue;
         }
 
@@ -2376,60 +2479,42 @@ void ShowUpgradeListMenu(int client, const char[] upgradeGroup)
         bool hasLimit = upgrade.hadLimit;
 
         float currentLevel = GetPlayerUpgradeValueForSlot(client, g_iPlayerBrowsingSlot[client], upgradeName);
+        int scale = (FloatAbs(limit) > 2000.0 || FloatAbs(currentLevel) > 2000.0) ? 1000 : 100000;
 
-        int IntCurrentLevel, IntInitValue, IntIncrement;
-        int scale = 1000000;
-
-        if (FloatAbs(limit) > 2000.0 || FloatAbs(currentLevel) > 2000.0)
-        {
-            scale = 1000;
-        }
-
-        IntCurrentLevel = RoundToNearest(currentLevel * scale);
-        IntInitValue    = RoundToNearest(initValue * scale);
-        IntIncrement    = RoundToNearest(increment * scale);
-
-        int purchases;
-        if (IntIncrement != 0)
-        {
-            purchases = IntCurrentLevel / IntIncrement;
-        }
-        else
-        {
-            purchases = 0;
-            PrintToServer("[Hyper Upgrades] Warning: Upgrade \"%s\" has increment = 0. Skipping cost scaling.", upgradeName);
-        }
+        int purchases = GetPlayerUpgradePurchasesForSlot(client, g_iPlayerBrowsingSlot[client], upgradeName);
 
         int legalMultiplier = multiplier;
 
-        // --- Limit enforcement using int scaling ---
         if (hasLimit)
         {
-            int IntAppliedCurrent   = IntInitValue + IntCurrentLevel;
-            int IntAppliedPotential = IntAppliedCurrent + (IntIncrement * multiplier);
-            int IntLimit            = RoundToNearest(limit * scale);
+            int cvarMode = g_hMoreUpgrades != null ? g_hMoreUpgrades.IntValue : -1;
+            int outMult = 0;
+            float outInc = 0.0;
 
-            if (IntIncrement > 0 && IntAppliedPotential > IntLimit)
+            if (!GetLegalUpgradeIncrementEx(currentLevel, initValue, increment, limit, scale, multiplier, cvarMode, outMult, outInc))
             {
-                int room = IntLimit - IntAppliedCurrent;
-                legalMultiplier = room / IntIncrement;
+                legalMultiplier = 0;
             }
-            else if (IntIncrement < 0 && IntAppliedPotential < IntLimit)
+            else
             {
-                int room = IntAppliedCurrent - IntLimit;
-                legalMultiplier = room / -IntIncrement;
+                legalMultiplier = outMult;
             }
-            if (legalMultiplier > multiplier)
-                legalMultiplier = multiplier;
         }
 
-        // --- Cost calculation with base + flat increase ---
         int baseCost = upgrade.cost;
         int costIncrease = upgrade.costIncrease;
-
         int n = legalMultiplier;
         int p = purchases;
-        int totalCost = baseCost * n + (costIncrease * n * (2 * p + n - 1)) / 2;
+        int totalCost = n * baseCost + (costIncrease * n * (2 * p + n - 1)) / 2;
+
+        if (g_iMoneySpent[client] + totalCost > GetConVarInt(g_hMoneyPool))
+        {
+            int result[2] = {0, 0};
+            GetAffordableUpgradeResult(client, upgradeName, purchases, result);
+
+            legalMultiplier = result[0] > 0 ? result[0] : 1;
+            totalCost = result[1] > 0 ? result[1] : baseCost + costIncrease * purchases;
+        }
 
         char display[128];
         if (legalMultiplier <= 0)
@@ -2464,7 +2549,6 @@ void ShowUpgradeListMenu(int client, const char[] upgradeGroup)
     g_bInUpgradeList[client] = true;
 
     delete kv;
-
     strcopy(g_sPlayerUpgradeGroup[client], sizeof(g_sPlayerUpgradeGroup[]), upgradeGroup);
 
     if (!g_bPlayerBrowsing[client])
@@ -2510,6 +2594,23 @@ float GetPlayerUpgradeValueForSlot(int client, int slot, const char[] upgradeNam
     KvRewind(g_hPlayerUpgrades[client]);
 
     return storedLevel;
+}
+
+int GetPlayerUpgradePurchasesForSlot(int client, int slot, const char[] upgradeName)
+{
+    if (g_hPlayerPurchases[client] == null)
+        return 0;
+
+    char slotPath[16];
+    if (slot == -1)        strcopy(slotPath, sizeof(slotPath), "body");
+    else if (slot == -2)   strcopy(slotPath, sizeof(slotPath), "buildings");
+    else                   Format(slotPath, sizeof(slotPath), "slot%d", slot);
+
+    KvRewind(g_hPlayerPurchases[client]);
+    if (!KvJumpToKey(g_hPlayerPurchases[client], slotPath, false))
+        return 0;
+
+    return KvGetNum(g_hPlayerPurchases[client], upgradeName, 0);
 }
 
 bool GetUpgradeAliasFromName(const char[] upgradeName, char[] aliasOut, int maxlen)
