@@ -155,7 +155,7 @@
 208,tf_weapon_flamethrower
 40,tf_weapon_flamethrower
 215,tf_weapon_flamethrower
-594,tf_weapon_flamethrower
+594,tf_weapon_phlog
 659,tf_weapon_flamethrower
 741,tf_weapon_flamethrower
 798,tf_weapon_flamethrower
@@ -184,16 +184,16 @@
 30474,tf_weapon_flamethrower
 12,tf_weapon_shotgun_pyro
 39,tf_weapon_flaregun
-351,tf_weapon_flaregun
+351,tf_weapon_flareboom
 595,tf_weapon_flaregun_revenge
-740,tf_weapon_flaregun
+740,tf_weapon_flareboom
 1081,tf_weapon_flaregun
 1179,tf_weapon_rocketpack
 1180,tf_weapon_jar_gas
 2,tf_weapon_fireaxe
 192,tf_weapon_fireaxe
 38,tf_weapon_fireaxe
-153,tf_weapon_fireaxe
+153,tf_weapon_pyronosap
 214,tf_weapon_fireaxe
 326,tf_weapon_fireaxe
 348,tf_weapon_fireaxe
@@ -201,8 +201,8 @@
 466,tf_weapon_fireaxe
 593,tf_weapon_fireaxe
 739,tf_weapon_fireaxe
-813,tf_weapon_breakable_sign
-834,tf_weapon_breakable_sign
+813,tf_weapon_pyronosap
+834,tf_weapon_pyronosap
 1000,tf_weapon_fireaxe
 1181,tf_weapon_slap
 19,tf_weapon_grenadelauncher
@@ -272,8 +272,8 @@
 654,tf_weapon_minigun
 793,tf_weapon_minigun
 802,tf_weapon_minigun
-811,tf_weapon_minigun
-832,tf_weapon_minigun
+811,tf_weapon_minigunheat
+832,tf_weapon_minigunheat
 850,tf_weapon_minigun
 882,tf_weapon_minigun
 891,tf_weapon_minigun
@@ -299,7 +299,7 @@
 11,tf_weapon_shotgun_hwg
 42,tf_weapon_lunchbox
 159,tf_weapon_lunchbox
-311,tf_weapon_lunchbox
+311,tf_weapon_lunchsteak
 425,tf_weapon_shotgun_hwg
 433,tf_weapon_lunchbox
 863,tf_weapon_lunchbox
@@ -372,6 +372,7 @@
 912,tf_weapon_medigun
 961,tf_weapon_medigun
 970,tf_weapon_medigun
+998,tf_weapon_medigun
 15008,tf_weapon_medigun
 15010,tf_weapon_medigun
 15025,tf_weapon_medigun
@@ -386,7 +387,7 @@
 15146,tf_weapon_medigun
 8,tf_weapon_bonesaw
 198,tf_weapon_bonesaw
-37,tf_weapon_bonesaw
+37,tf_weapon_ubersaw
 173,tf_weapon_bonesaw
 304,tf_weapon_bonesaw
 413,tf_weapon_bonesaw
@@ -396,7 +397,7 @@
 201,tf_weapon_sniperrifle
 56,tf_weapon_compound_bow
 230,tf_weapon_sniperrifle
-402,tf_weapon_sniperrifle_decap
+402,tf_weapon_sniperrifle
 526,tf_weapon_sniperrifle
 664,tf_weapon_sniperrifle
 752,tf_weapon_sniperrifle
@@ -411,7 +412,7 @@
 966,tf_weapon_sniperrifle
 1005,tf_weapon_compound_bow
 1092,tf_weapon_compound_bow
-1098,tf_weapon_sniperrifle_classic
+1098,tf_weapon_sniperrifle
 15000,tf_weapon_sniperrifle
 15007,tf_weapon_sniperrifle
 15019,tf_weapon_sniperrifle
@@ -430,7 +431,7 @@
 16,tf_weapon_smg
 203,tf_weapon_smg
 58,tf_weapon_jar
-751,tf_weapon_charged_smg
+751,tf_weapon_smg
 1083,tf_weapon_jar
 1105,tf_weapon_jar
 1149,tf_weapon_smg
@@ -471,8 +472,8 @@
 15128,tf_weapon_revolver
 15127,tf_weapon_revolver
 15149,tf_weapon_revolver
-735,tf_weapon_builder
-736,tf_weapon_builder
+735,tf_weapon_sapper
+736,tf_weapon_sapper
 810,tf_weapon_sapper
 831,tf_weapon_sapper
 933,tf_weapon_sapper

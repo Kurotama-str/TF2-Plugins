@@ -5,6 +5,9 @@ import os
 def generate_hu_upgrades_cfg(csv_file):
     with open(csv_file, newline='', encoding='utf-8') as csvfile:
         reader = csv.DictReader(csvfile)
+        reader.fieldnames = [name.strip().lstrip('\ufeff') for name in reader.fieldnames]  # Normalize headers and strip BOM
+        # print("Detected headers (upgrades):", reader.fieldnames)  # 🔍 Debug print
+
         lines = ['"Upgrades"\n{']
         for row in reader:
             if not row['name'].strip():
@@ -35,6 +38,9 @@ def generate_hu_upgrades_cfg(csv_file):
 def generate_hu_attributes_cfg(csv_file):
     with open(csv_file, newline='', encoding='utf-8') as csvfile:
         reader = csv.DictReader(csvfile)
+        reader.fieldnames = [name.strip().lstrip('\ufeff') for name in reader.fieldnames]  # Normalize headers and strip BOM
+        # print("Detected headers (attributes):", reader.fieldnames)  # 🔍 Debug print
+
         structure = {}
 
         for row in reader:
