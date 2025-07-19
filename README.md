@@ -10,6 +10,8 @@ Based on Uber Upgrades \
 Made with the help of AI (sorry, not enough time or energy to learn sourcepawn in details, I just proofread and test the code on my server)
 I heavily recommend pairing it with Bot Upgrades and Custom Attributes, like nosoop's starter pack : https://github.com/nosoop/SM-TFCustomAttributeStarterPack.
 
+---
+Support at : https://str-core.org/index.php/call/zru7tu5r. Prefer github issues for, well, issues.
 
 ---
 
