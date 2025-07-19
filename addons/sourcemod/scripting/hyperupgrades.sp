@@ -2195,15 +2195,23 @@ public int MenuHandler_UpgradeMenu(Menu menu, MenuAction action, int client, int
             Format(slotPath, sizeof(slotPath), "slot%d", weaponSlot);
 
         // Write upgrade value
+        KvRewind(g_hPlayerUpgrades[client]);
         KvJumpToKey(g_hPlayerUpgrades[client], slotPath, true);
         KvSetFloat(g_hPlayerUpgrades[client], upgradeName, newLevel);
         KvGoBack(g_hPlayerUpgrades[client]);
 
         // Track purchase count
-        KvRewind(g_hPlayerPurchases[client]); // upgrades a rewound in helper getvaluefromslot
-        int prevCount = KvGetNum(g_hPlayerPurchases[client], upgradeName, 0);
-        KvSetNum(g_hPlayerPurchases[client], upgradeName, prevCount + legalMultiplier);
-        KvGoBack(g_hPlayerPurchases[client]);
+        KvRewind(g_hPlayerPurchases[client]);
+        if (KvJumpToKey(g_hPlayerPurchases[client], slotPath, true))
+        {
+            int prevCount = KvGetNum(g_hPlayerPurchases[client], upgradeName, 0);
+            KvSetNum(g_hPlayerPurchases[client], upgradeName, prevCount + legalMultiplier);
+            KvGoBack(g_hPlayerPurchases[client]);
+        }
+        else
+        {
+            PrintToServer("[ERROR] Failed to jump to purchases slot: %s", slotPath);
+        }
 
         ApplyPlayerUpgrades(client);
         g_iMoneySpent[client] += totalCost;
