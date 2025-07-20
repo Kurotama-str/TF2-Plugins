@@ -372,7 +372,7 @@
 912,tf_weapon_medigun
 961,tf_weapon_medigun
 970,tf_weapon_medigun
-998,tf_weapon_medigun
+998,tf_weapon_vaccinator
 15008,tf_weapon_medigun
 15010,tf_weapon_medigun
 15025,tf_weapon_medigun

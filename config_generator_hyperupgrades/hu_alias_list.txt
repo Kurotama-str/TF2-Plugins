@@ -838,3 +838,7 @@ weapon_uses_stattrak_module,weapon_uses_stattrak_module
 wide_item_level,wide item level
 zombiezombiezombiezombie,zombiezombiezombiezombie
 zoom_speed_mod_disabled,zoom speed mod disabled
+,
+#Custom Attributes' Aliases,Custom Attributes
+CUSTOM_medigun_drains_health,medigun drains health
+CUSTOM_oil_replaces_airblast,oil replaces airblast

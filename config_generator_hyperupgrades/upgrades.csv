@@ -11,7 +11,7 @@ name,cost,costincrease,increment,limit,initvalue,alias,,,,,,oldcost,oldcostincre
 *Get Head On Kill,10,5,1,1,,add_head_on_kill,,,,,,100,50
 *Add Jingle To Footsteps,10,5,1,1,0,add_jingle_to_footsteps,,,,,,100,50
 *Get Ammo On Hit,10,5,1,1,,add_onhit_addammo,,,,,,100,50
-*Get Uber Charge On Hit,80,32,0.01,0.1,0,add_uber_charge_on_hit,,,,,,800,320
+*Get Uber Charge On Hit,80,32,0.02,0.1,0,add_uber_charge_on_hit,,,,,,800,320
 *Get Uber Charge On Hit (C),80,32,0.05,0.25,0,add_uber_charge_on_hit,,,,,,800,320
 *Get Uber Charge On Hit (M),300,32,0.25,0.25,0,add_uber_charge_on_hit,,,,,,800,320
 *Additional Halloween Response Criteria Name,10,5,0.1,,,additional_halloween_response_criteria_name,,,,,,100,50
@@ -39,7 +39,7 @@ name,cost,costincrease,increment,limit,initvalue,alias,,,,,,oldcost,oldcostincre
 *Gain Ammo From Airblasting Projectiles,10,5,0.1,,,airblast_turn_projectile_to_ammo,,,,,,100,50
 *Airblast Vertical Pushback Scale,10,5,0.1,,,airblast_vertical_pushback_scale,,,,,,100,50
 *Airblast Vertical Vulnerability Multiplier,20,10,-0.1,0.05,1,airblast_vertical_vulnerability_multiplier,,,,,,200,100
-*Airblast Vulnerability Multiplier,10,5,-0.1,0.05,1,airblast_vulnerability_multiplier,,,,,,100,50
+*Airblast Vulnerability Multiplier,10,10,-0.1,0.05,1,airblast_vulnerability_multiplier,,,,,,100,50
 *Airblast Vulnerability Multiplier Hidden,10,5,-0.1,0.05,1,airblast_vulnerability_multiplier_hidden,,,,,,100,50
 *Allow Halloween Offering,10,5,0.1,,,allow_halloween_offering,,,,,,100,50
 *Allowed In Medieval Mode,10,5,0.1,,,allowed_in_medieval_mode,,,,,,100,50
@@ -164,7 +164,7 @@ name,cost,costincrease,increment,limit,initvalue,alias,,,,,,oldcost,oldcostincre
 *Damage All Connected,150,75,1,1,0,damage_all_connected,,,,,,1500,750
 *Damage Applies To Sappers,100,50,1,1,0,damage_applies_to_sappers,,,,,,1000,500
 *Damage Blast Push,80,40,0.2,3,0,damage_blast_push,,,,,,800,400
-*Damage Bonus,16,1,0.25,7500,1,damage_bonus,,,,,,160,16
+*Damage Bonus,20,10,0.25,7500,1,damage_bonus,,,,,,160,16
 *Damage Bonus Bullet Vs Sentry Target,10,5,0.1,,,damage_bonus_bullet_vs_sentry_target,,,,,,100,50
 *Damage Bonus Hidden,120,24,0.25,7500,1,damage_bonus_HIDDEN,,,,,,1200,240
 *Damage Bonus Vs Burning,120,24,0.25,7500,1,damage_bonus_vs_burning,,,,,,1200,240
@@ -193,34 +193,34 @@ name,cost,costincrease,increment,limit,initvalue,alias,,,,,,oldcost,oldcostincre
 *Display Duck Leaderboard,10,5,0.1,,,display_duck_leaderboard,,,,,,100,50
 *Dmg Bonus Vs Buildings,40,16,0.25,500,1,dmg_bonus_vs_buildings,,,,,,800,160
 *Dmg Bonus While Half Dead,40,20,0.25,1500,1,dmg_bonus_while_half_dead,,,,,,400,200
-*Dmg Falloff Decreased,10,5,-0.25,0.05,1,dmg_falloff_decreased,,,,,,100,50
+*Dmg Falloff Decreased,30,30,-0.25,0.05,1,dmg_falloff_decreased,,,,,,100,50
 *Dmg Falloff Increased,10,5,0.1,,,dmg_falloff_increased,,,,,,100,50
-*Melee Resistance,25,25,-0.1,0.05,1,dmg_from_melee_increased,,,,,,250,250
-*Melee Resistance (L),25,25,-0.1,0.35,1,dmg_from_melee_increased,,,,,,250,250
+*Melee Resistance,5,40,-0.1,0.05,1,dmg_from_melee_increased,,,,,,250,250
+*Melee Resistance (L),5,40,-0.1,0.35,1,dmg_from_melee_increased,,,,,,250,250
 *Dmg From Ranged Reduced,75,90,-0.05,0.15,1,dmg_from_ranged_reduced,,,,,,750,900
 *Dmg Penalty Vs Buildings,10,5,0.1,,,dmg_penalty_vs_buildings,,,,,,100,50
 *Dmg Penalty Vs Nonburning,10,5,0.1,,,dmg_penalty_vs_nonburning,,,,,,100,50
 *Dmg Penalty Vs Nonstunned,10,5,0.1,,,dmg_penalty_vs_nonstunned,,,,,,100,50
-*Dmg Penalty Vs Players,16,1,0.25,7500,1,dmg_penalty_vs_players,,,,,,200,40
-*Damage bonus vs player (C),10,1,0.25,7500,1,dmg_penalty_vs_players,,,,,,100,15
+*Dmg Penalty Vs Players,20,10,0.25,7500,1,dmg_penalty_vs_players,,,,,,200,40
+*Damage bonus vs player (C),15,8,0.25,7500,1,dmg_penalty_vs_players,,,,,,100,15
 *Damage bonus vs player (S),150,150,1,7500,1,dmg_penalty_vs_players,,,,,,1200,1200
 *Damage bonus vs player (G),200,100,0.5,7500,1,dmg_penalty_vs_players,,,,,,,
 *Dmg Penalty While Half Alive,10,5,0.1,,,dmg_penalty_while_half_alive,,,,,,100,50
 *Dmg Pierces Resists Absorbs,10,5,0.1,,,dmg_pierces_resists_absorbs,,,,,,100,50
 *Dmg Taken From Blast Increased,35,35,-0.1,0.1,1,dmg_taken_from_blast_increased,,,,,,350,350
-*Blast Resistance (L),35,35,-0.1,0.35,1,dmg_taken_from_blast_reduced,,,,,,350,350
-*Blast Resistance,35,35,-0.1,0.05,1,dmg_taken_from_blast_reduced,,,,,,350,350
+*Blast Resistance (L),5,45,-0.1,0.35,1,dmg_taken_from_blast_reduced,,,,,,350,350
+*Blast Resistance,5,45,-0.1,0.05,1,dmg_taken_from_blast_reduced,,,,,,350,350
 *Dmg Taken From Bullets Increased,35,35,-0.1,0.1,1,dmg_taken_from_bullets_increased,,,,,,350,350
-*Bullet Resistance (L),35,35,-0.1,0.35,1,dmg_taken_from_bullets_reduced,,,,,,350,350
-*Bullet Resistance,35,35,-0.1,0.05,1,dmg_taken_from_bullets_reduced,,,,,,350,350
+*Bullet Resistance (L),5,45,-0.1,0.35,1,dmg_taken_from_bullets_reduced,,,,,,350,350
+*Bullet Resistance,5,45,-0.1,0.05,1,dmg_taken_from_bullets_reduced,,,,,,350,350
 *Dmg Taken From Crit Increased,35,31,-0.1,0.1,1,dmg_taken_from_crit_increased,,,,,,350,315
-*Crit Resistance (L),35,31,-0.1,0.35,1,dmg_taken_from_crit_reduced,,,,,,350,315
-*Crit Resistance,35,31,-0.1,0.05,1,dmg_taken_from_crit_reduced,,,,,,350,315
+*Crit Resistance (L),5,40,-0.1,0.35,1,dmg_taken_from_crit_reduced,,,,,,350,315
+*Crit Resistance,5,40,-0.1,0.05,1,dmg_taken_from_crit_reduced,,,,,,350,315
 *Dmg Taken From Fire Increased,35,35,-0.1,0.1,1,dmg_taken_from_fire_increased,,,,,,350,350
-*Fire Resistance (L),35,35,-0.1,0.35,1,dmg_taken_from_fire_reduced,,,,,,350,350
-*Fire Resistance,35,35,-0.1,0.05,1,dmg_taken_from_fire_reduced,,,,,,350,350
+*Fire Resistance (L),5,45,-0.1,0.35,1,dmg_taken_from_fire_reduced,,,,,,350,350
+*Fire Resistance,5,45,-0.1,0.05,1,dmg_taken_from_fire_reduced,,,,,,350,350
 *Fire Resistance On Active,30,30,-0.1,0.1,1,dmg_taken_from_fire_reduced_on_active,,,,,,300,300
-*Dmg Taken Reduced,90,126,-0.05,0.15,1,dmg_taken_increased,,,,,,900,1260
+*Dmg Taken Reduced,90,120,-0.05,0.15,1,dmg_taken_increased,,,,,,900,1260
 *Dragons Fury Negative Properties,10,5,0.1,,,dragons_fury_negative_properties,,,,,,100,50
 *Dragons Fury Neutral Properties,10,5,0.1,,,dragons_fury_neutral_properties,,,,,,100,50
 *Dragons Fury Positive Properties,10,5,0.1,,,dragons_fury_positive_properties,,,,,,100,50
@@ -292,9 +292,9 @@ name,cost,costincrease,increment,limit,initvalue,alias,,,,,,oldcost,oldcostincre
 *Flame Reflection Add Life Time,10,5,0.1,,,flame_reflection_add_life_time,,,,,,100,50
 *Flame Size Bonus,80,24,1,60,1,flame_size_bonus,,,,,,800,240
 *Flame Size Penalty,10,5,0.1,,,flame_size_penalty,,,,,,100,50
-*Flame Speed,60,30,1000,4000,0,flame_speed,,,,,,600,300
+*Flame Speed,50,100,500,4500,2500,flame_speed,,,,,,600,300
 *Flame Spread Degree,10,5,0.1,,,flame_spread_degree,,,,,,100,50
-*Flame Up Speed,60,30,1000,8000,2000,flame_up_speed,,,,,,600,300
+*Flame Up Speed,50,50,100,1000,0,flame_up_speed,,,,,,600,300
 *Force Center Wrap,10,5,0.1,,,force_center_wrap,,,,,,100,50
 *Force Level Display,10,5,0.1,,,force_level_display,,,,,,100,50
 *Force Weapon Switch,10,5,0.1,,,force_weapon_switch,,,,,,100,50
@@ -314,7 +314,7 @@ name,cost,costincrease,increment,limit,initvalue,alias,,,,,,oldcost,oldcostincre
 *Decrease Grenade Fuse Time,20,10,-0.1,0,1,fuse_bonus,,,,,,200,100
 *Generate Rage On Damage,80,40,1,50,0,generate_rage_on_damage,,,,,,800,400
 *Shield Level,200,200,1,2,0,generate_rage_on_heal,,,,,,2000,1000
-*Gesture Speed Increase,7,3,1,5,1,gesture_speed_increase,,,,,,75,37.5
+*Gesture Speed Increase,25,25,0.5,3,1,gesture_speed_increase,,,,,,75,37.5
 *Gifter Account Id,10,5,0.1,,,gifter_account_id,,,,,,100,50
 *Grenade Damage Reduction On World Contact,10,5,0.1,,,grenade_damage_reduction_on_world_contact,,,,,,100,50
 *Grenade Detonation Damage Penalty,10,5,0.1,,,grenade_detonation_damage_penalty,,,,,,100,50
@@ -356,7 +356,7 @@ name,cost,costincrease,increment,limit,initvalue,alias,,,,,,oldcost,oldcostincre
 *Health From Healers Increased,80,48,0.25,30,1,health_from_healers_increased,,,,,,800,480
 *Health From Healers Reduced,10,5,0.1,,,health_from_healers_reduced,,,,,,100,50
 *Health From Packs Decreased,10,5,0.1,,,health_from_packs_decreased,,,,,,100,50
-*Health From Packs Increased,45,22,0.25,5,1,health_from_packs_increased,,,,,,450,225
+*Health From Packs Increased,20,20,0.25,5,1,health_from_packs_increased,,,,,,450,225
 *Health On Radius Damage,10,5,0.1,,,health_on_radius_damage,,,,,,100,50
 *Health Regen,75,52,2,20000,0,health_regen,,,,,,750,525
 *Hidden Maxhealth Non Buffed,10,5,0.1,,,hidden_maxhealth_non_buffed,,,,,,100,50
@@ -467,18 +467,19 @@ name,cost,costincrease,increment,limit,initvalue,alias,,,,,,oldcost,oldcostincre
 *Maxammo Secondary Reduced,-60,-30,-0.2,0.05,1,maxammo_secondary_reduced,,,,,,-600,-300
 *Medic Regen Bonus,30,15,1,20,1,medic_regen_bonus,,,,,,300,150
 *Medic Regen Penalty,10,5,0.1,,,medic_regen_penalty,,,,,,100,50
-*Medigun Blast Resist Deployed,40,32,-0.1,0.15,0.25,medigun_blast_resist_deployed,,,,,,400,320
-*Medigun Blast Resist Passive,40,32,-0.1,0.4,0.85,medigun_blast_resist_passive,,,,,,400,320
-*Medigun Bullet Resist Deployed,40,32,-0.1,0.15,0.25,medigun_bullet_resist_deployed,,,,,,400,320
-*Medigun Bullet Resist Passive,40,32,-0.1,0.4,0.85,medigun_bullet_resist_passive,,,,,,400,320
+*Medigun Blast Resist Deployed,100,100,-0.1,0.15,0.25,medigun_blast_resist_deployed,,,,,,400,320
+*Medigun Blast Resist Passive,40,40,-0.1,0.4,0.85,medigun_blast_resist_passive,,,,,,400,320
+*Medigun Bullet Resist Deployed,100,100,-0.1,0.15,0.25,medigun_bullet_resist_deployed,,,,,,400,320
+*Medigun Bullet Resist Passive,40,40,-0.1,0.4,0.85,medigun_bullet_resist_passive,,,,,,400,320
 *Medigun Charge Is Crit Boost,5,2,1,1,0,medigun_charge_is_crit_boost,,,,,,50,25
 *Medigun Charge Is Megaheal,5,2,1,1,0,medigun_charge_is_megaheal,,,,,,50,25
 *Medigun Charge Is Resists,5,2,1,1,0,medigun_charge_is_resists,,,,,,50,25
 *Medigun Crit Blast Percent Bar Deplete,10,5,0.1,,,medigun_crit_blast_percent_bar_deplete,,,,,,100,50
 *Medigun Crit Bullet Percent Bar Deplete,10,5,0.1,,,medigun_crit_bullet_percent_bar_deplete,,,,,,100,50
 *Medigun Crit Fire Percent Bar Deplete,10,5,0.1,,,medigun_crit_fire_percent_bar_deplete,,,,,,100,50
-*Medigun Fire Resist Deployed,40,32,-0.1,0.15,0.25,medigun_fire_resist_deployed,,,,,,400,320
-*Medigun Fire Resist Passive,40,32,-0.1,0.4,0.85,medigun_fire_resist_passive,,,,,,400,320
+*Medigun Fire Resist Deployed,100,100,-0.1,0.15,0.25,medigun_fire_resist_deployed,,,,,,400,320
+*Medigun Fire Resist Passive,40,40,-0.1,0.4,0.85,medigun_fire_resist_passive,,,,,,400,320
+*Medigun Leech Beam,500,70,50,1000,0,CUSTOM_medigun_drains_health,,,,,,,
 *Melee Attack Rate Bonus,60,90,-0.1,0.4,1,melee_attack_rate_bonus,,,,,,600,900
 *Melee Bounds Multiplier,10,5,0.25,5,1,melee_bounds_multiplier,,,,,,100,50
 *Melee Range Multiplier,20,8,0.1,70,1,melee_range_multiplier,,,,,,200,80
@@ -508,6 +509,7 @@ name,cost,costincrease,increment,limit,initvalue,alias,,,,,,oldcost,oldcostincre
 *Mod Crit While Airborne,100,50,1,1,0,mod_crit_while_airborne,,,,,,1000,500
 *Mod Demo Buff Type,10,5,0.1,,,mod_demo_buff_type,,,,,,100,50
 *Disguise Consumes Cloak,10,5,0.1,,,mod_disguise_consumes_cloak,,,,,,100,50
+*Oiled Flame (Alt Fire Mod) MAY CRASH THE SERVER,200,100,1,1,0,CUSTOM_oil_replaces_airblast,,,,,,,
 *Mod Flamethrower Back Crit,60,30,1,1,0,mod_flamethrower_back_crit,,,,,,600,300
 *Mod Flamethrower Push,10,5,0.1,,,mod_flamethrower_push,,,,,,100,50
 *Mod Flaregun Fires Pellets With Knockback,80,40,1,1,0,mod_flaregun_fires_pellets_with_knockback,,,,,,800,400
@@ -553,7 +555,7 @@ name,cost,costincrease,increment,limit,initvalue,alias,,,,,,oldcost,oldcostincre
 *Dragon Fire Rate,50,10,-0.1,0.3,1,mult_item_meter_charge_rate,,,,,,,
 *Gas Charge Rate,50,10,-0.1,0.1,1,mult_item_meter_charge_rate,,,,,,1250,937.5
 *Mult Item Meter Charge Rate,125,93,-0.1,0.4,1,mult_item_meter_charge_rate,,,,,,1250,937.5
-*Thermal Thruster Increased Recharge Rate,50,10,-0.1,0.1,1,mult_item_meter_charge_rate,,,,,,1250,937.5
+*Thermal Thruster Increased Recharge Rate,50,10,-0.1,0.02,1,mult_item_meter_charge_rate,,,,,,1250,937.5
 *Dragon Fury Increased Recharge Rate,125,93,-0.1,0.4,1,mult_item_meter_charge_rate,,,,,,1250,937.5
 *Gas Passer Increased Recharge Rate,250,125,-0.2,0.001,0,mult_item_meter_charge_rate,,,,,,2500,1250
 *Mult Patient Overheal Penalty Active,10,5,0.1,,,mult_patient_overheal_penalty_active,,,,,,100,50
@@ -582,12 +584,13 @@ name,cost,costincrease,increment,limit,initvalue,alias,,,,,,oldcost,oldcostincre
 *Noise Maker,10,5,0.1,,,noise_maker,,,,,,100,50
 *Non Economy,10,5,0.1,,,non_economy,,,,,,100,50
 *Obsolete Ammo Penalty,10,5,0.1,,,obsolete_ammo_penalty,,,,,,100,50
-*Overheal Bonus,40,24,0.2,800.5,1,overheal_bonus,,,,,,400,240
+*Overheal Bonus,40,24,0.25,800,1,overheal_bonus,,,,,,400,240
 *Overheal Decay Bonus,50,25,0.25,4,1,overheal_decay_bonus,,,,,,500,250
 *Overheal Decay Disabled,250,125,-1,0,1,overheal_decay_disabled,,,,,,2500,1250
 *Overheal Decay Penalty,10,5,0.1,,,overheal_decay_penalty,,,,,,100,50
 *Overheal Expert,200,100,1,4,0,overheal_expert,,,,,,100,50
 *Overheal Fill Rate Reduced,10,5,0.1,,,overheal_fill_rate_reduced,,,,,,100,50
+*Overheal Mastery,200,100,0.25,3,1,overheal_penalty,,,,,,100,50
 *Overheal Penalty,10,5,0.1,,,overheal_penalty,,,,,,100,50
 *Override Footstep Sound Set,10,5,0.1,,,override_footstep_sound_set,,,,,,100,50
 *Override Item Level Desc String,10,5,0.1,,,override_item_level_desc_string,,,,,,100,50
@@ -736,8 +739,8 @@ name,cost,costincrease,increment,limit,initvalue,alias,,,,,,oldcost,oldcostincre
 *Single Wep Deploy Time Decreased,10,5,0.1,,,single_wep_deploy_time_decreased,,,,,,100,50
 *Single Wep Deploy Time Increased,10,5,0.1,,,single_wep_deploy_time_increased,,,,,,100,50
 *Single Wep Holster Time Increased,10,5,0.1,,,single_wep_holster_time_increased,,,,,,100,50
-*Slow Enemy On Hit,50,80,1,5,0,slow_enemy_on_hit,,,,,,100,50
-*Slow Enemy On Hit Major,60,90,1,10,0,slow_enemy_on_hit_major,,,,,,600,900
+*Slow Enemy On Hit,50,80,1,1,0,slow_enemy_on_hit,,,,,,100,50
+*Slow Enemy On Hit Major,60,90,2,2,0,slow_enemy_on_hit_major,,,,,,600,900
 *Sniper Aiming Movespeed Increased,20,5,0.1,2,1,sniper_aiming_movespeed_decreased,,,,,,100,50
 *Sniper Charge Per Sec,20,5,0.25,10,1,sniper_charge_per_sec,,,,,,200,50
 *Sniper Crit No Scope,10,5,0.1,,,sniper_crit_no_scope,,,,,,100,50
@@ -818,7 +821,8 @@ name,cost,costincrease,increment,limit,initvalue,alias,,,,,,oldcost,oldcostincre
 *Tradable After Date,10,5,0.1,,,tradable_after_date,,,,,,100,50
 *Richesse a la Francaise,1000,5,1,1,0,turn_to_gold,,,,,,100,50
 *Turn To Gold,100,5,1,1,0,turn_to_gold,,,,,,100,50
-*Uber Duration Bonus,40,22,1,4,0,uber_duration_bonus,,,,,,400,220
+*Uber Duration Bonus,40,40,1,6,0,uber_duration_bonus,,,,,,400,220
+*Uber Duration Bonus (V),40,40,1,3,0,uber_duration_bonus,,,,,,400,220
 *Ubercharge,10,5,0.1,,,ubercharge,,,,,,100,50
 *Ubercharge Overheal Rate Penalty,10,5,0.1,,,ubercharge_overheal_rate_penalty,,,,,,100,50
 *Ubercharge Preserved On Spawn,10,5,0.1,,,ubercharge_preserved_on_spawn_max,,,,,,100,50
