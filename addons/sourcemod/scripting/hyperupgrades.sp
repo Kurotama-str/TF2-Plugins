@@ -18,7 +18,7 @@
 #define MAX_EDICTS 2048
 
 #define PLUGIN_NAME "Hyper Upgrades"
-#define PLUGIN_VERSION "0.90"
+#define PLUGIN_VERSION "0.91"
 #define CONFIG_ATTR "hu_attributes.cfg"
 #define CONFIG_UPGR "hu_upgrades.cfg"
 #define CONFIG_WEAP "hu_weapons_list.txt"
@@ -42,6 +42,7 @@ bool g_bHasCustomAttributes = false; // checks if Custom Attributes is loaded
 char g_sPlayerCategory[MAXPLAYERS + 1][64];
 char g_sPlayerAlias[MAXPLAYERS + 1][64];
 char g_sPlayerUpgradeGroup[MAXPLAYERS + 1][64];
+char g_sPreviousAliases[MAXPLAYERS + 1][6][64]; // 6 slots, 64-char alias - tracks weapon alias for slot
 
 int g_MenuClient[MAXPLAYERS + 1];
 int g_iUpgradeMenuPage[MAXPLAYERS + 1];
@@ -506,11 +507,34 @@ public void Event_PlayerChangeClass(Event event, const char[] name, bool dontBro
 
     if (IsClientInGame(client))
     {
+        g_bInUpgradeList[client] = false;
+        CancelClientMenu(client, true);
         RefundPlayerUpgrades(client, false);
         RefreshClientResistances(client);
     }
 }
 
+public void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
+{
+    //Money rewards
+    int attacker = GetClientOfUserId(event.GetInt("attacker"));
+    int victim = GetClientOfUserId(event.GetInt("userid"));
+
+    if (attacker <= 0 || !IsClientInGame(attacker)) return;
+    if (victim <= 0 || !IsClientInGame(victim)) return;
+    if (attacker == victim) return; // Ignore self-kills (e.g., killbind)
+
+    int reward = GetConVarInt(FindConVar("hu_money_per_kill"));
+    SetConVarInt(g_hMoneyPool, GetConVarInt(g_hMoneyPool) + reward);
+
+    //Force menu exit on death
+    int client = GetClientOfUserId(event.GetInt("userid"));
+    if (IsClientInGame(client))
+    {
+        g_bInUpgradeList[client] = false;
+        CancelClientMenu(client, true);
+    }
+}
 
 public void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
 {
@@ -518,6 +542,9 @@ public void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast
 
     if (IsClientInGame(client))
     {
+        g_bInUpgradeList[client] = false;
+        CancelClientMenu(client, true);
+        CheckAndHandleWeaponAliasChange(client);
         ApplyPlayerUpgrades(client);
         RefreshClientResistances(client);
     }
@@ -581,6 +608,42 @@ void LoadUpgradeData()
     }
 }
 
+void CheckAndHandleWeaponAliasChange(int client)
+{
+    for (int slot = 0; slot <= 5; slot++)
+    {
+        int weapon = GetPlayerWeaponSlot(client, slot);
+        if (!IsValidEntity(weapon))
+            continue;
+
+        int defindex = GetEntProp(weapon, Prop_Send, "m_iItemDefinitionIndex");
+
+        // Look up alias from weapon defindex
+        char newAlias[64] = "";
+        bool found = false;
+        for (int i = 0; i < g_weaponAliases.Length; i++)
+        {
+            WeaponAlias weaponData;
+            g_weaponAliases.GetArray(i, weaponData);
+            if (weaponData.defindex == defindex)
+            {
+                strcopy(newAlias, sizeof(newAlias), weaponData.alias);
+                found = true;
+                break;
+            }
+        }
+
+        if (!found)
+            continue;
+
+        if (!StrEqual(g_sPreviousAliases[client][slot], newAlias))
+        {
+            PrintToServer("[HU] Alias changed for client %N slot %d: %s -> %s", client, slot, g_sPreviousAliases[client][slot], newAlias);
+            RefundAllUpgradesInSlot(client, slot);
+            strcopy(g_sPreviousAliases[client][slot], sizeof(g_sPreviousAliases[][]), newAlias);
+        }
+    }
+}
 
 // Settings
 
@@ -1692,7 +1755,122 @@ void RefundSpecificUpgrade(int client, const char[] upgradeName, const char[] sl
     PrintToConsole(client, "[Hyper Upgrades] Refunded upgrade: %s. Amount refunded: %d$", upgradeName, refundAmount);
 }
 
+void RefundAllUpgradesInSlot(int client, int slot)
+{
+    if (g_hPlayerUpgrades[client] == null || g_hPlayerPurchases[client] == null)
+        return;
 
+    char slotKey[16];
+    Format(slotKey, sizeof(slotKey), "slot%d", slot);
+
+    // Step 1: Calculate total refund from this slot
+    int totalRefund = 0;
+
+    KvRewind(g_hPlayerPurchases[client]);
+    if (KvJumpToKey(g_hPlayerPurchases[client], slotKey, false))
+    {
+        if (KvGotoFirstSubKey(g_hPlayerPurchases[client], false))
+        {
+            do
+            {
+                char upgradeName[64];
+                KvGetSectionName(g_hPlayerPurchases[client], upgradeName, sizeof(upgradeName));
+
+                int purchases = KvGetNum(g_hPlayerPurchases[client], NULL_STRING, 0);
+                if (purchases > 0)
+                {
+                    totalRefund += CalculateRefundAmountFromPurchases(upgradeName, purchases);
+                    PrintToServer("[HU] Refunding upgrade '%s' (%d purchases) from slot %s", upgradeName, purchases, slotKey);
+                }
+
+            } while (KvGotoNextKey(g_hPlayerPurchases[client], false));
+
+            KvGoBack(g_hPlayerPurchases[client]);
+        }
+        KvGoBack(g_hPlayerPurchases[client]);
+    }
+
+    g_iMoneySpent[client] -= totalRefund;
+    if (g_iMoneySpent[client] < 0)
+        g_iMoneySpent[client] = 0;
+
+    // Step 2: Rebuild new handles WITHOUT this slot
+    KeyValues newUpgrades = CreateKeyValues("Upgrades");
+    KeyValues newPurchases = CreateKeyValues("Purchases");
+
+    // Copy other upgrade branches
+    KvRewind(g_hPlayerUpgrades[client]);
+    if (KvGotoFirstSubKey(g_hPlayerUpgrades[client], false))
+    {
+        do
+        {
+            char currentSlot[64];
+            KvGetSectionName(g_hPlayerUpgrades[client], currentSlot, sizeof(currentSlot));
+
+            if (StrEqual(currentSlot, slotKey))
+                continue; // Skip refunding slot
+
+            if (KvGotoFirstSubKey(g_hPlayerUpgrades[client], false))
+            {
+                do
+                {
+                    char upgrade[64];
+                    KvGetSectionName(g_hPlayerUpgrades[client], upgrade, sizeof(upgrade));
+                    float val = KvGetFloat(g_hPlayerUpgrades[client], NULL_STRING, 0.0);
+
+                    KvJumpToKey(newUpgrades, currentSlot, true);
+                    KvSetFloat(newUpgrades, upgrade, val);
+                    KvGoBack(newUpgrades);
+
+                } while (KvGotoNextKey(g_hPlayerUpgrades[client], false));
+
+                KvGoBack(g_hPlayerUpgrades[client]);
+            }
+
+        } while (KvGotoNextKey(g_hPlayerUpgrades[client], false));
+    }
+
+    // Copy other purchase branches
+    KvRewind(g_hPlayerPurchases[client]);
+    if (KvGotoFirstSubKey(g_hPlayerPurchases[client], false))
+    {
+        do
+        {
+            char currentSlot[64];
+            KvGetSectionName(g_hPlayerPurchases[client], currentSlot, sizeof(currentSlot));
+
+            if (StrEqual(currentSlot, slotKey))
+                continue; // Skip refunding slot
+
+            if (KvGotoFirstSubKey(g_hPlayerPurchases[client], false))
+            {
+                do
+                {
+                    char upgrade[64];
+                    KvGetSectionName(g_hPlayerPurchases[client], upgrade, sizeof(upgrade));
+                    int count = KvGetNum(g_hPlayerPurchases[client], NULL_STRING, 0);
+
+                    KvJumpToKey(newPurchases, currentSlot, true);
+                    KvSetNum(newPurchases, upgrade, count);
+                    KvGoBack(newPurchases);
+
+                } while (KvGotoNextKey(g_hPlayerPurchases[client], false));
+
+                KvGoBack(g_hPlayerPurchases[client]);
+            }
+
+        } while (KvGotoNextKey(g_hPlayerPurchases[client], false));
+    }
+
+    // Swap in new handles
+    CloseHandle(g_hPlayerUpgrades[client]);
+    g_hPlayerUpgrades[client] = newUpgrades;
+
+    CloseHandle(g_hPlayerPurchases[client]);
+    g_hPlayerPurchases[client] = newPurchases;
+
+    PrintToConsole(client, "[Hyper Upgrades] Refunded all upgrades in %s. Amount refunded: %d$", slotKey, totalRefund);
+}
 
 // I like explicit names. Just to be clear, this calculates it for one specific upgrade.
 int CalculateRefundAmountFromPurchases(const char[] upgradeName, int purchases)
@@ -2991,19 +3169,6 @@ public Action Command_SubtractMoney(int client, int args)
     SetConVarInt(g_hMoneyPool, GetConVarInt(g_hMoneyPool) - amount);
 
     return Plugin_Handled;
-}
-
-public void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
-{
-    int attacker = GetClientOfUserId(event.GetInt("attacker"));
-    int victim = GetClientOfUserId(event.GetInt("userid"));
-
-    if (attacker <= 0 || !IsClientInGame(attacker)) return;
-    if (victim <= 0 || !IsClientInGame(victim)) return;
-    if (attacker == victim) return; // Ignore self-kills (e.g., killbind)
-
-    int reward = GetConVarInt(FindConVar("hu_money_per_kill"));
-    SetConVarInt(g_hMoneyPool, GetConVarInt(g_hMoneyPool) + reward);
 }
 
 
