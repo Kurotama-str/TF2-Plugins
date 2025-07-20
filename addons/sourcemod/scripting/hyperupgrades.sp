@@ -8,6 +8,7 @@
 #include <tf2_stocks>
 #include <tf2attributes>
 #include <tf_econ_data>
+#include <tf_custom_attributes>
 
 #include <stocksoup/handles>
 //#include <stocksoup/memory>
@@ -17,7 +18,7 @@
 #define MAX_EDICTS 2048
 
 #define PLUGIN_NAME "Hyper Upgrades"
-#define PLUGIN_VERSION "0.82"
+#define PLUGIN_VERSION "0.90"
 #define CONFIG_ATTR "hu_attributes.cfg"
 #define CONFIG_UPGR "hu_upgrades.cfg"
 #define CONFIG_WEAP "hu_weapons_list.txt"
@@ -35,6 +36,8 @@ bool g_bMenuPressed[MAXPLAYERS + 1];
 bool g_bPlayerBrowsing[MAXPLAYERS + 1];
 bool g_bShowMoneyHud[MAXPLAYERS + 1];
 bool g_bInUpgradeList[MAXPLAYERS + 1];
+
+bool g_bHasCustomAttributes = false; // checks if Custom Attributes is loaded
 
 char g_sPlayerCategory[MAXPLAYERS + 1][64];
 char g_sPlayerAlias[MAXPLAYERS + 1][64];
@@ -219,6 +222,13 @@ public void OnPluginStart()
 
     g_hResetMoneyPoolOnMapStart = CreateConVar("hu_reset_money_on_mapstart", "1", "Reset the money pool to 0 on map start. 1 = Enabled, 0 = Disabled.", FCVAR_NOTIFY);
 
+    // Notify of Custom Attributes support
+    g_bHasCustomAttributes = LibraryExists("tf2custattr");
+    if (g_bHasCustomAttributes)
+    {
+        PrintToServer("[Hyper Upgrades] Custom Attributes support is enabled.");
+    }
+
 }
 
 public void OnPluginEnd()
@@ -345,7 +355,26 @@ public void OnPluginEnd()
     }
 }
 
+// Checks for libraries like Custom Upgrades
+public void OnLibraryAdded(const char[] name) 
+{
+    if (StrEqual(name, "tf2custattr"))
+    {
+        g_bHasCustomAttributes = true;
+        PrintToServer("[Hyper Upgrades] Custom Attributes plugin detected.");
+    }
+}
 
+public void OnLibraryRemoved(const char[] name)
+{
+    if (StrEqual(name, "tf2custattr"))
+    {
+        g_bHasCustomAttributes = false;
+        PrintToServer("[Hyper Upgrades] Custom Attributes plugin unloaded.");
+    }
+}
+
+//Client Handling
 public void OnClientPutInServer(int client)
 {
     RefundPlayerUpgrades(client, false); // No message on join
@@ -368,6 +397,7 @@ public void OnClientDisconnect(int client)
     g_bPlayerBrowsing[client] = false;
 }
 
+//Map Handling
 public void OnMapStart()
 {
     if (g_hResetMoneyPoolOnMapStart.BoolValue)
@@ -388,6 +418,7 @@ public void OnMapStart()
     CreateTimer(1.0, Timer_DisplayResistanceHUD, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
 }
 
+// Database Handling
 public void OnSafeSettingsQueryResult(Database db, DBResultSet results, const char[] error, any client)
 {
     if (results == null || error[0] != '\0')
@@ -468,6 +499,7 @@ void EnsureSettingsSchemaUpToDate()
     }
 }
 
+//Events
 public void Event_PlayerChangeClass(Event event, const char[] name, bool dontBroadcast)
 {
     int client = GetClientOfUserId(event.GetInt("userid"));
@@ -2791,6 +2823,50 @@ public Action Command_DebugPurchaseHandle(int client, int args)
     return Plugin_Handled;
 }
 
+void HU_SetCustomAttribute(int entity, const char[] name, float value) // Call for Custom Upgrades Application
+{
+    if (!g_bHasCustomAttributes)
+        return;
+
+    char strValue[32];
+    Format(strValue, sizeof(strValue), "%.3f", value);
+    TF2CustAttr_SetString(entity, name, strValue);
+}
+
+void HU_ApplyAttributeFromAlias(int entity, const char[] alias, float value) // Apply attribute depending of if vanilla or custom
+{
+    static const char CUSTOM_PREFIX[] = "CUSTOM_";
+    bool isCustom = StrContains(alias, CUSTOM_PREFIX) == 0;
+
+    // Use alias as-is (do NOT strip the prefix)
+    AttributeMapping mapping;
+    bool found = false;
+
+    for (int i = 0; i < g_attributeMappings.Length; i++)
+    {
+        g_attributeMappings.GetArray(i, mapping);
+        if (StrEqual(mapping.alias, alias))
+        {
+            found = true;
+            break;
+        }
+    }
+
+    if (!found)
+    {
+        PrintToServer("[HU] Unknown attribute alias: %s", alias);
+        return;
+    }
+
+    if (isCustom)
+    {
+        HU_SetCustomAttribute(entity, mapping.attributeName, value);
+    }
+    else
+    {
+        TF2Attrib_SetByName(entity, mapping.attributeName, value);
+    }
+}
 
 
 void ApplyPlayerUpgrades(int client)
@@ -2820,18 +2896,21 @@ void ApplyPlayerUpgrades(int client)
         char slotName[8];
         KvGetSectionName(g_hPlayerUpgrades[client], slotName, sizeof(slotName));
 
-        int weapon = -1;
+        int entity = -1;
         bool isBody = StrEqual(slotName, "body");
 
-        if (!isBody)
+        if (isBody)
+        {
+            entity = client;
+        }
+        else
         {
             int slot = StringToInt(slotName[4]);
-
             EquippedItem item;
             item = GetEquippedEntityForSlot(client, slot);
-            weapon = item.entity;
+            entity = item.entity;
 
-            if (!IsValidEntity(weapon))
+            if (!IsValidEntity(entity))
                 continue;
         }
 
@@ -2848,19 +2927,11 @@ void ApplyPlayerUpgrades(int client)
 
             float value = KvGetFloat(g_hPlayerUpgrades[client], NULL_STRING, 0.0);
 
-            // Resolve alias from display name
+            // Resolve alias from upgrade name
             char upgradeAlias[64];
             if (!GetUpgradeAliasFromName(upgradeName, upgradeAlias, sizeof(upgradeAlias)))
             {
                 PrintToConsole(client, "[Warning] Alias not found for upgrade name: %s", upgradeName);
-                continue;
-            }
-
-            // Resolve attribute from alias
-            char attributeName[128];
-            if (!GetAttributeName(upgradeAlias, attributeName, sizeof(attributeName)))
-            {
-                PrintToConsole(client, "[Warning] Attribute not found for alias: %s", upgradeAlias);
                 continue;
             }
 
@@ -2873,16 +2944,9 @@ void ApplyPlayerUpgrades(int client)
                 initValue = upgrade.initValue;
             }
 
-            float fvalue = initValue + value;
+            float finalValue = initValue + value;
 
-            if (isBody)
-            {
-                TF2Attrib_SetByName(client, attributeName, fvalue);
-            }
-            else
-            {
-                TF2Attrib_SetByName(weapon, attributeName, fvalue);
-            }
+            HU_ApplyAttributeFromAlias(entity, upgradeAlias, finalValue);
 
         } while (KvGotoNextKey(g_hPlayerUpgrades[client], false));
 
@@ -2899,6 +2963,7 @@ void ApplyPlayerUpgrades(int client)
 
     PrintToConsole(client, "[Hyper Upgrades] All upgrades have been applied.");
 }
+
 
 
 
