@@ -600,6 +600,7 @@ name,cost,costincrease,increment,limit,initvalue,alias,,,,,,oldcost,oldcostincre
 *Panic Attack,10,5,0.1,,,panic_attack,,,,,,100,50
 *Panic Attack Negative,10,5,0.1,,,panic_attack_negative,,,,,,100,50
 *Parachute Attribute,50,25,1,1,0,parachute_attribute,,,,,,500,250
+*Redeployable Parachute,100,50,1,1,0,CUSTOM_parachute_redeploy,,,,,,500,250
 *Particle Effect Use Head Origin,10,5,0.1,,,particle_effect_use_head_origin,,,,,,100,50
 *Particle Effect Vertical Offset,10,5,0.1,,,particle_effect_vertical_offset,,,,,,100,50
 *Patient Overheal Penalty,10,5,0.1,,,patient_overheal_penalty,,,,,,100,50

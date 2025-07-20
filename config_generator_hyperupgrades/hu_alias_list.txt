@@ -842,3 +842,4 @@ zoom_speed_mod_disabled,zoom speed mod disabled
 #Custom Attributes' Aliases,Custom Attributes
 CUSTOM_medigun_drains_health,medigun drains health
 CUSTOM_oil_replaces_airblast,oil replaces airblast
+CUSTOM_parachute_redeploy,parachute redeploy
