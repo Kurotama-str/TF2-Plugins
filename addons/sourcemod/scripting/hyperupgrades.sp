@@ -18,7 +18,7 @@
 #define MAX_EDICTS 2048
 
 #define PLUGIN_NAME "Hyper Upgrades"
-#define PLUGIN_VERSION "0.91"
+#define PLUGIN_VERSION "0.92"
 #define CONFIG_ATTR "hu_attributes.cfg"
 #define CONFIG_UPGR "hu_upgrades.cfg"
 #define CONFIG_WEAP "hu_weapons_list.txt"
@@ -653,35 +653,18 @@ void CheckAndHandleWeaponAliasChange(int client)
 {
     for (int slot = 0; slot <= 5; slot++)
     {
-        int weapon = GetPlayerWeaponSlot(client, slot);
-        if (!IsValidEntity(weapon))
-            continue;
+        EquippedItem item;
+        item = GetEquippedEntityForSlot(client, slot);
 
-        int defindex = GetEntProp(weapon, Prop_Send, "m_iItemDefinitionIndex");
-
-        // Look up alias from weapon defindex
-        char newAlias[64] = "";
-        bool found = false;
-        for (int i = 0; i < g_weaponAliases.Length; i++)
+        if (!StrEqual(g_sPreviousAliases[client][slot], item.alias))
         {
-            WeaponAlias weaponData;
-            g_weaponAliases.GetArray(i, weaponData);
-            if (weaponData.defindex == defindex)
-            {
-                strcopy(newAlias, sizeof(newAlias), weaponData.alias);
-                found = true;
-                break;
-            }
-        }
+            PrintToServer("[HU] Alias changed for client %N slot %d: %s → %s",
+                          client, slot,
+                          g_sPreviousAliases[client][slot],
+                          item.alias);
 
-        if (!found)
-            continue;
-
-        if (!StrEqual(g_sPreviousAliases[client][slot], newAlias))
-        {
-            PrintToServer("[HU] Alias changed for client %N slot %d: %s -> %s", client, slot, g_sPreviousAliases[client][slot], newAlias);
             RefundAllUpgradesInSlot(client, slot);
-            strcopy(g_sPreviousAliases[client][slot], sizeof(g_sPreviousAliases[][]), newAlias);
+            strcopy(g_sPreviousAliases[client][slot], sizeof(g_sPreviousAliases[][]), item.alias);
         }
     }
 }
