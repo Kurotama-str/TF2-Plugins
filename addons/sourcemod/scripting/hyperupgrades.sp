@@ -398,6 +398,47 @@ public void OnClientDisconnect(int client)
     g_bPlayerBrowsing[client] = false;
 }
 
+// Main safety for weapon changes
+public Action OnWeaponEquip(int client, int weapon)
+{
+    g_bInUpgradeList[client] = false;
+    CancelClientMenu(client, true);
+    // Defensive: only respond to valid weapon assignments
+    if (!IsValidEntity(weapon) || !IsClientInGame(client))
+        return Plugin_Continue;
+
+    // Optionally: skip if weapon was already equipped
+    static int lastEquipped[MAXPLAYERS + 1][6];
+    int defindex = GetEntProp(weapon, Prop_Send, "m_iItemDefinitionIndex");
+
+    bool alreadySeen = false;
+    for (int i = 0; i < 6; i++)
+    {
+        if (lastEquipped[client][i] == defindex)
+        {
+            alreadySeen = true;
+            break;
+        }
+    }
+
+    if (!alreadySeen)
+    {
+        // Track the weapon
+        for (int i = 0; i < 6; i++)
+        {
+            if (lastEquipped[client][i] == 0)
+            {
+                lastEquipped[client][i] = defindex;
+                break;
+            }
+        }
+
+        CheckAndHandleWeaponAliasChange(client);
+    }
+
+    return Plugin_Continue;
+}
+
 //Map Handling
 public void OnMapStart()
 {
