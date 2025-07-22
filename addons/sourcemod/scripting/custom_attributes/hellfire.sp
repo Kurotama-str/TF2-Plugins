@@ -1,10 +1,11 @@
-// hellfire.sp - Hellfire Ring custom attribute
+// att_hellfire_ring.sp - Hellfire Ring custom attribute
 
 #include <sourcemod>
 #include <sdkhooks>
 #include <sdktools>
 #include <tf2>
 #include <tf2_stocks>
+#include <tf2utils>
 #include <tf2attributes>
 #include <tf_custom_attributes>
 
@@ -12,6 +13,27 @@
 #define BASE_RANGE 150.0
 #define BASE_DAMAGE 16.0
 #define FIRE_COOLDOWN 0.1
+
+// attribute support 1
+#define NUM_HF_ATTRIBUTES 14
+
+enum HFAttributeIndex 
+{
+    HF_BurnDamageIncrease = 0,
+    HF_BurnTimeIncrease,
+    HF_BurnDamageReduction,
+    HF_BurnTimeReduction,
+    HF_HealOnHitRapid,
+    HF_HealOnHitSlow,
+    HF_HealOnKill,
+    HF_SlowOnHitMinor,
+    HF_SlowOnHitMajor,
+    HF_RevealCloaked,
+    HF_RevealDisguised,
+    HF_DamageBonus,
+    HF_DamagePenalty,
+    HF_DamagePenaltyVsPlayers
+};
 
 float g_fLastRingTime[MAXPLAYERS + 1];
 bool g_bHasCustomAttributes = false;
@@ -21,7 +43,7 @@ public Plugin myinfo = {
     name = "Hellfire Ring Attribute",
     author = "Kuro + OpenAI",
     description = "Replaces Pyro's flamethrower with a fire ring",
-    version = "1.0",
+    version = "1.1",
     url = ""
 };
 
@@ -36,6 +58,8 @@ public void OnPluginStart() {
 
     HookUserMessage(GetUserMessageId("VotePass"), DummyHook, true); // ensure OnPlayerRunCmd triggers
     g_cvFlameCount = CreateConVar("hf_particlemult", "3", "Base number of flame particles per ring (used as multiplier)", FCVAR_NONE, true, 1.0, true, 100.0);
+
+    HookEvent("player_death", Event_PlayerDeath, EventHookMode_Post);
 }
 
 public void OnLibraryAdded(const char[] name) {
@@ -51,6 +75,36 @@ public void OnLibraryRemoved(const char[] name) {
     }
 }
 
+bool IsValidClient(int client)
+{
+    return (client > 0 && client <= MaxClients && IsClientInGame(client));
+}
+
+public void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
+{
+    int victim = GetClientOfUserId(event.GetInt("userid"));
+    int attacker = GetClientOfUserId(event.GetInt("attacker"));
+
+    if (!IsValidClient(attacker) || attacker == victim)
+        return;
+
+    int activeWeapon = GetEntPropEnt(attacker, Prop_Send, "m_hActiveWeapon");
+    if (!IsValidEntity(activeWeapon))
+        return;
+
+    float attrs[NUM_HF_ATTRIBUTES];
+    GetHellfireAttributesFromWeapon(activeWeapon, attrs);
+
+    if (attrs[HF_HealOnKill] > 0.0)
+    {
+        int current = GetClientHealth(attacker);
+        int maxOverheal = GetHellfireMaxOverheal(attacker);
+        int newHealth = current + RoundToCeil(attrs[HF_HealOnKill]);
+        if (newHealth > maxOverheal) newHealth = maxOverheal;
+        SetEntityHealth(attacker, newHealth);
+    }
+}
+
 public Action TestFireRing(int client, int args) {
     if (IsClientInGame(client) && IsPlayerAlive(client)) {
         FireRing(client, 1.0);
@@ -63,7 +117,19 @@ public void OnPlayerSpawn(Event event, const char[] name, bool dontBroadcast) {
     g_fLastRingTime[client] = 0.0;
 }
 
-public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3], float angles[3], int &weapon) {
+bool IsFlamethrowerFiring(int weapon)
+{
+    if (!IsValidEntity(weapon))
+        return false;
+
+    float nextAttack = GetEntPropFloat(weapon, Prop_Send, "m_flNextPrimaryAttack");
+    float gameTime = GetGameTime();
+
+    return (gameTime < nextAttack);
+}
+
+public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3], float angles[3], int &weapon)
+{
     if (!g_bHasCustomAttributes || !IsClientInGame(client) || !IsPlayerAlive(client))
         return Plugin_Continue;
 
@@ -77,14 +143,14 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
 
     TF2Attrib_SetByName(activeWeapon, "flame_speed", 0.0);
 
-    if (buttons & IN_ATTACK) {
+    if ((buttons & IN_ATTACK) && IsFlamethrowerFiring(activeWeapon)) {
         float now = GetGameTime();
         if (now - g_fLastRingTime[client] < FIRE_COOLDOWN)
             return Plugin_Continue;
 
         int ammo = GetEntProp(activeWeapon, Prop_Send, "m_iClip1");
         if (ammo <= 0) {
-            PrintToConsole(client,"[HellfireRing] %N has no ammo to fire", client);
+            PrintToConsole(client, "[HellfireRing] %N has no ammo to fire", client);
             return Plugin_Continue;
         }
 
@@ -95,15 +161,68 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
     return Plugin_Continue;
 }
 
-void FireRing(int client, float rangeMult) {
-    //PrintToServer("[HellfireRing] Firing ring for %N (scale %.2f)", client, rangeMult);
+// attribute support 2
 
+void GetHellfireAttributesFromWeapon(int weapon, float output[NUM_HF_ATTRIBUTES])
+{
+    // Set default values
+    output[HF_BurnDamageIncrease]     = 1.0;
+    output[HF_BurnTimeIncrease]       = 1.0;
+    output[HF_BurnDamageReduction]    = 1.0;
+    output[HF_BurnTimeReduction]      = 1.0;
+    output[HF_HealOnHitRapid]         = 0.0;
+    output[HF_HealOnHitSlow]          = 0.0;
+    output[HF_HealOnKill]             = 0.0;
+    output[HF_SlowOnHitMinor]         = 0.0;
+    output[HF_SlowOnHitMajor]         = 0.0;
+    output[HF_RevealCloaked]          = 0.0;
+    output[HF_RevealDisguised]        = 0.0;
+    output[HF_DamageBonus]            = 1.0;
+    output[HF_DamagePenalty]          = 1.0;
+    output[HF_DamagePenaltyVsPlayers] = 1.0;
+
+    static const char attrNames[NUM_HF_ATTRIBUTES][] = {
+        "weapon burn dmg increased",
+        "weapon burn time increased",
+        "weapon burn dmg reduced",
+        "weapon burn time reduced",
+        "heal on hit for rapidfire",
+        "heal on hit for slowfire",
+        "heal on kill",
+        "slow enemy on hit",
+        "slow enemy on hit major",
+        "reveal cloaked victim on hit",
+        "reveal disguised victim on hit",
+        "damage bonus",
+        "damage penalty",
+        "dmg penalty vs players"
+    };
+
+    for (int i = 0; i < NUM_HF_ATTRIBUTES; i++)
+    {
+        Address attr = TF2Attrib_GetByName(weapon, attrNames[i]);
+        if (attr != Address_Null)
+        {
+            float value = TF2Attrib_GetValue(attr);
+            if (value == value && value != 0.0) // not NaN and not zero
+            {
+                output[i] = value;
+            }
+        }
+    }
+}
+
+void FireRing(int client, float rangeMult)
+{
     float range = BASE_RANGE * rangeMult;
     float origin[3];
     GetClientAbsOrigin(client, origin);
 
     int team = GetClientTeam(client);
-    int hits = 0;
+    int weapon = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
+
+    float attrs[NUM_HF_ATTRIBUTES];
+    GetHellfireAttributesFromWeapon(weapon, attrs);
 
     for (int i = 1; i <= MaxClients; i++) {
         if (!IsClientInGame(i) || !IsPlayerAlive(i) || i == client || GetClientTeam(i) == team)
@@ -111,63 +230,121 @@ void FireRing(int client, float rangeMult) {
 
         float targetPos[3];
         GetClientAbsOrigin(i, targetPos);
+        if (GetVectorDistance(origin, targetPos) > range)
+            continue;
 
-        if (GetVectorDistance(origin, targetPos) <= range) {
-            float damage = BASE_DAMAGE;
+        float damage = CalculateHellfireDamage(BASE_DAMAGE, attrs);
 
-            int weapon = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
-            Address bonus = TF2Attrib_GetByName(weapon, "damage bonus");
-            Address penalty = TF2Attrib_GetByName(weapon, "damage penalty");
-            Address vsPlayers = TF2Attrib_GetByName(weapon, "dmg penalty vs players");
+        int dmgType = DMG_BURN | DMG_IGNITE;
+        bool isCrit, isMiniCrit;
+        CheckHellfireCrits(client, i, weapon, isCrit, isMiniCrit);
 
-            if (bonus != Address_Null) damage *= TF2Attrib_GetValue(bonus);
-            if (penalty != Address_Null) damage *= TF2Attrib_GetValue(penalty);
-            if (vsPlayers != Address_Null) damage *= TF2Attrib_GetValue(vsPlayers);
-
-            int dmgType = DMG_BURN | DMG_IGNITE;
-
-            // Check for crit/minicrit conditions
-            bool isCrit = TF2_IsPlayerInCondition(client, TFCond_Kritzkrieged);
-            bool isMiniCrit = TF2_IsPlayerInCondition(client, TFCond_Buffed) || TF2_IsPlayerInCondition(client, TFCond_MiniCritOnKill);
-
-            // Check if target is on fire
-            bool targetBurning = TF2_IsPlayerInCondition(i, TFCond_OnFire);
-
-            // Check attribute-based crits vs burning
-            Address critVsBurning = TF2Attrib_GetByName(weapon, "crit vs burning players");
-            if (critVsBurning != Address_Null && TF2Attrib_GetValue(critVsBurning) > 0.0 && targetBurning) {
-                isCrit = true;
-            }
-
-            Address miniCritVsBurning = TF2Attrib_GetByName(weapon, "minicrit vs burning player");
-            if (miniCritVsBurning != Address_Null && TF2Attrib_GetValue(miniCritVsBurning) > 0.0 && targetBurning) {
-                isMiniCrit = true;
-            }
-
-            // Apply scaling
-            if (isCrit) {
-                damage *= 3.0;
-                dmgType |= DMG_CRIT;
-            } else if (isMiniCrit) {
-                damage *= 1.35;
-            }
-
-            // Use client as both attacker and inflictor to ensure proper kill credit
-            SDKHooks_TakeDamage(i, client, client, damage, dmgType);
-            TF2_IgnitePlayer(i, client);
-
-            //PrintToServer("[HellfireRing] Hit %N for %.1f and ignited", i, damage);
-            hits++;
+        if (isCrit) {
+            damage *= 3.0;
+            dmgType |= DMG_CRIT;
+        } else if (isMiniCrit) {
+            damage *= 1.35;
         }
-    }
 
-    if (hits == 0) {
-        //PrintToServer("[HellfireRing] No targets hit");
+        SDKHooks_TakeDamage(i, client, client, damage, dmgType);
+        ApplyHellfireOnHitEffects(client, i, attrs);
     }
 
     EmitFireRingParticle(client, range, rangeMult);
 }
 
+// attribute support 3
+float CalculateHellfireDamage(float baseDamage, const float attrs[NUM_HF_ATTRIBUTES])
+{
+    float damage = baseDamage;
+    damage *= attrs[HF_DamageBonus];
+    damage *= attrs[HF_DamagePenalty];
+    damage *= attrs[HF_DamagePenaltyVsPlayers];
+    return damage;
+}
+
+int GetHellfireMaxOverheal(int client)
+{
+    if (!IsValidEntity(client))
+        return 0;
+
+    int baseMax = GetEntProp(client, Prop_Data, "m_iMaxHealth");
+    float bonus = 0.0;
+
+    Address addr;
+
+    addr = TF2Attrib_GetByName(client, "max health additive bonus");
+    if (addr != Address_Null)
+        bonus += TF2Attrib_GetValue(addr);
+
+    addr = TF2Attrib_GetByName(client, "max health additive penalty");
+    if (addr != Address_Null)
+        bonus += TF2Attrib_GetValue(addr);
+
+    addr = TF2Attrib_GetByName(client, "SET BONUS: max health additive bonus");
+    if (addr != Address_Null)
+        bonus += TF2Attrib_GetValue(addr);
+
+    float effectiveMax = float(baseMax) + bonus;
+    return RoundToCeil(effectiveMax * 1.5);
+}
+
+void ApplyHellfireOnHitEffects(int client, int target, const float attrs[NUM_HF_ATTRIBUTES])
+{
+    // Heal on hit (capped to 150% overheal)
+    float heal = attrs[HF_HealOnHitRapid] + attrs[HF_HealOnHitSlow];
+    if (heal > 0.0) {
+        int current = GetClientHealth(client);
+        int maxOverheal = GetHellfireMaxOverheal(client);
+        int newHealth = current + RoundToCeil(heal);
+        if (newHealth > maxOverheal) newHealth = maxOverheal;
+        SetEntityHealth(client, newHealth);
+    }
+
+    // Skip effects if target is invalid
+    if (target <= 0 || target > MaxClients || !IsClientInGame(target) || !IsPlayerAlive(target))
+        return;
+
+    // Slow on hit using stun
+    if (attrs[HF_SlowOnHitMinor] > 0.0) {
+        TF2_StunPlayer(target, 0.5, 0.0, TF_STUNFLAG_SLOWDOWN, client);
+    }
+    if (attrs[HF_SlowOnHitMajor] > 0.0) {
+        TF2_StunPlayer(target, 1.0, 0.0, TF_STUNFLAG_SLOWDOWN, client);
+    }
+
+    // Reveal spy
+    if (attrs[HF_RevealCloaked] > 0.0)
+        TF2_RemoveCondition(target, TFCond_Cloaked);
+    if (attrs[HF_RevealDisguised] > 0.0)
+        TF2_RemoveCondition(target, TFCond_Disguised);
+
+    // Ignite using TF2Utils to allow weapon attribute effects
+    int weapon = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
+    if (IsValidEntity(weapon)) {
+        TF2Util_IgnitePlayer(target, client, 5.0, weapon); // 10s is the cap in Jungle Inferno
+    }
+}
+
+void CheckHellfireCrits(int client, int target, int weapon, bool &isCrit, bool &isMiniCrit)
+{
+    isCrit = TF2_IsPlayerInCondition(client, TFCond_Kritzkrieged);
+    isMiniCrit = TF2_IsPlayerInCondition(client, TFCond_Buffed) || TF2_IsPlayerInCondition(client, TFCond_MiniCritOnKill);
+
+    if (target <= MaxClients && IsClientInGame(target) && IsPlayerAlive(target)) {
+        bool burning = TF2_IsPlayerInCondition(target, TFCond_OnFire);
+
+        Address critVsBurning = TF2Attrib_GetByName(weapon, "crit vs burning players");
+        if (critVsBurning != Address_Null && TF2Attrib_GetValue(critVsBurning) > 0.0 && burning)
+            isCrit = true;
+
+        Address miniCritVsBurning = TF2Attrib_GetByName(weapon, "minicrit vs burning player");
+        if (miniCritVsBurning != Address_Null && TF2Attrib_GetValue(miniCritVsBurning) > 0.0 && burning)
+            isMiniCrit = true;
+    }
+}
+
+// Particle handling
 void EmitFireRingParticle(int client, float radius, float rangeMult) {
     float origin[3];
     GetClientAbsOrigin(client, origin);
