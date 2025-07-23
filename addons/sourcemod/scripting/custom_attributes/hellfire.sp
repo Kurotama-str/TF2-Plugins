@@ -11,7 +11,7 @@
 
 #define ATTR_NAME "hellfire ring"
 #define BASE_RANGE 150.0
-#define BASE_DAMAGE 16.0
+#define BASE_DAMAGE 12.0
 #define FIRE_COOLDOWN 0.1
 
 // attribute support 1
@@ -43,7 +43,7 @@ public Plugin myinfo = {
     name = "Hellfire Ring Attribute",
     author = "Kuro + OpenAI",
     description = "Replaces Pyro's flamethrower with a fire ring",
-    version = "1.1",
+    version = "1.2",
     url = ""
 };
 
@@ -53,7 +53,7 @@ public void OnPluginStart() {
 
     g_bHasCustomAttributes = LibraryExists("tf2custattr");
     if (g_bHasCustomAttributes) {
-        PrintToServer("[HellfireRing] Custom Attributes support detected.");
+        //PrintToServer("[HellfireRing] Custom Attributes support detected.");
     }
 
     HookUserMessage(GetUserMessageId("VotePass"), DummyHook, true); // ensure OnPlayerRunCmd triggers
@@ -142,6 +142,8 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
         return Plugin_Continue;
 
     TF2Attrib_SetByName(activeWeapon, "flame_speed", 0.0);
+    TF2Attrib_SetByName(activeWeapon, "flame_up_speed", 0.0);
+    TF2Attrib_SetByName(activeWeapon, "flame_lifetime", -100.0);
 
     if ((buttons & IN_ATTACK) && IsFlamethrowerFiring(activeWeapon)) {
         float now = GetGameTime();
@@ -224,30 +226,71 @@ void FireRing(int client, float rangeMult)
     float attrs[NUM_HF_ATTRIBUTES];
     GetHellfireAttributesFromWeapon(weapon, attrs);
 
-    for (int i = 1; i <= MaxClients; i++) {
-        if (!IsClientInGame(i) || !IsPlayerAlive(i) || i == client || GetClientTeam(i) == team)
+    int maxEntities = GetMaxEntities();
+    for (int ent = 1; ent < maxEntities; ent++) {
+        if (!IsValidEntity(ent) || !IsValidEdict(ent))
             continue;
 
         float targetPos[3];
-        GetClientAbsOrigin(i, targetPos);
+        bool hasPos = false;
+
+        if (HasEntProp(ent, Prop_Send, "m_vecOrigin")) {
+            GetEntPropVector(ent, Prop_Send, "m_vecOrigin", targetPos);
+            hasPos = true;
+        } else if (HasEntProp(ent, Prop_Data, "m_vecAbsOrigin")) {
+            GetEntPropVector(ent, Prop_Data, "m_vecAbsOrigin", targetPos);
+            hasPos = true;
+        }
+
+        if (!hasPos)
+            continue;
+
         if (GetVectorDistance(origin, targetPos) > range)
             continue;
 
-        float damage = CalculateHellfireDamage(BASE_DAMAGE, attrs);
+        char type[16];
+        strcopy(type, sizeof(type), GetTargetType(ent));
 
+        char classname[64];
+        GetEntityClassname(ent, classname, sizeof(classname));
+
+        //PrintToServer("[HellfireRing] Entity %d (class: %s) is of type: %s", ent, classname, type);
+        float attr = TF2CustAttr_GetFloat(weapon, ATTR_NAME, 0.0);
+        float damage = CalculateHellfireDamage(BASE_DAMAGE + RoundFloat(attr * 4.0), attrs);
         int dmgType = DMG_BURN | DMG_IGNITE;
+
         bool isCrit, isMiniCrit;
-        CheckHellfireCrits(client, i, weapon, isCrit, isMiniCrit);
+        CheckHellfireCrits(client, ent, weapon, isCrit, isMiniCrit);
 
         if (isCrit) {
-            damage *= 3.0;
+            damage *= 1.1;
             dmgType |= DMG_CRIT;
         } else if (isMiniCrit) {
             damage *= 1.35;
         }
 
-        SDKHooks_TakeDamage(i, client, client, damage, dmgType);
-        ApplyHellfireOnHitEffects(client, i, attrs);
+        bool shouldDamage = false;
+
+        if (StrEqual(type, "player")) {
+            if (GetClientTeam(ent) != team) {
+                shouldDamage = true;
+            }
+        }
+        else if (StrEqual(type, "building")) {
+            if (GetEntProp(ent, Prop_Send, "m_iTeamNum") != team) {
+                damage /= 10.0;
+                shouldDamage = true;
+            }
+        }
+        // Other entities like bosses
+        else if (StrEqual(type, "other")) {
+            damage *= 3.0;
+            shouldDamage = true;
+        }
+        if (shouldDamage) {
+            SDKHooks_TakeDamage(ent, client, client, damage, dmgType);
+            ApplyHellfireOnHitEffects(client, ent, attrs);
+        }
     }
 
     EmitFireRingParticle(client, range, rangeMult);
@@ -286,7 +329,7 @@ int GetHellfireMaxOverheal(int client)
         bonus += TF2Attrib_GetValue(addr);
 
     float effectiveMax = float(baseMax) + bonus;
-    return RoundToCeil(effectiveMax * 1.5);
+    return RoundToCeil(effectiveMax * 1.1);
 }
 
 void ApplyHellfireOnHitEffects(int client, int target, const float attrs[NUM_HF_ATTRIBUTES])
@@ -398,4 +441,61 @@ public Action DeleteParticle(Handle timer, any ref) {
 
 public Action DummyHook(UserMsg msg_id, Protobuf pbf, const int[] players, int playersNum, bool reliable, bool init) {
     return Plugin_Continue;
+}
+
+// Entity Handler
+/**
+ * Determines if an entity is a valid damageable target and categorizes it.
+ *
+ * @param ent The entity index to evaluate.
+ * @return A string: "invalid", "player", "building", or "other"
+ */
+char[] GetTargetType(int ent)
+{
+    static char result[16];
+
+    if (!IsValidEntity(ent) || !IsValidEdict(ent))
+    {
+        strcopy(result, sizeof(result), "invalid");
+        return result;
+    }
+
+    if (ent > 0 && ent <= MaxClients)
+    {
+        // Must be a valid client and alive
+        if (!IsClientInGame(ent) || !IsPlayerAlive(ent))
+        {
+            strcopy(result, sizeof(result), "invalid");
+        }
+        else
+        {
+            strcopy(result, sizeof(result), "player");
+        }
+    }
+    else
+    {
+        // Must be damageable and have health
+        if (GetEntProp(ent, Prop_Data, "m_takedamage", 1) == 0 ||
+            !HasEntProp(ent, Prop_Data, "m_iHealth") ||
+            GetEntProp(ent, Prop_Data, "m_iHealth") <= 0)
+        {
+            strcopy(result, sizeof(result), "invalid");
+        }
+        else
+        {
+            char classname[64];
+            GetEntityClassname(ent, classname, sizeof(classname));
+
+            if (StrContains(classname, "obj_", false) == 0)
+            {
+                strcopy(result, sizeof(result), "building");
+            }
+            else
+            {
+                strcopy(result, sizeof(result), "other");
+            }
+        }
+    }
+
+    return result;
 }
