@@ -43,7 +43,7 @@ public Plugin myinfo = {
     name = "Hellfire Ring Attribute",
     author = "Kuro + OpenAI",
     description = "Replaces Pyro's flamethrower with a fire ring",
-    version = "1.2",
+    version = "1.3",
     url = ""
 };
 
@@ -92,6 +92,10 @@ public void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast
     if (!IsValidEntity(activeWeapon))
         return;
 
+    // Only proceed if weapon has hellfire
+    if (TF2CustAttr_GetFloat(activeWeapon, ATTR_NAME, 0.0) <= 0.0)
+        return;
+
     float attrs[NUM_HF_ATTRIBUTES];
     GetHellfireAttributesFromWeapon(activeWeapon, attrs);
 
@@ -100,7 +104,10 @@ public void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast
         int current = GetClientHealth(attacker);
         int maxOverheal = GetHellfireMaxOverheal(attacker);
         int newHealth = current + RoundToCeil(attrs[HF_HealOnKill]);
-        if (newHealth > maxOverheal) newHealth = maxOverheal;
+
+        if (newHealth > maxOverheal)
+            newHealth = maxOverheal;
+
         SetEntityHealth(attacker, newHealth);
     }
 }
@@ -288,7 +295,8 @@ void FireRing(int client, float rangeMult)
             shouldDamage = true;
         }
         if (shouldDamage) {
-            SDKHooks_TakeDamage(ent, client, client, damage, dmgType);
+            float zeroForce[3] = {0.0, 0.0, 0.0};
+            SDKHooks_TakeDamage(ent, client, client, damage, dmgType, -1, zeroForce, zeroForce, false);
             ApplyHellfireOnHitEffects(client, ent, attrs);
         }
     }
@@ -311,30 +319,88 @@ int GetHellfireMaxOverheal(int client)
     if (!IsValidEntity(client))
         return 0;
 
-    int baseMax = GetEntProp(client, Prop_Data, "m_iMaxHealth");
+    bool isClient = (client > 0 && client <= MaxClients && IsClientInGame(client));
+
+    int baseMax;
+    if (isClient)
+    {
+        TFClassType class = TF2_GetPlayerClass(client);
+        baseMax = TF2_GetClassMaxHealth(class);
+    }
+    else
+    {
+        baseMax = GetEntProp(client, Prop_Data, "m_iMaxHealth");
+    }
+
     float bonus = 0.0;
-
-    Address addr;
-
-    addr = TF2Attrib_GetByName(client, "max health additive bonus");
-    if (addr != Address_Null)
-        bonus += TF2Attrib_GetValue(addr);
-
-    addr = TF2Attrib_GetByName(client, "max health additive penalty");
-    if (addr != Address_Null)
-        bonus += TF2Attrib_GetValue(addr);
-
-    addr = TF2Attrib_GetByName(client, "SET BONUS: max health additive bonus");
-    if (addr != Address_Null)
-        bonus += TF2Attrib_GetValue(addr);
+    if (isClient)
+    {
+        bonus += GetLiveAttributeTotal(client, "max health additive bonus");
+        bonus -= GetLiveAttributeTotal(client, "max health additive penalty");
+        bonus += GetLiveAttributeTotal(client, "SET BONUS: max health additive bonus");
+    }
 
     float effectiveMax = float(baseMax) + bonus;
-    return RoundToCeil(effectiveMax * 1.1);
+
+    // You can adjust this multiplier if overheal should exceed 100%
+    return RoundToCeil(effectiveMax * 1.5);
+}
+
+float GetLiveAttributeTotal(int client, const char[] attrName)
+{
+    float total = 0.0;
+
+    if (!IsClientInGame(client))
+        return 0.0;
+
+    // Check if player has m_AttributeList before using TF2Attrib
+    if (HasEntProp(client, Prop_Send, "m_AttributeList"))
+    {
+        Address addr = TF2Attrib_GetByName(client, attrName);
+        if (addr != Address_Null)
+            total += TF2Attrib_GetValue(addr);
+    }
+
+    // Scan all equipped entities (weapons, wearables, powerups)
+    int maxEntities = GetMaxEntities();
+    for (int ent = MaxClients + 1; ent < maxEntities; ent++)
+    {
+        if (!IsValidEntity(ent))
+            continue;
+
+        if (!IsEquippedByClient(ent, client))
+            continue;
+
+        // Only try if m_AttributeList exists
+        if (!HasEntProp(ent, Prop_Send, "m_AttributeList"))
+            continue;
+
+        Address addr = TF2Attrib_GetByName(ent, attrName);
+        if (addr != Address_Null)
+            total += TF2Attrib_GetValue(addr);
+    }
+
+    return total;
+}
+
+bool IsEquippedByClient(int ent, int client)
+{
+    if (!IsValidEntity(ent)) return false;
+    if (!HasEntProp(ent, Prop_Send, "m_hOwnerEntity")) return false;
+    return (GetEntPropEnt(ent, Prop_Send, "m_hOwnerEntity") == client);
 }
 
 void ApplyHellfireOnHitEffects(int client, int target, const float attrs[NUM_HF_ATTRIBUTES])
 {
-    // Heal on hit (capped to 150% overheal)
+    int weapon = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
+    if (!IsValidEntity(weapon))
+        return;
+
+    // Only apply hellfire effects if the weapon actually has the hellfire attribute
+    if (TF2CustAttr_GetFloat(weapon, ATTR_NAME, 0.0) <= 0.0)
+        return;
+
+    // Heal on hit
     float heal = attrs[HF_HealOnHitRapid] + attrs[HF_HealOnHitSlow];
     if (heal > 0.0) {
         int current = GetClientHealth(client);
@@ -363,10 +429,7 @@ void ApplyHellfireOnHitEffects(int client, int target, const float attrs[NUM_HF_
         TF2_RemoveCondition(target, TFCond_Disguised);
 
     // Ignite using TF2Utils to allow weapon attribute effects
-    int weapon = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
-    if (IsValidEntity(weapon)) {
-        TF2Util_IgnitePlayer(target, client, 5.0, weapon); // 10s is the cap in Jungle Inferno
-    }
+    TF2Util_IgnitePlayer(target, client, 5.0, weapon); // 10s is the cap in Jungle Inferno
 }
 
 void CheckHellfireCrits(int client, int target, int weapon, bool &isCrit, bool &isMiniCrit)
@@ -498,4 +561,22 @@ char[] GetTargetType(int ent)
     }
 
     return result;
+}
+
+int TF2_GetClassMaxHealth(TFClassType class)
+{
+    switch (class)
+    {
+        case TFClass_Scout:     return 125;
+        case TFClass_Sniper:    return 125;
+        case TFClass_Soldier:   return 200;
+        case TFClass_DemoMan:   return 175;
+        case TFClass_Medic:     return 150;
+        case TFClass_Heavy:     return 300;
+        case TFClass_Pyro:      return 175;
+        case TFClass_Spy:       return 125;
+        case TFClass_Engineer:  return 125;
+    }
+
+    return 100; // fallback default for unknown/invalid class
 }

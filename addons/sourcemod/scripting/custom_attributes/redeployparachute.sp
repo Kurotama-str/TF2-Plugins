@@ -7,7 +7,7 @@
 #include <tf_custom_attributes>
 
 #define ATTR_PARACHUTE_COND TFCond_Parachute
-#define ATTR_NAME "parachute redeploy" // <=== ATTRIBUTE NAME HERE
+#define ATTR_NAME "parachute redeploy"
 
 public Plugin myinfo =
 {
