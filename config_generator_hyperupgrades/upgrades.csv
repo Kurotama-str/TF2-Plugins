@@ -38,9 +38,9 @@ name,cost,costincrease,increment,limit,initvalue,alias,,,,,,oldcost,oldcostincre
 *Airblast Does Not Extinguish,10,5,0.1,,,airblast_put_out_teammate_disabled,,,,,,100,50
 *Gain Ammo From Airblasting Projectiles,10,5,0.1,,,airblast_turn_projectile_to_ammo,,,,,,100,50
 *Airblast Vertical Pushback Scale,10,5,0.1,,,airblast_vertical_pushback_scale,,,,,,100,50
-*Airblast Vertical Vulnerability Multiplier,20,10,-0.1,0.05,1,airblast_vertical_vulnerability_multiplier,,,,,,200,100
-*Airblast Vulnerability Multiplier,10,10,-0.1,0.05,1,airblast_vulnerability_multiplier,,,,,,100,50
-*Airblast Vulnerability Multiplier Hidden,10,5,-0.1,0.05,1,airblast_vulnerability_multiplier_hidden,,,,,,100,50
+*Airblast Z Vuln Mult,20,10,-0.1,0.05,1,airblast_vertical_vulnerability_multiplier,,,,,,200,100
+*Airblast Vuln Mult,10,10,-0.1,0.05,1,airblast_vulnerability_multiplier,,,,,,100,50
+*Airblast Vuln Mult Hidden,10,5,-0.1,0.05,1,airblast_vulnerability_multiplier_hidden,,,,,,100,50
 *Allow Halloween Offering,10,5,0.1,,,allow_halloween_offering,,,,,,100,50
 *Allowed In Medieval Mode,10,5,0.1,,,allowed_in_medieval_mode,,,,,,100,50
 *Alt Fire Teleport To Spawn,150,75,1,1,0,alt_fire_teleport_to_spawn,,,,,,1500,750
@@ -60,7 +60,7 @@ name,cost,costincrease,increment,limit,initvalue,alias,,,,,,oldcost,oldcostincre
 *Attach Particle Effect Static,10,5,0.1,,,attach_particle_effect_static,,,,,,100,50
 *Extinguishing Minicrits,10,5,0.1,,,attack_minicrits_and_consumes_burning,,,,,,100,50
 *Attack Does Not Cancel Charge,40,20,1,1,0,Attack_not_cancel_charge,,,,,,400,200
-*Attack Projectiles,40,20,1,1,0,attack_projectiles,,,,,,400,200
+*Attack Projectiles,100,y,1,4,0,attack_projectiles,,,,,,400,200
 *Auto Fires Full Clip,40,20,1,1,0,auto_fires_full_clip,,,,,,400,200
 *Auto Fires Full Clip All At Once,40,20,1,1,0,auto_fires_full_clip_all_at_once,,,,,,400,200
 *Auto Fires Full Clip Penalty,40,20,1,1,0,auto_fires_full_clip_penalty,,,,,,400,200
@@ -107,12 +107,14 @@ name,cost,costincrease,increment,limit,initvalue,alias,,,,,,oldcost,oldcostincre
 *Health Regen (CARD),10,5,0.1,,,CARD:_health_regen,,,,,,100,50
 *Move Speed Bonus (CARD),10,5,0.1,,1,CARD:_move_speed_bonus,,,,,,100,50
 *Centerfire Projectile,10,5,0.1,,,centerfire_projectile,,,,,,100,50
-*Charge Impact Damage Decreased,10,5,0.1,,,charge_impact_damage_decreased,,,,,,100,50
+*Charge Impact Damage Decreased,10,5,0.1,0,1,charge_impact_damage_decreased,,,,,,100,50
 *Charge Impact Damage Increased,20,6,0.25,1600,1,charge_impact_damage_increased,,,,,,200,60
 *Charge Meter On Hit,20,6,0.25,1,1,charge_meter_on_hit,,,,,,200,60
 *Charge Recharge Rate Increased,15,7,1,25,1,charge_recharge_rate_increased,,,,,,150,75
-*Charge Time Decreased,20,15,0.5,10,1,charge_time_decreased,,,,,,200,150
+*Charge Time Decreased,20,15,-0.5,-2,1,charge_time_decreased,,,,,,200,150
 *Charge Time Increased,20,15,0.5,10,1,charge_time_increased,,,,,,200,150
+*Kaboom Charge,500,50,1,1,0,CUSTOM_exploding_shield_bash,,,,,,,
+*Explosive Charge,500,50,1,5,0,CUSTOM_explosive_charge,,,,,,,
 *Charged Airblast,20,10,1,1,0,charged_airblast,,,,,,200,100
 *Class Select Override Vcd,10,5,0.1,,,class_select_override_vcd,,,,,,100,50
 *Cleaver Description,10,5,0.1,,,cleaver_description,,,,,,100,50
@@ -173,7 +175,8 @@ name,cost,costincrease,increment,limit,initvalue,alias,,,,,,oldcost,oldcostincre
 *Damage Force Increase,20,10,0.2,2,0,damage_force_increase,,,,,,200,100
 *Damage Force Increase Hidden,20,10,0.2,2,0,damage_force_increase_hidden,,,,,,200,100
 *Damage Force Increase Text,10,5,0.1,,,damage_force_increase_text,,,,,,100,50
-*Damage Force Reduction,20,20,-0.1,0.02,1,damage_force_reduction,,,,,,200,200
+*Damage Force Reduction,20,20,-0.5,0.05,1,damage_force_reduction,,,,,,200,200
+*Damage Force Reduction (S),20,20,-0.5,0.01,1,damage_force_reduction,,,,,,200,200
 *Damage Penalty,120,96,0.15,1000,1,damage_penalty,,,,,,1200,960
 *Damage Penalty On Bodyshot,-60,-48,0.15,1000,1,damage_penalty_on_bodyshot,,,,,,-600,-480
 *Sapper Upgrades on Body,10,5,0.1,,,deactive_date,,,,,,100,50
@@ -191,20 +194,21 @@ name,cost,costincrease,increment,limit,initvalue,alias,,,,,,oldcost,oldcostincre
 *Disguise On Backstab,60,30,1,1,0,disguise_on_backstab,,,,,,600,300
 *Disguise Speed,20,10,-0.1,-1.5,0,disguise_speed_penalty,,,,,,200,100
 *Display Duck Leaderboard,10,5,0.1,,,display_duck_leaderboard,,,,,,100,50
+*Dmg Bonus Vs Buildings (Mel),40,16,0.5,500,1,dmg_bonus_vs_buildings,,,,,,800,160
 *Dmg Bonus Vs Buildings,40,16,0.25,500,1,dmg_bonus_vs_buildings,,,,,,800,160
 *Dmg Bonus While Half Dead,40,20,0.25,1500,1,dmg_bonus_while_half_dead,,,,,,400,200
 *Dmg Falloff Decreased,30,30,-0.25,0.05,1,dmg_falloff_decreased,,,,,,100,50
 *Dmg Falloff Increased,10,5,0.1,,,dmg_falloff_increased,,,,,,100,50
 *Melee Resistance,5,40,-0.1,0.05,1,dmg_from_melee_increased,,,,,,250,250
 *Melee Resistance (L),5,40,-0.1,0.35,1,dmg_from_melee_increased,,,,,,250,250
-*Dmg From Ranged Reduced,75,90,-0.05,0.15,1,dmg_from_ranged_reduced,,,,,,750,900
+*Dmg From Ranged Reduced,50,70,-0.05,0.15,1,dmg_from_ranged_reduced,,,,,,750,900
 *Dmg Penalty Vs Buildings,10,5,0.1,,,dmg_penalty_vs_buildings,,,,,,100,50
 *Dmg Penalty Vs Nonburning,10,5,0.1,,,dmg_penalty_vs_nonburning,,,,,,100,50
 *Dmg Penalty Vs Nonstunned,10,5,0.1,,,dmg_penalty_vs_nonstunned,,,,,,100,50
 *Dmg Penalty Vs Players,20,10,0.25,7500,1,dmg_penalty_vs_players,,,,,,200,40
 *Damage bonus vs player (C),15,8,0.25,7500,1,dmg_penalty_vs_players,,,,,,100,15
 *Damage bonus vs player (S),150,150,1,7500,1,dmg_penalty_vs_players,,,,,,1200,1200
-*Damage bonus vs player (G),200,100,0.5,7500,1,dmg_penalty_vs_players,,,,,,,
+*Damage bonus vs player (G),200,100,0.25,7500,1,dmg_penalty_vs_players,,,,,,,
 *Dmg Penalty While Half Alive,10,5,0.1,,,dmg_penalty_while_half_alive,,,,,,100,50
 *Dmg Pierces Resists Absorbs,10,5,0.1,,,dmg_pierces_resists_absorbs,,,,,,100,50
 *Dmg Taken From Blast Increased,35,35,-0.1,0.1,1,dmg_taken_from_blast_increased,,,,,,350,350
@@ -220,7 +224,30 @@ name,cost,costincrease,increment,limit,initvalue,alias,,,,,,oldcost,oldcostincre
 *Fire Resistance (L),5,45,-0.1,0.35,1,dmg_taken_from_fire_reduced,,,,,,350,350
 *Fire Resistance,5,45,-0.1,0.05,1,dmg_taken_from_fire_reduced,,,,,,350,350
 *Fire Resistance On Active,30,30,-0.1,0.1,1,dmg_taken_from_fire_reduced_on_active,,,,,,300,300
-*Dmg Taken Reduced,90,120,-0.05,0.15,1,dmg_taken_increased,,,,,,900,1260
+*Dmg Taken Reduced,60,80,-0.05,0.15,1,dmg_taken_increased,,,,,,900,1260
+*Generic Dmg Mult,50,50,-0.2,0.5,1,CUSTOM_generic_dmg_mult,,,,,,,
+*Crit Dmg Mult,50,50,-0.2,0.5,1,CUSTOM_crit_dmg_mult,,,,,,,
+*Bullet Dmg Mult,50,50,-0.2,0.5,1,CUSTOM_bullet_dmg_mult,,,,,,,
+*Slash Dmg Mult,50,50,-0.2,0.5,1,CUSTOM_slash_dmg_mult,,,,,,,
+*Burn Dmg Mult,50,50,-0.2,0.5,1,CUSTOM_burn_dmg_mult,,,,,,,
+*Club Dmg Mult,50,50,-0.2,0.5,1,CUSTOM_club_dmg_mult,,,,,,,
+*Shock Dmg Mult,50,50,-0.2,0.75,1,CUSTOM_shock_dmg_mult,,,,,,,
+*Sonic Dmg Mult,50,50,-0.2,0.25,1,CUSTOM_sonic_dmg_mult,,,,,,,
+*Blast Dmg Mult,50,50,-0.2,0.5,1,CUSTOM_blast_dmg_mult,,,,,,,
+*Acid Dmg Mult,50,50,-0.2,0.75,1,CUSTOM_acid_dmg_mult,,,,,,,
+*Poison Dmg Mult,50,50,-0.2,0.75,1,CUSTOM_poison_dmg_mult,,,,,,,
+*Radiation Dmg Mult,50,50,-0.2,0.75,1,CUSTOM_radiation_dmg_mult,,,,,,,
+*Drown Dmg Mult,50,50,-0.2,0.25,1,CUSTOM_drown_dmg_mult,,,,,,,
+*Paralyze Dmg Mult,50,50,-0.2,0.25,1,CUSTOM_paralyze_dmg_mult,,,,,,,
+*Nervegas Dmg Mult,50,50,-0.2,0.25,1,CUSTOM_nervegas_dmg_mult,,,,,,,
+*Slowburn Dmg Mult,50,50,-0.2,0.9,1,CUSTOM_slowburn_dmg_mult,,,,,,,
+*Plasma Dmg Mult,50,50,-0.2,0.75,1,CUSTOM_plasma_dmg_mult,,,,,,,
+*Airboat Dmg Mult,50,50,-0.2,0.5,1,CUSTOM_airboat_dmg_mult,,,,,,,
+*Dissolve Dmg Mult,50,50,-0.2,0.25,1,CUSTOM_dissolve_dmg_mult,,,,,,,
+*Prevent_physics_force Dmg Mult,50,50,-0.2,0.75,1,CUSTOM_prevent_physics_force_dmg_mult,,,,,,,
+*Nevergib Dmg Mult,50,50,-0.2,0.8,1,CUSTOM_nevergib_dmg_mult,,,,,,,
+*Alwaysgib Dmg Mult,50,50,-0.2,0.8,1,CUSTOM_alwaysgib_dmg_mult,,,,,,,
+*Energybeam Dmg Mult,50,50,-0.2,0.25,1,CUSTOM_energybeam_dmg_mult,,,,,,,
 *Dragons Fury Negative Properties,10,5,0.1,,,dragons_fury_negative_properties,,,,,,100,50
 *Dragons Fury Neutral Properties,10,5,0.1,,,dragons_fury_neutral_properties,,,,,,100,50
 *Dragons Fury Positive Properties,10,5,0.1,,,dragons_fury_positive_properties,,,,,,100,50
@@ -248,7 +275,7 @@ name,cost,costincrease,increment,limit,initvalue,alias,,,,,,oldcost,oldcostincre
 *Engineer Teleporter Build Rate Multiplier,25,18,-0.1,0.1,1,engineer_teleporter_build_rate_multiplier,,,,,,250,187.5
 *Engy Building Health Bonus,25,2,1,1500,1,engy_building_health_bonus,,,,,,250,25
 *Engy Dispenser Radius Increased,20,10,1,100,1,engy_dispenser_radius_increased,,,,,,200,100
-*Engy Disposable Sentries,50,25,1,3,0,engy_disposable_sentries,,,,,,500,250
+*Engy Disposable Sentries,100,50,1,3,0,engy_disposable_sentries,,,,,,500,250
 *Engy Sentry Damage Bonus,40,16,0.25,2950,1,engy_sentry_damage_bonus,,,,,,400,160
 *Engy Sentry Fire Rate Increased,40,20,-0.1,0.1,1,engy_sentry_fire_rate_increased,,,,,,400,200
 *Engy Sentry Radius Increased,60,30,0.1,2,1,engy_sentry_radius_increased,,,,,,600,300
@@ -268,7 +295,7 @@ name,cost,costincrease,increment,limit,initvalue,alias,,,,,,oldcost,oldcostincre
 *Fire Particle Red,10,5,0.1,,,fire_particle_red,,,,,,100,50
 *Fire Particle Red Crit,10,5,0.1,,,fire_particle_red_crit,,,,,,100,50
 *Fire Rate Bonus,30,15,-0.1,0.1,1,fire_rate_bonus,,,,,,300,150
-*Fire Rate Bonus (Min),40,20,-0.1,0.21,1,fire_rate_bonus,,,,,,300,150
+*Fire Rate Bonus (Min),40,20,-0.1,0.25,1,fire_rate_bonus,,,,,,300,150
 *Fire Rate Bonus (Mel),30,15,-0.1,0.3,1,fire_rate_bonus,,,,,,300,150
 *Fire Rate Bonus (Bat),30,15,-0.1,0.5,1,fire_rate_bonus,,,,,,300,150
 *Fire Rate Bonus Hidden,40,20,-0.1,0.5,1,fire_rate_bonus_HIDDEN,,,,,,400,200
@@ -285,16 +312,19 @@ name,cost,costincrease,increment,limit,initvalue,alias,,,,,,oldcost,oldcostincre
 *Flame Gravity,10,5,0.1,,,flame_gravity,,,,,,100,50
 *Flame Ignore Player Velocity,10,5,0.1,,,flame_ignore_player_velocity,,,,,,100,50
 *Flame Life Bonus,25,12,0.25,5,1,flame_life_bonus,,,,,,250,125
-*Flame Life Penalty,10,5,0.1,,,flame_life_penalty,,,,,,100,50
-*Flame Lifetime,25,12,0.25,5,1,flame_lifetime,,,,,,250,125
+*Flame Life Penalty,10,0,-100,,1,flame_life_penalty,,,,,,100,50
+*Flame Lifetime +,25,12,0.25,5,1,flame_lifetime,,,,,,250,125
+*Flame Lifetime -,10,0,-0.25,,1,flame_lifetime,,,,,,250,125
 *Flame Random Life Time Offset,10,5,0.1,,,flame_random_life_time_offset,,,,,,100,50
 *Flame Reflect On Collision,80,40,1,1,1,flame_reflect_on_collision,,,,,,800,400
 *Flame Reflection Add Life Time,10,5,0.1,,,flame_reflection_add_life_time,,,,,,100,50
 *Flame Size Bonus,80,24,1,60,1,flame_size_bonus,,,,,,800,240
 *Flame Size Penalty,10,5,0.1,,,flame_size_penalty,,,,,,100,50
+*Flame No Speed,50,100,-1,0,1,flame_speed,,,,,,600,300
 *Flame Speed,50,100,500,4500,2500,flame_speed,,,,,,600,300
 *Flame Spread Degree,10,5,0.1,,,flame_spread_degree,,,,,,100,50
 *Flame Up Speed,50,50,100,1000,0,flame_up_speed,,,,,,600,300
+*Flame No Up Speed,50,50,-1,0,1,flame_up_speed,,,,,,600,300
 *Force Center Wrap,10,5,0.1,,,force_center_wrap,,,,,,100,50
 *Force Level Display,10,5,0.1,,,force_level_display,,,,,,100,50
 *Force Weapon Switch,10,5,0.1,,,force_weapon_switch,,,,,,100,50
@@ -450,8 +480,8 @@ name,cost,costincrease,increment,limit,initvalue,alias,,,,,,oldcost,oldcostincre
 *Major Increased Jump Height,200,100,1,2,1,major_increased_jump_height,,,,,,2000,1000
 *Major Move Speed Bonus,200,100,1,2,1,major_move_speed_bonus,,,,,,2000,1000
 *Makers Mark Id,10,5,0.1,,,makers_mark_id,,,,,,100,50
-*Mark For Death,200,5,0.1,1,0,mark_for_death,,,,,,100,50
-*Mark For Death On Building Pickup,10,5,0.1,,,mark_for_death_on_building_pickup,,,,,,100,50
+*Mark For Death,200,5,1,1,0,mark_for_death,,,,,,100,50
+*Mark For Death On Building Pickup,10,5,-1,0,1,mark_for_death_on_building_pickup,,,,,,100,50
 *Max Flame Reflection Count,10,5,0.1,,,max_flame_reflection_count,,,,,,100,50
 *Max Health Bonus (H),25,25,50,20000,0,max_health_additive_bonus,,,,,,,
 *Max Health Bonus,30,15,25,50000,0,max_health_additive_bonus,,,,,,300,150
@@ -479,7 +509,8 @@ name,cost,costincrease,increment,limit,initvalue,alias,,,,,,oldcost,oldcostincre
 *Medigun Crit Fire Percent Bar Deplete,10,5,0.1,,,medigun_crit_fire_percent_bar_deplete,,,,,,100,50
 *Medigun Fire Resist Deployed,100,100,-0.1,0.15,0.25,medigun_fire_resist_deployed,,,,,,400,320
 *Medigun Fire Resist Passive,40,40,-0.1,0.4,0.85,medigun_fire_resist_passive,,,,,,400,320
-*Medigun Leech Beam,500,70,50,1000,0,CUSTOM_medigun_drains_health,,,,,,,
+*MediLeecher (bypass quickfix),100,10,0.5,1000,0,CUSTOM_leecher,,,,,,,
+*Medigun Leech Beam,100,20,0.25,1000,0,CUSTOM_leecher,,,,,,,
 *Melee Attack Rate Bonus,60,90,-0.1,0.4,1,melee_attack_rate_bonus,,,,,,600,900
 *Melee Bounds Multiplier,10,5,0.25,5,1,melee_bounds_multiplier,,,,,,100,50
 *Melee Range Multiplier,20,8,0.1,70,1,melee_range_multiplier,,,,,,200,80
@@ -491,6 +522,7 @@ name,cost,costincrease,increment,limit,initvalue,alias,,,,,,oldcost,oldcostincre
 *Meter Label,10,5,0.1,,,meter_label,,,,,,100,50
 *Min Viewmodel Offset,10,5,0.1,,,min_viewmodel_offset,,,,,,100,50
 *Air Strike Rockets,30,15,1,1,0,mini_rockets,,,,,,300,150
+*Guided Nuke,400,200,1,10,0,CUSTOM_guided_nuke,,,,,,,
 *Minicrit Boost Charge Rate,10,5,0.1,,,minicrit_boost_charge_rate,,,,,,100,50
 *Minicrit Boost When Charged,10,5,0.1,,,minicrit_boost_when_charged,,,,,,100,50
 *Minicrit Vs Burning Player,500,150,1,1,0,minicrit_vs_burning_player,,,,,,3000,1500
@@ -510,6 +542,7 @@ name,cost,costincrease,increment,limit,initvalue,alias,,,,,,oldcost,oldcostincre
 *Mod Demo Buff Type,10,5,0.1,,,mod_demo_buff_type,,,,,,100,50
 *Disguise Consumes Cloak,10,5,0.1,,,mod_disguise_consumes_cloak,,,,,,100,50
 *Oiled Flame (Alt Fire Mod) MAY CRASH THE SERVER,200,100,1,1,0,CUSTOM_oil_replaces_airblast,,,,,,,
+*Hellfire,100,200,0.25,2.5,0.5,CUSTOM_hellfire_ring,,,,,,,
 *Mod Flamethrower Back Crit,60,30,1,1,0,mod_flamethrower_back_crit,,,,,,600,300
 *Mod Flamethrower Push,10,5,0.1,,,mod_flamethrower_push,,,,,,100,50
 *Mod Flaregun Fires Pellets With Knockback,80,40,1,1,0,mod_flaregun_fires_pellets_with_knockback,,,,,,800,400
@@ -555,19 +588,19 @@ name,cost,costincrease,increment,limit,initvalue,alias,,,,,,oldcost,oldcostincre
 *Dragon Fire Rate,50,10,-0.1,0.3,1,mult_item_meter_charge_rate,,,,,,,
 *Gas Charge Rate,50,10,-0.1,0.1,1,mult_item_meter_charge_rate,,,,,,1250,937.5
 *Mult Item Meter Charge Rate,125,93,-0.1,0.4,1,mult_item_meter_charge_rate,,,,,,1250,937.5
-*Thermal Thruster Increased Recharge Rate,50,10,-0.1,0.02,1,mult_item_meter_charge_rate,,,,,,1250,937.5
+*Jetpack Charge Speed,50,10,-0.1,0.02,1,mult_item_meter_charge_rate,,,,,,1250,937.5
 *Dragon Fury Increased Recharge Rate,125,93,-0.1,0.4,1,mult_item_meter_charge_rate,,,,,,1250,937.5
 *Gas Passer Increased Recharge Rate,250,125,-0.2,0.001,0,mult_item_meter_charge_rate,,,,,,2500,1250
 *Mult Patient Overheal Penalty Active,10,5,0.1,,,mult_patient_overheal_penalty_active,,,,,,100,50
 *Mult Patient Overheal Active,40,20,0.25,4,1,mult_patient_overheal_penalty_active,,,,,,100,50
 *Mult Player Movespeed Active,10,5,0.1,,,mult_player_movespeed_active,,,,,,100,50
-*Mult Sniper Charge After Bodyshot,50,25,-0.1,0.2,1,mult_sniper_charge_after_bodyshot,,,,,,500,250
-*Mult Sniper Charge After Headshot,20,10,-0.25,0.1,1,mult_sniper_charge_after_headshot,,,,,,200,100
+*Mult Charge After Bodyshot,50,25,-0.1,0.2,1,mult_sniper_charge_after_bodyshot,,,,,,500,250
+*Mult Charge After Headshot,20,10,-0.25,0.1,1,mult_sniper_charge_after_headshot,,,,,,200,100
 *Mult Sniper Charge After Miss,100,50,-0.1,0.2,1,mult_sniper_charge_after_miss,,,,,,1000,500
-*Mult Sniper Charge Penalty Display Only,10,5,0.1,,,mult_sniper_charge_penalty_DISPLAY_ONLY,,,,,,100,50
+*Mult  Charge Penalty Display Only,10,5,0.1,,,mult_sniper_charge_penalty_DISPLAY_ONLY,,,,,,100,50
 *Mult Spread Scale First Shot,10,5,0.1,,,mult_spread_scale_first_shot,,,,,,100,50
 *Mult Spread Scales Consecutive,10,5,0.1,,,mult_spread_scales_consecutive,,,,,,100,50
-*Multiple Sentries,80,40,1,4,0,multiple_sentries,,,,,,800,400
+*Multiple Sentries,1000,40,1,1,0,multiple_sentries,,,,,,800,400
 *Mvm Completed Challenges Bitmask,10,5,0.1,,,mvm_completed_challenges_bitmask,,,,,,100,50
 *Never Craftable,10,5,0.1,,,never_craftable,,,,,,100,50
 *No Attack,10,5,0.1,,,no_attack,,,,,,100,50
@@ -742,7 +775,7 @@ name,cost,costincrease,increment,limit,initvalue,alias,,,,,,oldcost,oldcostincre
 *Single Wep Holster Time Increased,10,5,0.1,,,single_wep_holster_time_increased,,,,,,100,50
 *Slow Enemy On Hit,50,80,1,1,0,slow_enemy_on_hit,,,,,,100,50
 *Slow Enemy On Hit Major,60,90,2,2,0,slow_enemy_on_hit_major,,,,,,600,900
-*Sniper Aiming Movespeed Increased,20,5,0.1,2,1,sniper_aiming_movespeed_decreased,,,,,,100,50
+*Aim Movespeed Increased (S),20,5,0.1,2,1,sniper_aiming_movespeed_decreased,,,,,,100,50
 *Sniper Charge Per Sec,20,5,0.25,10,1,sniper_charge_per_sec,,,,,,200,50
 *Sniper Crit No Scope,10,5,0.1,,,sniper_crit_no_scope,,,,,,100,50
 *Sniper Fires Tracer,10,5,0.1,,,sniper_fires_tracer,,,,,,100,50
@@ -753,7 +786,7 @@ name,cost,costincrease,increment,limit,initvalue,alias,,,,,,oldcost,oldcostincre
 *Sniper No Headshot Without Full Charge,10,5,0.1,,,sniper_no_headshot_without_full_charge,,,,,,100,50
 *Sniper No Headshots,10,5,0.1,,,sniper_no_headshots,,,,,,100,50
 *Remove Sniper Only Fire Zoomed,100,50,-1,0,1,sniper_only_fire_zoomed,,,,,,1000,500
-*Sniper Penetrate Players When Charged,20,10,1,1,0,sniper_penetrate_players_when_charged,,,,,,200,100
+*Penetrate When Charged,20,10,1,1,0,sniper_penetrate_players_when_charged,,,,,,200,100
 *Sniper Rage Display Only,10,5,0.1,,,sniper_rage_DISPLAY_ONLY,,,,,,100,50
 *Sniper Zoom Penalty,10,5,0.1,,,sniper_zoom_penalty,,,,,,100,50
 *Soldier Model Index,10,5,0.1,,,soldier_model_index,,,,,,100,50
@@ -782,7 +815,7 @@ name,cost,costincrease,increment,limit,initvalue,alias,,,,,,oldcost,oldcostincre
 *Sticky Arm Time Bonus,10,5,-0.2,-1,1,sticky_arm_time_bonus,,,,,,100,50
 *Sticky Arm Time Penalty,10,5,0.1,,,sticky_arm_time_penalty,,,,,,100,50
 *Sticky Detonate Mode,10,5,1,1,0,sticky_detonate_mode,,,,,,100,50
-*Stickybomb Charge Damage Increase,80,40,0.2,9,0,stickybomb_charge_damage_increase,,,,,,800,400
+*Sticky Charge DMG Mod,80,40,0.2,9,0,stickybomb_charge_damage_increase,,,,,,800,400
 *Stickybomb Charge Rate,25,18,-0.1,0.02,1,stickybomb_charge_rate,,,,,,250,187.5
 *Stickybomb Fizzle Time,10,5,0.1,,,stickybomb_fizzle_time,,,,,,100,50
 *Strange Part New Counter Id,10,5,0.1,,,strange_part_new_counter_ID,,,,,,100,50
