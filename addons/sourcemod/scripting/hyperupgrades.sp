@@ -1624,7 +1624,7 @@ public Action Cmd_AttributeScanner(int admin, int args)
 {
     if (args < 2)
     {
-        PrintToServer("[Explosive Charge] Usage: hu_attscan <client> <attribute_name> [vanilla=0|1]");
+        PrintToServer("[Hyper Upgrades] Usage: hu_attscan <client> <attribute_name> [vanilla=0|1]");
         return Plugin_Handled;
     }
 
@@ -1644,7 +1644,7 @@ public Action Cmd_AttributeScanner(int admin, int args)
         client = FindClientByName(clientStr);
         if (client == 0)
         {
-            PrintToServer("[Explosive Charge] Could not find client '%s'", clientStr);
+            PrintToServer("[Hyper Upgrades] Could not find client '%s'", clientStr);
             return Plugin_Handled;
         }
     }
@@ -1660,7 +1660,7 @@ public Action Cmd_AttributeScanner(int admin, int args)
         isVanilla = (StringToInt(vanillaArg) != 0);
     }
 
-    PrintToServer("[Explosive Charge] Scanning client %N for attribute '%s' (%s)", client, attrName, isVanilla ? "vanilla" : "custom");
+    PrintToServer("[Hyper Upgrades] Scanning client %N for attribute '%s' (%s)", client, attrName, isVanilla ? "vanilla" : "custom");
 
     float total = 0.0;
 
@@ -1719,7 +1719,7 @@ public Action Cmd_AttributeScanner(int admin, int args)
         }
     }
 
-    PrintToServer("[Explosive Charge] Total attribute value for client %N: %.3f", client, total);
+    PrintToServer("[Hyper Upgrades] Total attribute value for client %N: %.3f", client, total);
 
     return Plugin_Handled;
 }
