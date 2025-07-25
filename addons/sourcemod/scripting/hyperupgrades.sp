@@ -18,15 +18,12 @@
 #define MAX_EDICTS 2048
 
 #define PLUGIN_NAME "Hyper Upgrades"
-#define PLUGIN_VERSION "0.92"
+#define PLUGIN_VERSION "0.A0"
 #define CONFIG_ATTR "hu_attributes.cfg"
 #define CONFIG_UPGR "hu_upgrades.cfg"
 #define CONFIG_WEAP "hu_weapons_list.txt"
 #define CONFIG_ALIAS "hu_alias_list.txt"
 #define TRANSLATION_FILE "hu_translations.txt"
-
-//#define IN_DUCK (1 << 2)     // Crouch key already defined
-//#define IN_RELOAD (1 << 13)  // Reload key already defined
 
 ConVar g_hMoneyBossMultiplier;
 ConVar g_hMoreUpgrades;
@@ -60,6 +57,7 @@ int g_iPlayerLastMultiplier[MAXPLAYERS + 1];
 
 Handle g_hHudMoneySync;
 Handle g_hHudResistSync;
+Handle g_hHudDamageSync;
 
 Database g_hSettingsDB;
 
@@ -120,7 +118,7 @@ enum ResistanceHudPosition // Res Hud
 };
 ResistanceHudPosition g_iResistHudCorner[MAXPLAYERS + 1];
 
-// --- Damage Types for HUD ---
+// --- Damage Types for Res HUD ---
 enum DamageType
 {
     DAMAGE_FIRE,
@@ -132,6 +130,15 @@ enum DamageType
     DAMAGE_COUNT
 };
 
+enum DamageHudPosition
+{
+    DMGHUD_TOP = 0,
+    DMGHUD_BOTTOM,
+    DMGHUD_LEFT,
+    DMGHUD_RIGHT
+};
+DamageHudPosition g_iDamageHudPosition[MAXPLAYERS + 1];
+
 float g_fDamageTaken[MAXPLAYERS + 1][DAMAGE_COUNT];
 StringMap g_resistanceSources[MAXPLAYERS + 1][DAMAGE_COUNT];
 ArrayList g_resistanceMappings; 
@@ -140,6 +147,7 @@ enum struct ResistanceMapping
     char upgradeName[64];
     DamageType type;
 }
+
 int g_iResistanceHudMode[MAXPLAYERS + 1]; // 0 = off, 1 = standard, 2 = abridged
 
 enum struct EquippedItem // Used to help with wearables
@@ -149,6 +157,87 @@ enum struct EquippedItem // Used to help with wearables
     char alias[64];
 }
 
+int g_iDamageTypeHudMode[MAXPLAYERS + 1]; // 0 = off, 1 = basic, 2 = verbose
+
+enum DmgFlagType
+{
+    DFLAG_GENERIC,
+    DFLAG_CRIT,
+    DFLAG_BULLET,
+    DFLAG_SLASH,
+    DFLAG_BURN,
+    DFLAG_CLUB,
+    DFLAG_SHOCK,
+    DFLAG_SONIC,
+    DFLAG_BLAST,
+    DFLAG_ACID,
+    DFLAG_POISON,
+    DFLAG_RADIATION,
+    DFLAG_DROWN,
+    DFLAG_PARALYZE,
+    DFLAG_NERVEGAS,
+    DFLAG_SLOWBURN,
+    DFLAG_PLASMA,
+    DFLAG_AIRBOAT,
+    DFLAG_DISSOLVE,
+    DFLAG_PREVENT_PHYSICS_FORCE,
+    DFLAG_NEVERGIB,
+    DFLAG_ALWAYSGIB,
+    DFLAG_ENERGYBEAM,
+    DFLAG_COUNT
+};
+
+static const int g_DmgFlagBits[DFLAG_COUNT] = {
+    DMG_GENERIC,
+    DMG_CRIT,
+    DMG_BULLET,
+    DMG_SLASH,
+    DMG_BURN,
+    DMG_CLUB,
+    DMG_SHOCK,
+    DMG_SONIC,
+    DMG_BLAST,
+    DMG_ACID,
+    DMG_POISON,
+    DMG_RADIATION,
+    DMG_DROWN,
+    DMG_PARALYZE,
+    DMG_NERVEGAS,
+    DMG_SLOWBURN,
+    DMG_PLASMA,
+    DMG_AIRBOAT,
+    DMG_DISSOLVE,
+    DMG_PREVENT_PHYSICS_FORCE,
+    DMG_NEVERGIB,
+    DMG_ALWAYSGIB,
+    DMG_ENERGYBEAM
+};
+
+static const char g_DmgFlagNames[DFLAG_COUNT][] = {
+    "Generic",
+    "Crit",
+    "Bullet",
+    "Slash",
+    "Burn",
+    "Club",
+    "Shock",
+    "Sonic",
+    "Blast",
+    "Acid",
+    "Poison",
+    "Radiation",
+    "Drown",
+    "Paralyze",
+    "Nervegas",
+    "Slowburn",
+    "Plasma",
+    "Airboat",
+    "Dissolve",
+    "Physics",
+    "Nevergib",
+    "Alwaysgib",
+    "Energybeam"
+};
 
 public void OnPluginStart()
 {
@@ -156,7 +245,8 @@ public void OnPluginStart()
     RegConsoleCmd("sm_shop", Command_OpenMenu);
 
     RegAdminCmd("hu_addmoney", Command_AddMoney, ADMFLAG_GENERIC, "Add money to the pool.");
-    RegAdminCmd("hu_subtractmoney", Command_SubtractMoney, ADMFLAG_GENERIC, "Subtract money from the pool.");
+    RegAdminCmd("hu_subtmoney", Command_SubtractMoney, ADMFLAG_GENERIC, "Subtract money from the pool.");
+    RegAdminCmd("hu_attscan", Cmd_AttributeScanner, ADMFLAG_GENERIC, "Scan a client's attribute values");
 
     HookEvent("player_death", Event_PlayerDeath, EventHookMode_Post);
     HookEvent("teamplay_point_captured", Event_ObjectiveComplete, EventHookMode_Post);
@@ -196,6 +286,8 @@ public void OnPluginStart()
     // Settings stuff
     g_hHudMoneySync = CreateHudSynchronizer();
     g_hHudResistSync = CreateHudSynchronizer();
+    g_hHudDamageSync = CreateHudSynchronizer();
+
     InitSettingsDatabase();
     if (g_resistanceMappings != null)
         g_resistanceMappings.Clear();
@@ -211,6 +303,7 @@ public void OnPluginStart()
         }
         if (IsClientInGame(i))
         {
+            SDKHook(i, SDKHook_OnTakeDamage, OnTakeDamage);
             if (g_hRefreshTimer[i] == INVALID_HANDLE)
             {
                 g_hRefreshTimer[i] = CreateTimer(0.2, Timer_CheckMenuRefresh, i, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
@@ -378,6 +471,7 @@ public void OnLibraryRemoved(const char[] name)
 //Client Handling
 public void OnClientPutInServer(int client)
 {
+    SDKHook(client, SDKHook_OnTakeDamage, OnTakeDamage);
     RefundPlayerUpgrades(client, false); // No message on join
     LoadPlayerSettings(client);
     g_hRefreshTimer[client] = CreateTimer(0.2, Timer_CheckMenuRefresh, client, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
@@ -396,6 +490,7 @@ public void OnClientDisconnect(int client)
 
     // Reset browsing state
     g_bPlayerBrowsing[client] = false;
+    SDKUnhook(client, SDKHook_OnTakeDamage, OnTakeDamage);
 }
 
 // Main safety for weapon changes
@@ -439,6 +534,46 @@ public Action OnWeaponEquip(int client, int weapon)
     return Plugin_Continue;
 }
 
+// Damage Taken Handling
+
+public Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
+{
+    if (!IsClientInGame(victim) || !IsPlayerAlive(victim))
+        return Plugin_Continue;
+
+    char typeString[256];
+    int mode = g_iDamageTypeHudMode[victim];
+
+    if (mode == 1)
+    {
+        FormatSimplifiedDamageFlags(damagetype, typeString, sizeof(typeString));
+    }
+    else if (mode == 2)
+    {
+        FormatDamageFlags(damagetype, typeString, sizeof(typeString));
+        PrintToConsole(victim, "[HU] You took %.1f damage of type(s): %s", damage, typeString);
+    }
+    else // mode 0 or invalid = do nothing
+    {
+        return Plugin_Continue;
+    }
+
+    float x = -1.0, y = 0.35;
+
+    switch (g_iDamageHudPosition[victim])
+    {
+        case DMGHUD_BOTTOM: y = 0.55;
+        case DMGHUD_LEFT:   x = 0.15, y = -1.0;
+        case DMGHUD_RIGHT:  x = 0.75, y = -1.0;
+        // default = top/center
+    }
+
+    SetHudTextParams(x, y, 2.0, 255, 128, 128, 255, 0, 0.0, 0.1, 2.0);
+    ShowSyncHudText(victim, g_hHudDamageSync, typeString);
+
+    return Plugin_Continue;
+}
+
 //Map Handling
 public void OnMapStart()
 {
@@ -471,13 +606,16 @@ public void OnSafeSettingsQueryResult(Database db, DBResultSet results, const ch
 
     if (results.FetchRow())
     {
-        if (results.FieldCount < 4)
+        if (results.FieldCount < 6)
         {
             PrintToServer("[Warning] Settings row for client %N is missing columns. Using defaults.", client);
             g_bShowMoneyHud[client] = true;
             g_iHudCorner[client] = HUD_BOTTOM_RIGHT;
             g_iResistanceHudMode[client] = 0;
             g_iResistHudCorner[client] = HUDPOS_LEFT;
+            g_iDamageTypeHudMode[client] = 0;
+            g_iDamageHudPosition[client] = DMGHUD_TOP;
+
             SavePlayerSettings(client);
             return;
         }
@@ -493,7 +631,14 @@ public void OnSafeSettingsQueryResult(Database db, DBResultSet results, const ch
         char resistPosStr[16];
         results.FetchString(3, resistPosStr, sizeof(resistPosStr));
         g_iResistHudCorner[client] = ParseResistanceHudPosition(resistPosStr);
-        // PrintToServer("[Debug] [%N] money_hud=%d, hud_pos=%s, resist_mode=%d, resist_pos=%s", client, g_bShowMoneyHud[client], pos, g_iResistanceHudMode[client], resistPosStr);
+
+        g_iDamageTypeHudMode[client] = results.FetchInt(4);
+
+        char dmgPosStr[16];
+        results.FetchString(5, dmgPosStr, sizeof(dmgPosStr));
+        g_iDamageHudPosition[client] = ParseDamageHudPosition(dmgPosStr);
+
+        // PrintToServer("[Debug] [%N] dmg_hud_mode=%d", client, g_iDamageTypeHudMode[client]);
     }
     else
     {
@@ -502,6 +647,8 @@ public void OnSafeSettingsQueryResult(Database db, DBResultSet results, const ch
         g_iHudCorner[client] = HUD_BOTTOM_RIGHT;
         g_iResistanceHudMode[client] = 0;
         g_iResistHudCorner[client] = HUDPOS_LEFT;
+        g_iDamageTypeHudMode[client] = 0;
+
         SavePlayerSettings(client);
     }
 }
@@ -515,6 +662,8 @@ void EnsureSettingsSchemaUpToDate()
 
     bool hasResistHudMode = false;
     bool hasResistHudPos = false;
+    bool hasDamageHudMode = false;
+    bool hasDamageHudPos = false;
 
     while (SQL_FetchRow(results))
     {
@@ -525,6 +674,10 @@ void EnsureSettingsSchemaUpToDate()
             hasResistHudMode = true;
         else if (StrEqual(columnName, "resistance_hud_pos"))
             hasResistHudPos = true;
+        else if (StrEqual(columnName, "damage_type_hud_mode"))
+            hasDamageHudMode = true;
+        else if (StrEqual(columnName, "damage_type_hud_pos"))
+            hasDamageHudPos = true;
     }
     delete results;
 
@@ -538,6 +691,16 @@ void EnsureSettingsSchemaUpToDate()
     {
         PrintToServer("[Hyper Upgrades] Adding missing column 'resistance_hud_pos' to settings table...");
         SQL_FastQuery(g_hSettingsDB, "ALTER TABLE settings ADD COLUMN resistance_hud_pos TEXT DEFAULT 'left';");
+    }
+
+    if (!hasDamageHudMode)
+    {
+        PrintToServer("[Hyper Upgrades] Adding missing column 'damage_type_hud_mode' to settings table...");
+        SQL_FastQuery(g_hSettingsDB, "ALTER TABLE settings ADD COLUMN damage_type_hud_mode INTEGER DEFAULT 1;");
+    }
+    if (!hasDamageHudPos)
+    {
+        SQL_FastQuery(g_hSettingsDB, "ALTER TABLE settings ADD COLUMN damage_type_hud_pos TEXT DEFAULT 'top';");
     }
 }
 
@@ -683,7 +846,8 @@ void InitSettingsDatabase()
     }
 
     SQL_LockDatabase(g_hSettingsDB);
-    SQL_FastQuery(g_hSettingsDB, "CREATE TABLE IF NOT EXISTS settings (steamid TEXT PRIMARY KEY, show_money_hud INTEGER, hud_position TEXT DEFAULT 'bottom-right');");
+
+    SQL_FastQuery(g_hSettingsDB, "CREATE TABLE IF NOT EXISTS settings (steamid TEXT PRIMARY KEY, show_money_hud INTEGER, hud_position TEXT DEFAULT 'bottom-right', resistance_hud_mode INTEGER DEFAULT 0, resistance_hud_pos TEXT DEFAULT 'left', damage_type_hud_mode INTEGER DEFAULT 1, damage_type_hud_pos TEXT DEFAULT 'top');");
 
     EnsureSettingsSchemaUpToDate();
 
@@ -695,9 +859,14 @@ void LoadPlayerSettings(int client)
     if (g_hSettingsDB == null || !IsClientAuthorized(client))
         return;
 
-    char steamid[32], query[256];
+    char steamid[32], query[320];
     GetClientAuthId(client, AuthId_Steam2, steamid, sizeof(steamid), true);
-    Format(query, sizeof(query), "SELECT show_money_hud, hud_position, resistance_hud_mode, resistance_hud_pos FROM settings WHERE steamid = '%s'", steamid);
+    
+    Format(query, sizeof(query),
+        "SELECT show_money_hud, hud_position, resistance_hud_mode, resistance_hud_pos, damage_type_hud_mode, damage_type_hud_pos FROM settings WHERE steamid = '%s'",
+        steamid
+    );
+
     g_hSettingsDB.Query(OnSafeSettingsQueryResult, query, client);
 }
 
@@ -710,7 +879,8 @@ void ShowSettingsMenu(int client)
     menu.AddItem("money_hud_position", "Money Display HUD Position");
     menu.AddItem("toggle_resistance_hud", "Toggle Resistance HUD");
     menu.AddItem("resist_hud_position", "Resistance HUD Position");
-
+    menu.AddItem("toggle_damage_hud", "Toggle Damage Type HUD");
+    menu.AddItem("open_dmg_hud_pos_menu", "Damage Taken HUD Position");
 
     menu.ExitBackButton = true;
     menu.Display(client, MENU_TIME_FOREVER);
@@ -739,6 +909,15 @@ public int MenuHandler_SettingsMenu(Menu menu, MenuAction action, int client, in
         {
             ShowResistHudPositionMenu(client);
         }
+        else if (StrEqual(info, "toggle_damage_hud"))
+        {
+            ToggleDamageHudSetting(client);
+        }
+        else if (StrEqual(info, "open_dmg_hud_pos_menu"))
+        {
+            ShowDamageHudPositionMenu(client);
+        }
+
     }
     else if (action == MenuAction_Cancel && param == MenuCancel_ExitBack)
     {
@@ -758,22 +937,23 @@ void SavePlayerSettings(int client)
 
     char posStr[32];
     MoneyHudPositionToString(g_iHudCorner[client], posStr, sizeof(posStr));
+
     char resistPosStr[32];
     ResHudPositionToString(g_iResistHudCorner[client], resistPosStr, sizeof(resistPosStr));
 
-    char query[256];
+    char dmgPosStr[32];
+    DamageHudPositionToString(g_iDamageHudPosition[client], dmgPosStr, sizeof(dmgPosStr));
 
-    
-
-    Format(query, sizeof(query),
-        "REPLACE INTO settings (steamid, show_money_hud, hud_position, resistance_hud_mode, resistance_hud_pos) VALUES ('%s', %d, '%s', %d, '%s')",
+    char query[512];
+    Format(query, sizeof(query), "REPLACE INTO settings (steamid, show_money_hud, hud_position, resistance_hud_mode, resistance_hud_pos, damage_type_hud_mode, damage_type_hud_pos) VALUES ('%s', %d, '%s', %d, '%s', %d, '%s')",
         steamid,
         g_bShowMoneyHud[client] ? 1 : 0,
         posStr,
         g_iResistanceHudMode[client],
-        resistPosStr
+        resistPosStr,
+        g_iDamageTypeHudMode[client],
+        dmgPosStr
     );
-
 
     SQL_FastQuery(g_hSettingsDB, query);
 }
@@ -853,6 +1033,26 @@ public int MenuHandler_ResistHudPositionMenu(Menu menu, MenuAction action, int c
 
     return 0;
 }
+
+DamageHudPosition ParseDamageHudPosition(const char[] str)
+{
+    if (StrEqual(str, "bottom", false)) return DMGHUD_BOTTOM;
+    if (StrEqual(str, "left", false)) return DMGHUD_LEFT;
+    if (StrEqual(str, "right", false)) return DMGHUD_RIGHT;
+    return DMGHUD_TOP;
+}
+
+void DamageHudPositionToString(DamageHudPosition pos, char[] buffer, int maxlen)
+{
+    switch (pos)
+    {
+        case DMGHUD_BOTTOM: strcopy(buffer, maxlen, "bottom");
+        case DMGHUD_LEFT:   strcopy(buffer, maxlen, "left");
+        case DMGHUD_RIGHT:  strcopy(buffer, maxlen, "right");
+        default:            strcopy(buffer, maxlen, "top");
+    }
+}
+
 
 HudCorner ParseHudPosition(const char[] input)
 {
@@ -1262,8 +1462,59 @@ void RefreshClientResistances(int client)
     KvRewind(g_hPlayerUpgrades[client]);
 }
 
+void ToggleDamageHudSetting(int client)
+{
+    g_iDamageTypeHudMode[client] = (g_iDamageTypeHudMode[client] + 1) % 3;
+    SavePlayerSettings(client);
 
+    char modeName[16];
 
+    switch (g_iDamageTypeHudMode[client])
+    {
+        case 0: Format(modeName, sizeof(modeName), "Off");
+        case 1: Format(modeName, sizeof(modeName), "Basic");
+        case 2: Format(modeName, sizeof(modeName), "Verbose");
+    }
+
+    PrintToChat(client, "[Settings] Damage Type HUD mode set to: %s", modeName);
+}
+
+void ShowDamageHudPositionMenu(int client)
+{
+    Menu menu = new Menu(MenuHandler_DamageHudPosition);
+    menu.SetTitle("Select Damage HUD Position:");
+
+    menu.AddItem("top", "Top (above crosshair)");
+    menu.AddItem("bottom", "Bottom (below crosshair)");
+    menu.AddItem("left", "Left");
+    menu.AddItem("right", "Right");
+
+    menu.ExitBackButton = true;
+    menu.Display(client, 20);
+}
+
+public int MenuHandler_DamageHudPosition(Menu menu, MenuAction action, int client, int item)
+{
+    if (action == MenuAction_End)
+    {
+        delete menu;
+    }
+    else if (action == MenuAction_Select)
+    {
+        char info[16];
+        menu.GetItem(item, info, sizeof(info));
+        g_iDamageHudPosition[client] = ParseDamageHudPosition(info);
+        SavePlayerSettings(client);
+
+        char buffer[16];
+        DamageHudPositionToString(g_iDamageHudPosition[client], buffer, sizeof(buffer));
+        PrintToChat(client, "[Settings] Damage HUD position set to: %s", buffer);
+
+        ShowSettingsMenu(client); // re-open main menu
+    }
+
+    return 0;
+}
 
 // Money handler for players
 void RefundPlayerUpgrades(int client, bool bShowMessage = true)
@@ -1367,6 +1618,149 @@ public Action Command_ReloadUpgrades(int client, int args)
     PrintToConsole(client, "[Hyper Upgrades] Upgrade definitions reloaded from hu_upgrades.cfg.");
     PrintToConsole(client, "[Hyper Upgrades] Resistance upgrade mappings reloaded from hu_res_mappings.txt.");
     return Plugin_Handled;
+}
+
+public Action Cmd_AttributeScanner(int admin, int args)
+{
+    if (args < 2)
+    {
+        PrintToServer("[Explosive Charge] Usage: hu_attscan <client> <attribute_name> [vanilla=0|1]");
+        return Plugin_Handled;
+    }
+
+    char clientStr[64];
+    GetCmdArg(1, clientStr, sizeof(clientStr));
+
+    int client = 0;
+
+    // Try to parse as client index
+    if (StrToInt(clientStr, client) && client >= 1 && client <= MaxClients && IsClientInGame(client))
+    {
+        // valid client index
+    }
+    else
+    {
+        // Try to find by name
+        client = FindClientByName(clientStr);
+        if (client == 0)
+        {
+            PrintToServer("[Explosive Charge] Could not find client '%s'", clientStr);
+            return Plugin_Handled;
+        }
+    }
+
+    char attrName[64];
+    GetCmdArg(2, attrName, sizeof(attrName));
+
+    bool isVanilla = true;
+    if (args >= 3)
+    {
+        char vanillaArg[8];
+        GetCmdArg(3, vanillaArg, sizeof(vanillaArg));
+        isVanilla = (StringToInt(vanillaArg) != 0);
+    }
+
+    PrintToServer("[Explosive Charge] Scanning client %N for attribute '%s' (%s)", client, attrName, isVanilla ? "vanilla" : "custom");
+
+    float total = 0.0;
+
+    // Check attribute on player entity
+    if (isVanilla)
+    {
+        Address addr = TF2Attrib_GetByName(client, attrName);
+        if (addr != Address_Null)
+        {
+            float val = TF2Attrib_GetValue(addr);
+            total += val;
+            PrintToServer("[AttributeScan] Client entity %d value: %.3f", client, val);
+        }
+    }
+    else
+    {
+        float val = TF2CustAttr_GetFloat(client, attrName);
+        if (val != 0.0)
+        {
+            total += val;
+            PrintToServer("[AttributeScan] Client entity %d value: %.3f", client, val);
+        }
+    }
+
+    // Scan equipped entities
+    int maxEntities = GetMaxEntities();
+    for (int ent = MaxClients + 1; ent < maxEntities; ent++)
+    {
+        if (!IsValidEntity(ent))
+            continue;
+
+        if (!IsEquippedByClient(ent, client))
+            continue;
+
+        if (isVanilla)
+        {
+            Address addr = TF2Attrib_GetByName(ent, attrName);
+            if (addr == Address_Null)
+                continue;
+
+            float val = TF2Attrib_GetValue(addr);
+            if (val == 0.0)
+                continue;
+
+            total += val;
+            PrintToServer("[AttributeScan] Entity %d (%N) value: %.3f", ent, ent, val);
+        }
+        else
+        {
+            float val = TF2CustAttr_GetFloat(ent, attrName);
+            if (val == 0.0)
+                continue;
+
+            total += val;
+            PrintToServer("[AttributeScan] Entity %d (%N) value: %.3f", ent, ent, val);
+        }
+    }
+
+    PrintToServer("[Explosive Charge] Total attribute value for client %N: %.3f", client, total);
+
+    return Plugin_Handled;
+}
+
+bool IsEquippedByClient(int ent, int client)
+{
+    if (!IsValidEntity(ent)) return false;
+    if (!HasEntProp(ent, Prop_Send, "m_hOwnerEntity")) return false;
+    return (GetEntPropEnt(ent, Prop_Send, "m_hOwnerEntity") == client);
+}
+
+int FindClientByName(const char[] name)
+{
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        if (!IsClientInGame(i))
+            continue;
+
+        char clientName[64];
+        GetClientName(i, clientName, sizeof(clientName));
+
+        if (StrContains(clientName, name, false) != -1)
+            return i;
+    }
+    return 0;
+}
+
+bool StrToInt(const char[] str, int &value)
+{
+    // StringToInt returns 0 if parsing fails, so we need to check explicitly
+    // We'll assume that if str starts with a digit or '-' it is valid
+    if (str[0] == '\0')
+        return false;
+
+    if ((str[0] >= '0' && str[0] <= '9') || str[0] == '-')
+    {
+        value = StringToInt(str);
+        return true;
+    }
+
+    return false;
 }
 
 // Detect scoreboard key press
@@ -2276,7 +2670,7 @@ public int MenuHandler_Submenu(Menu menu, MenuAction action, int client, int ite
 {
     if (action == MenuAction_Select)
     {
-        char upgradeGroup[64];
+        char upgradeGroup[128];
         menu.GetItem(item, upgradeGroup, sizeof(upgradeGroup));
 
         // Load the upgrades in the selected group
@@ -2692,6 +3086,10 @@ void ShowUpgradeListMenu(int client, const char[] upgradeGroup)
 
     if (!foundPath)
     {
+        PrintToServer("[Debug] ShowUpgradeListMenu for client %d", client);
+        PrintToServer("[Debug] g_sPlayerCategory = '%s'", g_sPlayerCategory[client]);
+        PrintToServer("[Debug] g_sPlayerAlias = '%s'", g_sPlayerAlias[client]);
+        PrintToServer("[Debug] upgradeGroup = '%s'", upgradeGroup);
         PrintToChat(client, "[Hyper Upgrades] No upgrades found for this item.");
         delete kv;
         g_bInUpgradeList[client] = false;
@@ -3030,7 +3428,7 @@ void HU_SetCustomAttribute(int entity, const char[] name, float value) // Call f
     if (!g_bHasCustomAttributes)
         return;
 
-    char strValue[32];
+    char strValue[64];
     Format(strValue, sizeof(strValue), "%.3f", value);
     TF2CustAttr_SetString(entity, name, strValue);
 }
@@ -3165,9 +3563,6 @@ void ApplyPlayerUpgrades(int client)
 
     PrintToConsole(client, "[Hyper Upgrades] All upgrades have been applied.");
 }
-
-
-
 
 public Action Command_AddMoney(int client, int args)
 {
@@ -3362,6 +3757,104 @@ void ApplyBuildingUpgrades(int client, int entity, const char[] classname)
     KvRewind(g_hPlayerUpgrades[client]);
 }
 
+// Damage Types Handling
+void FormatDamageFlags(int damagetype, char[] buffer, int maxlen)
+{
+    buffer[0] = '\0';
+
+    for (int i = 0; i < view_as<int>(DFLAG_COUNT); i++)
+    {
+        if ((damagetype & g_DmgFlagBits[i]) != 0)
+        {
+            if (buffer[0] != '\0')
+            {
+                strcopy(buffer[strlen(buffer)], maxlen - strlen(buffer), ", ");
+            }
+            strcopy(buffer[strlen(buffer)], maxlen - strlen(buffer), g_DmgFlagNames[i]);
+        }
+    }
+
+    if (buffer[0] == '\0')
+    {
+        strcopy(buffer, maxlen, "None");
+    }
+}
+
+void FormatSimplifiedDamageFlags(int damagetype, char[] buffer, int maxlen)
+{
+    buffer[0] = '\0';
+    bool hasAny = false;
+    bool written[7]; // 0=Bullet, 1=Blast, 2=Fire, 3=Crit, 4=Melee, 5=Other, 6=Weird
+
+    char label[16];
+
+    for (int i = 0; i < view_as<int>(DFLAG_COUNT); i++)
+    {
+        if ((damagetype & g_DmgFlagBits[i]) == 0)
+            continue;
+
+        int index = -1;
+        label[0] = '\0';
+
+        switch (i)
+        {
+            case DFLAG_BULLET:
+                if (!written[0]) { strcopy(label, sizeof(label), "Bullet"); written[0] = true; index = 0; }
+
+            case DFLAG_BLAST:
+                if (!written[1]) { strcopy(label, sizeof(label), "Blast"); written[1] = true; index = 1; }
+
+            case DFLAG_RADIATION:
+                if (!written[6]) { strcopy(label, sizeof(label), "WEIRD"); written[6] = true; index = 0; }
+
+            case DFLAG_BURN:
+                if (!written[2]) { strcopy(label, sizeof(label), "Fire"); written[2] = true; index = 2; }
+
+            case DFLAG_PLASMA:
+                if (!written[6]) { strcopy(label, sizeof(label), "WEIRD"); written[6] = true; index = 0; }
+
+            case DFLAG_CRIT:
+                if (!written[3]) { strcopy(label, sizeof(label), "Crit"); written[3] = true; index = 3; }
+
+            case DFLAG_ACID:
+                if (!written[6]) { strcopy(label, sizeof(label), "WEIRD"); written[6] = true; index = 0; }
+
+            case DFLAG_CLUB:
+                if (!written[4]) { strcopy(label, sizeof(label), "Melee"); written[4] = true; index = 4; }
+
+            case DFLAG_NEVERGIB:
+                if (!written[6]) { strcopy(label, sizeof(label), "WEIRD"); written[6] = true; index = 0; }
+
+            case DFLAG_SLOWBURN:
+                if (!written[6]) { strcopy(label, sizeof(label), "WEIRD"); written[6] = true; index = 0; }
+
+            case DFLAG_POISON:
+                if (!written[6]) { strcopy(label, sizeof(label), "WEIRD"); written[6] = true; index = 0; }
+            
+
+            default:
+                if (!written[5]) { strcopy(label, sizeof(label), "Other"); written[5] = true; index = 5; }
+        }
+
+        if (index == -1 || index == -2)
+            continue;
+
+        if (hasAny)
+            strcopy(buffer[strlen(buffer)], maxlen - strlen(buffer), ", ");
+        strcopy(buffer[strlen(buffer)], maxlen - strlen(buffer), label);
+        hasAny = true;
+    }
+
+    if (!hasAny && !written[5])
+    {
+        strcopy(buffer, maxlen, "Other");
+        written[5] = true;
+    }
+}
+
+
+
+// DEFAULT CONFIGS
 void GenerateConfigFiles()
 {
     char filePath[PLATFORM_MAX_PATH];
