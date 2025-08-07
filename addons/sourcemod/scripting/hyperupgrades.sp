@@ -3870,8 +3870,14 @@ int CalculateBossHealthMultiplier(int maxHealth)
 
 public void OnBuildingSpawned(int entity)
 {
+    if (!IsValidEntity(entity))
+        return;
+    
     int builder = GetEntPropEnt(entity, Prop_Send, "m_hBuilder");
 
+    if (!IsValidEntity(builder))
+        return;
+    
     if (!IsClientInGame(builder) || !IsPlayerAlive(builder))
         return;
 
