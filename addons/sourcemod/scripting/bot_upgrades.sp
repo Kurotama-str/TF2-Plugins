@@ -10,7 +10,7 @@
 #pragma semicolon 1
 
 #define PLUGIN_NAME    "Bot Upgrades"
-#define PLUGIN_VERSION "1.2.1"
+#define PLUGIN_VERSION "1.3.0"
 
 // ConVars
 ConVar gCvarBotLevel;
@@ -20,6 +20,9 @@ ConVar gCvarHealthBase;
 ConVar gCvarPrimaryBase;
 ConVar gCvarSecondaryBase;
 ConVar gCvarMeleeBase;
+
+bool g_bMvMActive = false; // mvm handling
+ConVar g_hMvmMode;
 
 public Plugin myinfo =
 {
@@ -41,9 +44,78 @@ public void OnPluginStart()
     gCvarSecondaryBase = CreateConVar("bu_secondary_dmg_base", "2.0", "Base multiplier for secondary weapon damage", _, true, 1.0);
     gCvarMeleeBase = CreateConVar("bu_melee_dmg_base", "2.0", "Base multiplier for melee weapon damage", _, true, 1.0);
 
+    g_hMvmMode = CreateConVar("hu_mvm_mode", "0", "Hyper Upgrades MvM mode. 0 = auto, 1 = manual disable, 2 = manual enable.", FCVAR_NOTIFY);
+
     AutoExecConfig(true, "bot_upgrades");
 
     HookEvent("player_spawn", Event_PlayerSpawn, EventHookMode_Post);
+    HookEvent("mvm_wave_failed", Event_MvMWaveFailed, EventHookMode_Post);
+}
+
+//Map Handling
+public void OnMapStart()
+{
+    CheckMvMMapMode();
+}
+
+void CheckMvMMapMode()
+{
+    char map[PLATFORM_MAX_PATH];
+    GetCurrentMap(map, sizeof(map));
+
+    int mode = g_hMvmMode.IntValue;
+
+    switch (mode)
+    {
+        case 0: // auto
+            g_bMvMActive = (StrContains(map, "mvm_", false) == 0);
+        case 1: // force classic
+            g_bMvMActive = false;
+        case 2: // force MvM
+            g_bMvMActive = true;
+    }
+
+    PrintToServer("[BotUpgrades] bot_mvm_mode = %d → MvM mode active: %s", mode, g_bMvMActive ? "Yes" : "No");
+}
+
+public void Event_MvMWaveFailed(Event event, const char[] name, bool dontBroadcast)
+{
+    UpdateBotLevelFromMvMCurrency();
+}
+
+void UpdateBotLevelFromMvMCurrency()
+{
+    if (!g_bMvMActive)
+        return;
+
+    int currency = 0;
+
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        if (!IsClientInGame(i) || !IsFakeClient(i))
+            continue;
+
+        if (TF2_GetClientTeam(i) == TFTeam_Red && HasEntProp(i, Prop_Send, "m_nCurrency"))
+        {
+            currency = GetEntProp(i, Prop_Send, "m_nCurrency");
+            break; // use the first valid fakeclient on red team
+        }
+    }
+
+    if (currency < 1)
+        return; // no red bots with valid m_nCurrency
+
+    int newLevel = (1000+currency) / 1000;
+    if (newLevel > 10)
+        newLevel = 10;
+    if (newLevel < 1)
+        newLevel = 1;
+
+    if (newLevel != gCvarBotLevel.IntValue)
+    {
+        PrintToServer("[BotUpgrades] Updated bot level to %d based on red bot currency = %d", newLevel, currency);
+        gCvarBotLevel.IntValue = newLevel;
+    }
 }
 
 public Action Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
@@ -53,6 +125,8 @@ public Action Event_PlayerSpawn(Event event, const char[] name, bool dontBroadca
     {
         // Delay applying upgrades slightly to ensure weapons are equipped
         CreateTimer(0.2, Timer_ApplyUpgrades, client);
+        if (g_bMvMActive)
+            UpdateBotLevelFromMvMCurrency();
     }
     return Plugin_Continue;
 }
@@ -68,9 +142,9 @@ void ApplyBotUpgrades(int client)
         float multiplier = Pow(baseHealth, float(level) - 1);
         int playerClass = GetPlayerClass(client);
         int base = GetClassBaseHealth(playerClass);
-        int newHealth = RoundToNearest(float(base) * (multiplier - 1));
+        int newHealth = RoundToNearest(float(base) * (multiplier));
 
-        TF2Attrib_SetByName(client, "max health additive bonus", float(newHealth));
+        TF2Attrib_SetByName(client, "max health additive bonus", float(newHealth - base));
         SetEntProp(client, Prop_Send, "m_iHealth", newHealth);
     }
 
@@ -85,10 +159,13 @@ void ApplyBotUpgrades(int client)
 
 public Action Timer_ApplyUpgrades(Handle timer, any client)
 {
-    if (IsClientInGame(client) && IsFakeClient(client))
-    {
-        ApplyBotUpgrades(client);
-    }
+    if (!IsClientInGame(client) || !IsFakeClient(client) || TF2_GetClientTeam(client) == TFTeam_Unassigned || TF2_GetClientTeam(client) == TFTeam_Spectator)
+        return Plugin_Stop;
+
+    if (g_bMvMActive && TF2_GetClientTeam(client) != TFTeam_Red)
+        return Plugin_Stop; // Skip applying upgrades to blue bots in MvM
+
+    ApplyBotUpgrades(client);
     return Plugin_Stop;
 }
 
