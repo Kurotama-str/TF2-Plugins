@@ -18,7 +18,7 @@
 #define MAX_EDICTS 2048
 
 #define PLUGIN_NAME "Hyper Upgrades"
-#define PLUGIN_VERSION "0.A0"
+#define PLUGIN_VERSION "0.B2"
 #define CONFIG_ATTR "hu_attributes.cfg"
 #define CONFIG_UPGR "hu_upgrades.cfg"
 #define CONFIG_WEAP "hu_weapons_list.txt"
@@ -27,6 +27,7 @@
 
 ConVar g_hMoneyBossMultiplier;
 ConVar g_hMoreUpgrades;
+ConVar g_hMvmMode;
 
 bool g_bBossRewarded[MAX_EDICTS + 1];
 bool g_bMenuPressed[MAXPLAYERS + 1];
@@ -35,17 +36,21 @@ bool g_bShowMoneyHud[MAXPLAYERS + 1];
 bool g_bInUpgradeList[MAXPLAYERS + 1];
 
 bool g_bHasCustomAttributes = false; // checks if Custom Attributes is loaded
+bool g_bMvMActive = false;
 
 char g_sPlayerCategory[MAXPLAYERS + 1][64];
 char g_sPlayerAlias[MAXPLAYERS + 1][64];
 char g_sPlayerUpgradeGroup[MAXPLAYERS + 1][64];
 char g_sPreviousAliases[MAXPLAYERS + 1][6][64]; // 6 slots, 64-char alias - tracks weapon alias for slot
+char g_sCurrentMission[64]; // mvm mission name if applicable
 
 int g_MenuClient[MAXPLAYERS + 1];
 int g_iUpgradeMenuPage[MAXPLAYERS + 1];
 
 Handle g_hMoneyPool;
 int g_iMoneySpent[MAXPLAYERS + 1];
+
+ConVar g_hMoneyPerObjective;
 
 Handle g_hPlayerUpgrades[MAXPLAYERS + 1];
 Handle g_hPlayerPurchases[MAXPLAYERS + 1];
@@ -58,8 +63,15 @@ int g_iPlayerLastMultiplier[MAXPLAYERS + 1];
 Handle g_hHudMoneySync;
 Handle g_hHudResistSync;
 Handle g_hHudDamageSync;
+Handle g_hCurrencySyncTimer = null;
 
 Database g_hSettingsDB;
+
+//MvM wave snapshot
+int g_iMoneyPoolSnapshot = 0;
+int g_iMoneySpentSnapshot[MAXPLAYERS + 1];
+Handle g_hPlayerUpgradesSnapshot[MAXPLAYERS + 1];
+Handle g_hPlayerPurchasesSnapshot[MAXPLAYERS + 1];
 
 public Plugin myinfo =
 {
@@ -162,81 +174,123 @@ int g_iDamageTypeHudMode[MAXPLAYERS + 1]; // 0 = off, 1 = basic, 2 = verbose
 enum DmgFlagType
 {
     DFLAG_GENERIC,
+    DFLAG_DIRECT,
+    DFLAG_CRUSH,
     DFLAG_CRIT,
     DFLAG_BULLET,
     DFLAG_SLASH,
+    DFLAG_BUCKSHOT,
     DFLAG_BURN,
+    DFLAG_IGNITE,
     DFLAG_CLUB,
     DFLAG_SHOCK,
     DFLAG_SONIC,
     DFLAG_BLAST,
+    DFLAG_BLAST_SURFACE,
     DFLAG_ACID,
     DFLAG_POISON,
     DFLAG_RADIATION,
     DFLAG_DROWN,
+    DFLAG_DROWNRECOVER,
     DFLAG_PARALYZE,
     DFLAG_NERVEGAS,
     DFLAG_SLOWBURN,
     DFLAG_PLASMA,
     DFLAG_AIRBOAT,
+    DFLAG_VEHICLE,
     DFLAG_DISSOLVE,
     DFLAG_PREVENT_PHYSICS_FORCE,
+    DFLAG_USE_HITLOCATIONS,
+    DFLAG_NOCLOSEDISTANCEMOD,
+    DFLAG_USEDISTANCEMOD,
+    DFLAG_HALF_FALLOFF,
     DFLAG_NEVERGIB,
     DFLAG_ALWAYSGIB,
+    DFLAG_REMOVENORAGDOLL,
     DFLAG_ENERGYBEAM,
+    DFLAG_RADIUS_MAX,
+    DFLAG_PHYSGUN,
     DFLAG_COUNT
 };
 
 static const int g_DmgFlagBits[DFLAG_COUNT] = {
     DMG_GENERIC,
+    DMG_DIRECT,
+    DMG_CRUSH,
     DMG_CRIT,
     DMG_BULLET,
     DMG_SLASH,
+    DMG_BUCKSHOT,
     DMG_BURN,
+    DMG_IGNITE,
     DMG_CLUB,
     DMG_SHOCK,
     DMG_SONIC,
     DMG_BLAST,
+    DMG_BLAST_SURFACE,
     DMG_ACID,
     DMG_POISON,
     DMG_RADIATION,
     DMG_DROWN,
+    DMG_DROWNRECOVER,
     DMG_PARALYZE,
     DMG_NERVEGAS,
     DMG_SLOWBURN,
     DMG_PLASMA,
     DMG_AIRBOAT,
+    DMG_VEHICLE,
     DMG_DISSOLVE,
     DMG_PREVENT_PHYSICS_FORCE,
+    DMG_USE_HITLOCATIONS,
+    DMG_NOCLOSEDISTANCEMOD,
+    DMG_USEDISTANCEMOD,
+    DMG_HALF_FALLOFF,
     DMG_NEVERGIB,
     DMG_ALWAYSGIB,
-    DMG_ENERGYBEAM
+    DMG_REMOVENORAGDOLL,
+    DMG_ENERGYBEAM,
+    DMG_RADIUS_MAX,
+    DMG_PHYSGUN
 };
 
 static const char g_DmgFlagNames[DFLAG_COUNT][] = {
     "Generic",
+    "Direct",
+    "Crush",
     "Crit",
     "Bullet",
     "Slash",
+    "Buckshot",
     "Burn",
+    "Ignite",
     "Club",
     "Shock",
     "Sonic",
     "Blast",
+    "Blast Surface",
     "Acid",
     "Poison",
     "Radiation",
     "Drown",
+    "Drown Recovery",
     "Paralyze",
     "Nervegas",
     "Slowburn",
     "Plasma",
     "Airboat",
+    "Vehicle",
     "Dissolve",
     "Physics",
+    "Hit Location",
+    "NCD Mod",
+    "UD Mod",
+    "Half Falloff",
     "Nevergib",
     "Alwaysgib",
-    "Energybeam"
+    "Ragdoll Removal",
+    "Energybeam",
+    "Max Radius",
+    "Physgun"
 };
 
 public void OnPluginStart()
@@ -245,6 +299,7 @@ public void OnPluginStart()
     RegConsoleCmd("sm_shop", Command_OpenMenu);
 
     RegAdminCmd("hu_addmoney", Command_AddMoney, ADMFLAG_GENERIC, "Add money to the pool.");
+    RegAdminCmd("mvm_addcash", Command_AddMvMCash, ADMFLAG_CHEATS, "Adds MvM credits to all active players");
     RegAdminCmd("hu_subtmoney", Command_SubtractMoney, ADMFLAG_GENERIC, "Subtract money from the pool.");
     RegAdminCmd("hu_attscan", Cmd_AttributeScanner, ADMFLAG_GENERIC, "Scan a client's attribute values");
 
@@ -254,15 +309,21 @@ public void OnPluginStart()
     HookEvent("teamplay_round_win", Event_ObjectiveComplete, EventHookMode_Post);
     HookEvent("player_changeclass", Event_PlayerChangeClass, EventHookMode_Post);
     HookEvent("player_spawn", Event_PlayerSpawn, EventHookMode_Post);
+    HookEvent("mvm_begin_wave", Event_MvmWaveBegin, EventHookMode_Post);
+    HookEvent("mvm_wave_failed", Event_MvmWaveFailed, EventHookMode_Post);
+    HookEvent("mvm_reset_stats", OnMissionReset, EventHookMode_PostNoCopy);
 
     CreateConVar("hu_money_pool", "0", "Current money pool shared by all players.");
     CreateConVar("hu_money_per_kill", "10", "Money gained per kill.");
     CreateConVar("hu_money_per_objective", "30", "Money gained per objective.");
     CreateConVar("hu_money_boss_multiplier", "2", "Multiplier for boss kills.");
     CreateConVar("hu_moreupgrades", "0", "Allow precise limit upgrade behavior. 0 = snap to limit, 1 = divide increment, else =  old behavior");
+    g_hMvmMode = CreateConVar("hu_mvm_mode", "0", "Hyper Upgrades MvM mode. 0 = auto, 1 = manual disable, 2 = manual enable.", FCVAR_NOTIFY);
+
     g_hMoneyBossMultiplier = FindConVar("hu_money_boss_multiplier");
     g_hMoreUpgrades = FindConVar("hu_moreupgrades");
     g_hMoneyPool = FindConVar("hu_money_pool");
+    g_hMoneyPerObjective = FindConVar("hu_money_per_objective");
 
     LoadTranslations(TRANSLATION_FILE);
 
@@ -322,7 +383,6 @@ public void OnPluginStart()
     {
         PrintToServer("[Hyper Upgrades] Custom Attributes support is enabled.");
     }
-
 }
 
 public void OnPluginEnd()
@@ -335,16 +395,16 @@ public void OnPluginEnd()
 
         PrintToChat(i, "\x04[HU] \x01Hyper Upgrades reloaded, you may need to change class.");
 
-        // TF2_RemoveAllWeapons(i);
+        /* TF2_RemoveAllWeapons(i);
 
-        //int ent = -1;
-        //while ((ent = FindEntityByClassname(ent, "tf_wearable")) != -1)
-        //{
-        //    if (GetEntPropEnt(ent, Prop_Send, "m_hOwnerEntity") == i)
-        //    {
-        //        AcceptEntityInput(ent, "Kill");
-        //    }
-        //}
+        int ent = -1;
+        while ((ent = FindEntityByClassname(ent, "tf_wearable")) != -1)
+        {
+            if (GetEntPropEnt(ent, Prop_Send, "m_hOwnerEntity") == i)
+            {
+                AcceptEntityInput(ent, "Kill");
+            }
+        }*/
 
         // Kill any per-player refresh timers
         if (g_hRefreshTimer[i] != INVALID_HANDLE)
@@ -446,6 +506,12 @@ public void OnPluginEnd()
     {
         delete g_hResetMoneyPoolOnMapStart;
         g_hResetMoneyPoolOnMapStart = null;
+    }
+
+    if (g_hCurrencySyncTimer != null)
+    {
+        KillTimer(g_hCurrencySyncTimer);
+        g_hCurrencySyncTimer = null;
     }
 }
 
@@ -593,6 +659,7 @@ public void OnMapStart()
     // Money_HUD_Handler
     CreateTimer(1.0, Timer_DisplayMoneyHUD, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
     CreateTimer(1.0, Timer_DisplayResistanceHUD, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
+    CheckMvMMapMode();
 }
 
 // Database Handling
@@ -720,19 +787,23 @@ public void Event_PlayerChangeClass(Event event, const char[] name, bool dontBro
 
 public void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 {
-    //Money rewards
     int attacker = GetClientOfUserId(event.GetInt("attacker"));
     int victim = GetClientOfUserId(event.GetInt("userid"));
 
     if (attacker <= 0 || !IsClientInGame(attacker)) return;
     if (victim <= 0 || !IsClientInGame(victim)) return;
     if (attacker == victim) return; // Ignore self-kills (e.g., killbind)
+    
 
-    int reward = GetConVarInt(FindConVar("hu_money_per_kill"));
-    SetConVarInt(g_hMoneyPool, GetConVarInt(g_hMoneyPool) + reward);
+    if (!g_bMvMActive)
+    {
+        // Classic mode kill reward
+        int reward = GetConVarInt(FindConVar("hu_money_per_kill"));
+        SetConVarInt(g_hMoneyPool, GetConVarInt(g_hMoneyPool) + reward);
+    }
 
-    //Force menu exit on death
-    int client = GetClientOfUserId(event.GetInt("userid"));
+    // Force upgrade menu exit on death
+    int client = victim;
     if (IsClientInGame(client))
     {
         g_bInUpgradeList[client] = false;
@@ -1548,6 +1619,17 @@ void RefundPlayerUpgrades(int client, bool bShowMessage = true)
     }
 }
 
+void RefundAllPlayersUpgrades()
+{
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        if (IsClientInGame(i))
+        {
+            RefundPlayerUpgrades(i);
+        }
+    }
+}
+
 // Actually removes the attributes
 void RemovePlayerUpgrades(int client)
 {
@@ -1706,7 +1788,9 @@ public Action Cmd_AttributeScanner(int admin, int args)
                 continue;
 
             total += val;
-            PrintToServer("[AttributeScan] Entity %d (%N) value: %.3f", ent, ent, val);
+            char classname[64];
+            GetEntityClassname(ent, classname, sizeof(classname));
+            PrintToServer("[AttributeScan] Entity %d (%s) value: %.3f", ent, classname, val);
         }
         else
         {
@@ -1715,7 +1799,9 @@ public Action Cmd_AttributeScanner(int admin, int args)
                 continue;
 
             total += val;
-            PrintToServer("[AttributeScan] Entity %d (%N) value: %.3f", ent, ent, val);
+            char classname[64];
+            GetEntityClassname(ent, classname, sizeof(classname));
+            PrintToServer("[AttributeScan] Entity %d (%s) value: %.3f", ent, classname, val);
         }
     }
 
@@ -3328,100 +3414,206 @@ int GetUpgradeMultiplier(int client)
 
 public Action Command_DebugUpgradeHandle(int client, int args)
 {
-    PrintToServer("[Hyper Upgrades] Dumping g_hPlayerUpgrades contents...");
+    bool useSnapshot = false;
+
+    if (args >= 1)
+    {
+        char arg[8];
+        GetCmdArg(1, arg, sizeof(arg));
+        useSnapshot = (StringToInt(arg) == 1);
+    }
+
+    PrintToServer("[Hyper Upgrades] Dumping %s upgrade handle contents...", useSnapshot ? "snapshot" : "live");
+
+    bool anyUpgradesFound = false;
 
     for (int i = 1; i <= MaxClients; i++)
     {
-        if (!IsClientInGame(i) || g_hPlayerUpgrades[i] == null)
+        if (!IsClientInGame(i))
             continue;
 
+        Handle hKv = useSnapshot ? g_hPlayerUpgradesSnapshot[i] : g_hPlayerUpgrades[i];
+        if (hKv == null)
+            continue;
+
+        KvRewind(hKv);
+        if (!KvGotoFirstSubKey(hKv, false))
+            continue;
+
+        bool hasUpgrades = false;
+
+        // Pre-scan for any non-zero upgrades
+        do
+        {
+            if (KvGotoFirstSubKey(hKv, false))
+            {
+                do
+                {
+                    float level = KvGetFloat(hKv, NULL_STRING, 0.0);
+                    if (level != 0.0)
+                    {
+                        hasUpgrades = true;
+                        break;
+                    }
+                }
+                while (KvGotoNextKey(hKv, false));
+
+                KvGoBack(hKv);
+            }
+
+            if (hasUpgrades)
+                break;
+        }
+        while (KvGotoNextKey(hKv, false));
+
+        KvRewind(hKv);
+
+        if (!hasUpgrades)
+            continue;
+
+        anyUpgradesFound = true;
         PrintToServer("---- Client %N (%d) ----", i, i);
 
-        KvRewind(g_hPlayerUpgrades[i]);
-
-        if (!KvGotoFirstSubKey(g_hPlayerUpgrades[i], false))
-        {
-            PrintToServer("  (No upgrades)");
-            continue;
-        }
-
+        KvGotoFirstSubKey(hKv, false);
         do
         {
             char slotName[64];
-            KvGetSectionName(g_hPlayerUpgrades[i], slotName, sizeof(slotName));
+            KvGetSectionName(hKv, slotName, sizeof(slotName));
             PrintToServer("  [%s]", slotName);
 
-            if (KvGotoFirstSubKey(g_hPlayerUpgrades[i], false))
+            if (KvGotoFirstSubKey(hKv, false))
             {
                 do
                 {
                     char upgradeName[64];
-                    KvGetSectionName(g_hPlayerUpgrades[i], upgradeName, sizeof(upgradeName));
-                    float level = KvGetFloat(g_hPlayerUpgrades[i], NULL_STRING, 0.0);
-                    PrintToServer("    %s: %.2f", upgradeName, level);
+                    float level = KvGetFloat(hKv, NULL_STRING, 0.0);
+                    if (level != 0.0)
+                    {
+                        KvGetSectionName(hKv, upgradeName, sizeof(upgradeName));
+                        PrintToServer("    %s: %.2f", upgradeName, level);
+                    }
                 }
-                while (KvGotoNextKey(g_hPlayerUpgrades[i], false));
+                while (KvGotoNextKey(hKv, false));
 
-                KvGoBack(g_hPlayerUpgrades[i]);
+                KvGoBack(hKv);
             }
 
         }
-        while (KvGotoNextKey(g_hPlayerUpgrades[i], false));
+        while (KvGotoNextKey(hKv, false));
 
-        KvRewind(g_hPlayerUpgrades[i]);
+        KvRewind(hKv);
+    }
+
+    if (!anyUpgradesFound)
+    {
+        PrintToServer("[Hyper Upgrades] No players currently have any upgrades.");
     }
 
     PrintToServer("[Hyper Upgrades] End of dump.");
     return Plugin_Handled;
 }
+
 public Action Command_DebugPurchaseHandle(int client, int args)
 {
-    PrintToServer("[Hyper Upgrades] Dumping g_hPlayerPurchases contents...");
+    bool useSnapshot = false;
+
+    if (args >= 1)
+    {
+        char arg[8];
+        GetCmdArg(1, arg, sizeof(arg));
+        useSnapshot = (StringToInt(arg) == 1);
+    }
+
+    PrintToServer("[Hyper Upgrades] Dumping %s purchase handle contents...", useSnapshot ? "snapshot" : "live");
+
+    bool anyPurchasesFound = false;
 
     for (int i = 1; i <= MaxClients; i++)
     {
-        if (!IsClientInGame(i) || g_hPlayerPurchases[i] == null)
+        if (!IsClientInGame(i))
             continue;
 
-        PrintToServer("---- Client %N (%d) ----", i, i);
-
-        KvRewind(g_hPlayerPurchases[i]);
-
-        if (!KvGotoFirstSubKey(g_hPlayerPurchases[i], false))
-        {
-            PrintToServer("  (No purchases)");
+        Handle hKv = useSnapshot ? g_hPlayerPurchasesSnapshot[i] : g_hPlayerPurchases[i];
+        if (hKv == null)
             continue;
-        }
 
+        KvRewind(hKv);
+        if (!KvGotoFirstSubKey(hKv, false))
+            continue;
+
+        bool hasPurchases = false;
+
+        // Pre-scan
         do
         {
-            char slotName[64];
-            KvGetSectionName(g_hPlayerPurchases[i], slotName, sizeof(slotName));
-            PrintToServer("  [%s]", slotName);
-
-            if (KvGotoFirstSubKey(g_hPlayerPurchases[i], false))
+            if (KvGotoFirstSubKey(hKv, false))
             {
                 do
                 {
-                    char upgradeName[64];
-                    KvGetSectionName(g_hPlayerPurchases[i], upgradeName, sizeof(upgradeName));
-                    int count = KvGetNum(g_hPlayerPurchases[i], NULL_STRING, 0);
-                    PrintToServer("    %s: %d", upgradeName, count);
+                    int count = KvGetNum(hKv, NULL_STRING, 0);
+                    if (count > 0)
+                    {
+                        hasPurchases = true;
+                        break;
+                    }
                 }
-                while (KvGotoNextKey(g_hPlayerPurchases[i], false));
+                while (KvGotoNextKey(hKv, false));
 
-                KvGoBack(g_hPlayerPurchases[i]);
+                KvGoBack(hKv);
+            }
+
+            if (hasPurchases)
+                break;
+        }
+        while (KvGotoNextKey(hKv, false));
+
+        KvRewind(hKv);
+
+        if (!hasPurchases)
+            continue;
+
+        anyPurchasesFound = true;
+        PrintToServer("---- Client %N (%d) ----", i, i);
+
+        KvGotoFirstSubKey(hKv, false);
+        do
+        {
+            char slotName[64];
+            KvGetSectionName(hKv, slotName, sizeof(slotName));
+            PrintToServer("  [%s]", slotName);
+
+            if (KvGotoFirstSubKey(hKv, false))
+            {
+                do
+                {
+                    int count = KvGetNum(hKv, NULL_STRING, 0);
+                    if (count > 0)
+                    {
+                        char upgradeName[64];
+                        KvGetSectionName(hKv, upgradeName, sizeof(upgradeName));
+                        PrintToServer("    %s: %d", upgradeName, count);
+                    }
+                }
+                while (KvGotoNextKey(hKv, false));
+
+                KvGoBack(hKv);
             }
 
         }
-        while (KvGotoNextKey(g_hPlayerPurchases[i], false));
+        while (KvGotoNextKey(hKv, false));
 
-        KvRewind(g_hPlayerPurchases[i]);
+        KvRewind(hKv);
+    }
+
+    if (!anyPurchasesFound)
+    {
+        PrintToServer("[Hyper Upgrades] No players currently have any purchases.");
     }
 
     PrintToServer("[Hyper Upgrades] End of dump.");
     return Plugin_Handled;
 }
+
 
 void HU_SetCustomAttribute(int entity, const char[] name, float value) // Call for Custom Upgrades Application
 {
@@ -3593,6 +3785,8 @@ public Action Command_SubtractMoney(int client, int args)
 
 public void Event_ObjectiveComplete(Event event, const char[] name, bool dontBroadcast)
 {
+    if (g_bMvMActive)
+        return;
     if (StrEqual(name, "teamplay_flag_event"))
     {
         int eventType = event.GetInt("eventtype");
@@ -3601,7 +3795,7 @@ public void Event_ObjectiveComplete(Event event, const char[] name, bool dontBro
             return;
     }
 
-    int money = GetConVarInt(FindConVar("hu_money_per_objective"));
+    int money = g_hMoneyPerObjective;
     SetConVarInt(g_hMoneyPool, GetConVarInt(g_hMoneyPool) + money);
 }
 
@@ -3852,7 +4046,300 @@ void FormatSimplifiedDamageFlags(int damagetype, char[] buffer, int maxlen)
     }
 }
 
+// MvM Functions
 
+void CheckMvMMapMode()
+{
+    char map[PLATFORM_MAX_PATH];
+    GetCurrentMap(map, sizeof(map));
+
+    int mode = g_hMvmMode.IntValue;
+
+    switch (mode)
+    {
+        case 0: // auto
+        {
+            g_bMvMActive = (StrContains(map, "mvm_", false) == 0);
+        }
+        case 1: // force classic
+        {
+            g_bMvMActive = false;
+        }
+        case 2: // force MvM
+        {
+            g_bMvMActive = true;
+        }
+    }
+
+    if (g_bMvMActive)
+    {
+        CreateTimer(1.0, MvMStartup, _, TIMER_FLAG_NO_MAPCHANGE);
+    }
+
+    PrintToServer("[HU] hu_mvm_mode = %d → MvM mode active: %s", mode, g_bMvMActive ? "Yes" : "No");
+}
+
+public Action MvMStartup(Handle timer)
+{
+    DisableMvMUpgradeStations();
+    CreateTimer(0.5, Timer_TryInitMissionName, _, TIMER_FLAG_NO_MAPCHANGE);
+    if (g_hCurrencySyncTimer != null && IsValidHandle(g_hCurrencySyncTimer))
+    {
+        KillTimer(g_hCurrencySyncTimer);
+        g_hCurrencySyncTimer = null;
+    }
+    g_hCurrencySyncTimer = CreateTimer(0.5, Timer_CurrencySync, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
+    PrintToServer("Money Sync Initialised");
+    return Plugin_Stop;
+}
+
+public Action Timer_TryInitMissionName(Handle timer)
+{
+    int ent = FindEntityByClassname(-1, "tf_objective_resource");
+
+    if (ent != -1)
+    {
+
+        char popfile[PLATFORM_MAX_PATH];
+        if (GetEntPropString(ent, Prop_Send, "m_iszMvMPopfileName", popfile, sizeof(popfile)))
+        {
+            char filename[64];
+            ExtractFileName(popfile, filename, sizeof(filename));
+
+            char missionName[64];
+            strcopy(missionName, sizeof(missionName), filename);
+            int dot = FindCharInString(missionName, '.');
+            if (dot != -1)
+                missionName[dot] = '\0';
+
+            strcopy(g_sCurrentMission, sizeof(g_sCurrentMission), missionName);
+            PrintToServer("[HU] Mission detected on map start: \"%s\"", g_sCurrentMission);
+
+            return Plugin_Stop;
+        }
+    }
+
+    PrintToServer("[HU] Waiting for tf_objective_resource to appear...");
+
+    // Retry in 0.5s
+    CreateTimer(0.5, Timer_TryInitMissionName, _, TIMER_FLAG_NO_MAPCHANGE);
+    return Plugin_Stop;
+}
+
+public Action Timer_CurrencySync(Handle timer)
+{
+    if (!g_bMvMActive)
+    {
+        g_hCurrencySyncTimer = null;
+        return Plugin_Stop;
+    }
+
+    int totalMvMCurrency = 0;
+    int playerCount = 0;
+
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        if (!IsClientInGame(i) || IsFakeClient(i) || GetClientTeam(i) <= 1)
+            continue;
+
+        int currency = GetEntProp(i, Prop_Send, "m_nCurrency");
+        if (currency < 0)
+            continue;
+
+        totalMvMCurrency += currency;
+        playerCount++;
+    }
+
+    if (playerCount == 0)
+        return Plugin_Continue;
+
+    int avgCurrency = RoundToNearest(float(totalMvMCurrency) / float(playerCount));
+
+    SetConVarInt(g_hMoneyPool, avgCurrency);
+    //PrintToServer("Average MvM Currency : %d ; Money Pool : %d", avgCurrency, GetConVarInt(g_hMoneyPool));
+
+    return Plugin_Continue;
+}
+
+public void Event_MvmWaveBegin(Event event, const char[] name, bool dontBroadcast)
+{
+    if (!g_bMvMActive)
+        return;
+
+    g_iMoneyPoolSnapshot = GetConVarInt(g_hMoneyPool);
+
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        if (!IsClientInGame(i))
+            continue;
+
+        g_iMoneySpentSnapshot[i] = g_iMoneySpent[i];
+
+        if (g_hPlayerUpgradesSnapshot[i] != null)
+            CloseHandle(g_hPlayerUpgradesSnapshot[i]);
+        if (g_hPlayerPurchasesSnapshot[i] != null)
+            CloseHandle(g_hPlayerPurchasesSnapshot[i]);
+
+        g_hPlayerUpgradesSnapshot[i] = CloneKeyValues(view_as<KeyValues>(g_hPlayerUpgrades[i]), "upgrades");
+        g_hPlayerPurchasesSnapshot[i] = CloneKeyValues(view_as<KeyValues>(g_hPlayerPurchases[i]), "purchases");
+    }
+
+    PrintToServer("[HU] Wave state snapshot saved.");
+}
+
+public void Event_MvmWaveFailed(Event event, const char[] name, bool dontBroadcast)
+{
+    if (!g_bMvMActive)
+        return;
+
+    // Check mission popfile
+    int ent = FindEntityByClassname(-1, "tf_objective_resource");
+    if (ent != -1)
+    {
+        char popfile[PLATFORM_MAX_PATH];
+        if (GetEntPropString(ent, Prop_Send, "m_iszMvMPopfileName", popfile, sizeof(popfile)))
+        {
+            char filename[64];
+            ExtractFileName(popfile, filename, sizeof(filename));
+
+            char missionName[64];
+            strcopy(missionName, sizeof(missionName), filename);
+            int dot = FindCharInString(missionName, '.');
+            if (dot != -1)
+                missionName[dot] = '\0';
+
+            if (!StrEqual(g_sCurrentMission, missionName, false))
+            {
+                PrintToServer("[HU] Mission changed on wave fail: \"%s\" → \"%s\". Skipping snapshot restore.", g_sCurrentMission, missionName);
+                strcopy(g_sCurrentMission, sizeof(g_sCurrentMission), missionName);
+
+                RefundAllPlayersUpgrades();
+                return;
+            }
+        }
+    }
+
+    // No mission change → restore snapshot
+    SetConVarInt(g_hMoneyPool, g_iMoneyPoolSnapshot);
+
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        if (!IsClientInGame(i))
+            continue;
+
+        g_iMoneySpent[i] = g_iMoneySpentSnapshot[i];
+
+        if (g_hPlayerUpgrades[i] != null)
+            CloseHandle(g_hPlayerUpgrades[i]);
+        if (g_hPlayerPurchases[i] != null)
+            CloseHandle(g_hPlayerPurchases[i]);
+
+        g_hPlayerUpgrades[i] = view_as<Handle>(CloneKeyValues(view_as<KeyValues>(g_hPlayerUpgradesSnapshot[i]), "upgrades"));
+        g_hPlayerPurchases[i] = view_as<Handle>(CloneKeyValues(view_as<KeyValues>(g_hPlayerPurchasesSnapshot[i]), "purchases"));
+
+        ApplyPlayerUpgrades(i);
+    }
+
+    PrintToServer("[HU] Wave failure: restored previous money and upgrade state.");
+}
+
+public void OnMissionReset(Event event, const char[] name, bool dontBroadcast)
+{
+    if (!g_bMvMActive)
+        return;
+    
+    RefundAllPlayersUpgrades();
+    return;
+}
+
+KeyValues CloneKeyValues(KeyValues original, const char[] sectionName)
+{
+    if (original == null)
+        return new KeyValues(sectionName);
+
+    char tempPath[PLATFORM_MAX_PATH];
+    BuildPath(Path_SM, tempPath, sizeof(tempPath), "data/hu_kv_temp_%s.txt", sectionName);
+
+    original.ExportToFile(tempPath);
+
+    KeyValues clone = new KeyValues(sectionName);
+    clone.ImportFromFile(tempPath);
+    DeleteFile(tempPath);
+
+    return clone;
+}
+
+void DisableMvMUpgradeStations(bool verbose = true)
+{
+    int ent = -1;
+    bool found = false;
+
+    while ((ent = FindEntityByClassname(ent, "func_upgradestation")) != -1)
+    {
+        AcceptEntityInput(ent, "Disable");
+        found = true;
+
+        if (verbose)
+        {
+            char targetname[64];
+            GetEntPropString(ent, Prop_Data, "m_iName", targetname, sizeof(targetname));
+            PrintToServer("[HU] Disabled func_upgradestation entity: %d (name: %s)", ent, targetname);
+        }
+    }
+
+    if (!found && verbose)
+    {
+        PrintToServer("[HU] Warning: No func_upgradestation entity found to disable.");
+    }
+}
+
+stock void ExtractFileName(const char[] path, char[] output, int maxlen)
+{
+    int lastSlash = -1;
+    for (int i = 0; path[i] != '\0'; i++)
+    {
+        if (path[i] == '/' || path[i] == '\\')
+            lastSlash = i;
+    }
+
+    if (lastSlash != -1)
+        strcopy(output, maxlen, path[lastSlash + 1]);
+    else
+        strcopy(output, maxlen, path);
+}
+
+public Action Command_AddMvMCash(int client, int args)
+{
+    if (args < 1)
+    {
+        ReplyToCommand(client, "[HU] Usage: mvm_addcash <amount>");
+        return Plugin_Handled;
+    }
+
+    int amount = GetCmdArgInt(1);
+    if (amount <= 0)
+    {
+        ReplyToCommand(client, "[HU] Amount must be positive.");
+        return Plugin_Handled;
+    }
+
+    int count = 0;
+
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        if (!IsClientInGame(i) || GetClientTeam(i) <= 1)
+            continue;
+
+        int current = GetEntProp(i, Prop_Send, "m_nCurrency");
+        SetEntProp(i, Prop_Send, "m_nCurrency", current + amount);
+        count++;
+    }
+
+    ReplyToCommand(client, "[HU] Gave %d credits to %d players.", amount, count);
+    PrintToServer("[HU] Admin gave %d credits to %d players via mvm_addcash.", amount, count);
+
+    return Plugin_Handled;
+}
 
 // DEFAULT CONFIGS
 void GenerateConfigFiles()
