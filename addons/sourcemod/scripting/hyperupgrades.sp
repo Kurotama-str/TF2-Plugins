@@ -18,7 +18,7 @@
 #define MAX_EDICTS 2048
 
 #define PLUGIN_NAME "Hyper Upgrades"
-#define PLUGIN_VERSION "0.B2"
+#define PLUGIN_VERSION "0.B3"
 #define CONFIG_ATTR "hu_attributes.cfg"
 #define CONFIG_UPGR "hu_upgrades.cfg"
 #define CONFIG_WEAP "hu_weapons_list.txt"
@@ -3795,7 +3795,7 @@ public void Event_ObjectiveComplete(Event event, const char[] name, bool dontBro
             return;
     }
 
-    int money = g_hMoneyPerObjective;
+    int money = GetConVarInt(g_hMoneyPerObjective);
     SetConVarInt(g_hMoneyPool, GetConVarInt(g_hMoneyPool) + money);
 }
 
@@ -4186,8 +4186,18 @@ public void Event_MvmWaveBegin(Event event, const char[] name, bool dontBroadcas
         if (g_hPlayerPurchasesSnapshot[i] != null)
             CloseHandle(g_hPlayerPurchasesSnapshot[i]);
 
-        g_hPlayerUpgradesSnapshot[i] = CloneKeyValues(view_as<KeyValues>(g_hPlayerUpgrades[i]), "upgrades");
-        g_hPlayerPurchasesSnapshot[i] = CloneKeyValues(view_as<KeyValues>(g_hPlayerPurchases[i]), "purchases");
+        // Upgrades → use universal cloner
+        g_hPlayerUpgradesSnapshot[i] = CloneKeyValues(
+            view_as<KeyValues>(g_hPlayerUpgrades[i]), 
+            "Upgrades"
+        );
+
+        // Purchases → use special purchases cloner
+        g_hPlayerPurchasesSnapshot[i] = ClonePurchasesKV(
+            view_as<KeyValues>(g_hPlayerPurchases[i]), 
+            i
+        );
+
     }
 
     PrintToServer("[HU] Wave state snapshot saved.");
@@ -4226,7 +4236,7 @@ public void Event_MvmWaveFailed(Event event, const char[] name, bool dontBroadca
     }
 
     // No mission change → restore snapshot
-    SetConVarInt(g_hMoneyPool, g_iMoneyPoolSnapshot);
+    /* SetConVarInt(g_hMoneyPool, g_iMoneyPoolSnapshot);
 
     for (int i = 1; i <= MaxClients; i++)
     {
@@ -4240,13 +4250,25 @@ public void Event_MvmWaveFailed(Event event, const char[] name, bool dontBroadca
         if (g_hPlayerPurchases[i] != null)
             CloseHandle(g_hPlayerPurchases[i]);
 
-        g_hPlayerUpgrades[i] = view_as<Handle>(CloneKeyValues(view_as<KeyValues>(g_hPlayerUpgradesSnapshot[i]), "upgrades"));
-        g_hPlayerPurchases[i] = view_as<Handle>(CloneKeyValues(view_as<KeyValues>(g_hPlayerPurchasesSnapshot[i]), "purchases"));
+        // Upgrades → use universal cloner
+        g_hPlayerUpgrades[i] = view_as<Handle>(CloneKeyValues(
+            view_as<KeyValues>(g_hPlayerUpgradesSnapshot[i]), 
+            "Upgrades"
+        ));
+
+        // Purchases → use special purchases cloner
+        g_hPlayerPurchases[i] = view_as<Handle>(ClonePurchasesKV(
+            view_as<KeyValues>(g_hPlayerPurchasesSnapshot[i]), 
+            i
+        ));
+
 
         ApplyPlayerUpgrades(i);
     }
 
-    PrintToServer("[HU] Wave failure: restored previous money and upgrade state.");
+    PrintToServer("[HU] Wave failure: restored previous money and upgrade state."); */
+    RefundAllPlayersUpgrades();
+    return;
 }
 
 public void OnMissionReset(Event event, const char[] name, bool dontBroadcast)
@@ -4273,6 +4295,63 @@ KeyValues CloneKeyValues(KeyValues original, const char[] sectionName)
     DeleteFile(tempPath);
 
     return clone;
+}
+
+// ==== (Trying to fix snapshotting issues) ==== //
+// Clones a Purchases KV for one client. 
+// - Uses a unique temp file so parallel clones don't stomp each other.
+// - Always returns a KV with root "Purchases".
+KeyValues ClonePurchasesKV(KeyValues original, int client)
+{
+    KeyValues clone = new KeyValues("Purchases");
+
+    if (original == null)
+        return clone;
+
+    char tempPath[PLATFORM_MAX_PATH];
+    BuildPath(Path_SM, tempPath, sizeof(tempPath),
+        "data/hu_kv_temp_purchases_%d.txt", client);
+
+    original.ExportToFile(tempPath);
+    clone.ImportFromFile(tempPath);
+    DeleteFile(tempPath);
+
+    return clone;
+}
+
+void SnapshotPurchasesForClient(int client)
+{
+    // Blow away any old snapshot to prevent leaks.
+    if (g_hPlayerPurchasesSnapshot[client] != null)
+    {
+        CloseHandle(g_hPlayerPurchasesSnapshot[client]);
+        g_hPlayerPurchasesSnapshot[client] = null;
+    }
+
+    // Clone from current live "Purchases" into the snapshot slot.
+    KeyValues src = view_as<KeyValues>(g_hPlayerPurchases[client]);
+    g_hPlayerPurchasesSnapshot[client] = ClonePurchasesKV(src, client);
+}
+
+void RestorePurchasesForClient(int client)
+{
+    // If we never captured anything, just ensure the live KV exists.
+    if (g_hPlayerPurchasesSnapshot[client] == null)
+    {
+        if (g_hPlayerPurchases[client] == null)
+            g_hPlayerPurchases[client] = CreateKeyValues("Purchases");
+        return;
+    }
+
+    // Replace the live "Purchases" KV with a fresh clone of the snapshot.
+    if (g_hPlayerPurchases[client] != null)
+    {
+        CloseHandle(g_hPlayerPurchases[client]);
+        g_hPlayerPurchases[client] = null;
+    }
+
+    KeyValues snap = view_as<KeyValues>(g_hPlayerPurchasesSnapshot[client]);
+    g_hPlayerPurchases[client] = ClonePurchasesKV(snap, client);
 }
 
 void DisableMvMUpgradeStations(bool verbose = true)
@@ -4314,11 +4393,83 @@ stock void ExtractFileName(const char[] path, char[] output, int maxlen)
         strcopy(output, maxlen, path);
 }
 
+// Spawns up to 'count' packs of the classname around 'center' in a ring.
+// Returns how many were actually spawned.
+int SpawnPacksAtPos(const char[] classname, const float center[3], int count)
+{
+    int spawned = 0;
+
+    for (int i = 0; i < count; i++)
+    {
+        int ent = CreateEntityByName(classname);
+        if (ent == -1) 
+            continue;
+
+        // Stop respawn manager from reviving the pack
+        DispatchKeyValue(ent, "spawnflags", "1073741824"); // SF_ITEM_NO_RESPAWN ?
+
+        float pos[3];
+        pos[0] = center[0];
+        pos[1] = center[1];
+        pos[2] = center[2] + 20.0;
+
+        TeleportEntity(ent, pos, NULL_VECTOR, NULL_VECTOR);
+        DispatchSpawn(ent);
+
+        // Hook touch to ensure entity is killed immediately after pickup
+        SDKHook(ent, SDKHook_StartTouch, CurrencyPack_Touched);
+
+        spawned++;
+    }
+
+    return spawned;
+}
+
+public Action CurrencyPack_Touched(int ent, int toucher)
+{
+    // Only players trigger this
+    if (toucher > 0 && toucher <= MaxClients && IsClientInGame(toucher))
+    {
+        // Wait one frame so the game processes the pickup first
+        RequestFrame(KillEntityNextFrame, EntIndexToEntRef(ent));
+    }
+    return Plugin_Continue;
+}
+
+public void KillEntityNextFrame(int entRef)
+{
+    int ent = EntRefToEntIndex(entRef);
+    if (ent != INVALID_ENT_REFERENCE && IsValidEntity(ent))
+    {
+        AcceptEntityInput(ent, "Kill"); // To make sure it's gone
+    }
+}
+
+static void BreakdownAmountIntoPacks(int amount, int &n25, int &n10, int &n5, int &approx)
+{
+    n25 = amount / 25;
+    int rem = amount % 25;
+
+    n10 = rem / 10;
+    rem = rem % 10;
+
+    n5 = rem / 5;
+
+    // We deliberately FLOOR to the nearest multiple of 5 (no overpay).
+    approx = n25 * 25 + n10 * 10 + n5 * 5;
+}
+
 public Action Command_AddMvMCash(int client, int args)
 {
     if (args < 1)
     {
-        ReplyToCommand(client, "[HU] Usage: mvm_addcash <amount>");
+        ReplyToCommand(client, "[HU] Usage: mvm_addcash <amount> [spawn=true|false]");
+        return Plugin_Handled;
+    }
+
+    if (client <= 0 || !IsClientInGame(client))
+    {
+        ReplyToCommand(client, "[HU] You must be in-game to use this.");
         return Plugin_Handled;
     }
 
@@ -4329,20 +4480,60 @@ public Action Command_AddMvMCash(int client, int args)
         return Plugin_Handled;
     }
 
-    int count = 0;
-
-    for (int i = 1; i <= MaxClients; i++)
+    // Default is FALSE (old behavior)
+    bool spawnPacks = false;
+    if (args >= 2)
     {
-        if (!IsClientInGame(i) || GetClientTeam(i) <= 1)
-            continue;
-
-        int current = GetEntProp(i, Prop_Send, "m_nCurrency");
-        SetEntProp(i, Prop_Send, "m_nCurrency", current + amount);
-        count++;
+        char arg2[16];
+        GetCmdArg(2, arg2, sizeof(arg2));
+        if (StrEqual(arg2, "1", false) || StrEqual(arg2, "true", false) || StrEqual(arg2, "yes", false))
+            spawnPacks = true;
     }
 
-    ReplyToCommand(client, "[HU] Gave %d credits to %d players.", amount, count);
-    PrintToServer("[HU] Admin gave %d credits to %d players via mvm_addcash.", amount, count);
+    if (!spawnPacks)
+    {
+        int count = 0;
+        for (int i = 1; i <= MaxClients; i++)
+        {
+            if (!IsClientInGame(i) || GetClientTeam(i) <= 1)
+                continue;
+
+            int current = GetEntProp(i, Prop_Send, "m_nCurrency");
+            SetEntProp(i, Prop_Send, "m_nCurrency", current + amount);
+            count++;
+        }
+        ReplyToCommand(client, "[HU] Gave %d credits to %d players.", amount, count);
+        PrintToServer("[HU] Admin gave %d credits to %d players via mvm_addcash.", amount, count);
+        return Plugin_Handled;
+    }
+
+    // Spawn stock packs (approximate using 25/10/5)
+    int n25, n10, n5, approx;
+    BreakdownAmountIntoPacks(amount, n25, n10, n5, approx);
+
+    int totalPacks = n25 + n10 + n5;
+    if (totalPacks <= 0)
+    {
+        ReplyToCommand(client, "[HU] Amount too small to approximate with 5/10/25 packs.");
+        return Plugin_Handled;
+    }
+
+    if (totalPacks > 40)
+    {
+        ReplyToCommand(client, "[HU] Would spawn %d packs (limit 40). Aborting.", totalPacks);
+        return Plugin_Handled;
+    }
+
+    float pos[3];
+    GetClientAbsOrigin(client, pos);
+
+    int spawned = 0;
+    if (n25 > 0) spawned += SpawnPacksAtPos("item_currencypack_large",  pos, n25);
+    if (n10 > 0) spawned += SpawnPacksAtPos("item_currencypack_medium", pos, n10);
+    if (n5  > 0) spawned += SpawnPacksAtPos("item_currencypack_small",  pos, n5);
+
+    ReplyToCommand(client, "[HU] Spawned %d pack(s) totaling $%d (requested $%d).", spawned, approx, amount);
+    PrintToServer("[HU] Admin spawned %d pack(s) totaling $%d under %N via mvm_addcash.", spawned, approx, client);
 
     return Plugin_Handled;
 }
