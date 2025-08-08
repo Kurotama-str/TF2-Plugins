@@ -7,7 +7,7 @@ body:
     attributes:
       label: Server Used
       description: Name or type of server you were on when the bug occurred.
-      placeholder: e.g., Linux TF2 Dedicated, Windows local server, community host name
+      placeholder: e.g., TF2-1, Zombie Riot, TF2-2, TF2-3, Hyper Upgrades PvP, Hyper Upgrades MvM, MvM...
     validations:
       required: true
 
@@ -25,7 +25,7 @@ body:
     attributes:
       label: Related Plugin(s)
       description: Which plugin(s) this issue might be related to.
-      placeholder: e.g., Hyper Upgrades, Dispenser Music
+      placeholder: e.g., Hyper Upgrades, Hellfire, Bot Upgrades...
     validations:
       required: true
 
