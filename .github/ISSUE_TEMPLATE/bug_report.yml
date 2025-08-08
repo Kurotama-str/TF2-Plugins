@@ -1,0 +1,70 @@
+name: Bug Report
+description: Report a problem so we can fix it.
+labels: [bug]
+body:
+  - type: input
+    id: server
+    attributes:
+      label: Server Used
+      description: Name or type of server you were on when the bug occurred.
+      placeholder: e.g., Linux TF2 Dedicated, Windows local server, community host name
+    validations:
+      required: true
+
+  - type: input
+    id: map
+    attributes:
+      label: Map Played On
+      description: Exact map name where the bug happened.
+      placeholder: e.g., mvm_bigrock, pl_upward
+    validations:
+      required: true
+
+  - type: input
+    id: plugins
+    attributes:
+      label: Related Plugin(s)
+      description: Which plugin(s) this issue might be related to.
+      placeholder: e.g., Hyper Upgrades, Dispenser Music
+    validations:
+      required: true
+
+  - type: textarea
+    id: what_happened
+    attributes:
+      label: What is the issue?
+      description: Clearly describe what happened and what you expected to happen.
+      placeholder: Tell us exactly what went wrong.
+    validations:
+      required: true
+
+  - type: textarea
+    id: cause
+    attributes:
+      label: Suspected Cause
+      description: If you have an idea, tell us what you think is causing the issue.
+      placeholder: e.g., Happens after respawn, only when upgrading a weapon, etc.
+    validations:
+      required: false
+
+  - type: dropdown
+    id: urgency
+    attributes:
+      label: Urgency
+      description: How urgent is it to fix this bug?
+      options:
+        - Low
+        - Medium
+        - High
+        - Critical (game-breaking)
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Info
+      description: Any extra context, screenshots, logs, or steps to reproduce.
+      placeholder: Add any other context here.
+    validations:
+      required: false
