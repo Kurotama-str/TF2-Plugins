@@ -1,0 +1,64 @@
+name: Balance Issue
+description: Report an upgrade, weapon, or mechanic that feels unbalanced.
+labels: [balance issue]
+body:
+  - type: input
+    id: server
+    attributes:
+      label: Server Used
+      description: Name or type of server you were on when the bug occurred.
+      placeholder: e.g., TF2-1, Zombie Riot, TF2-2, TF2-3, Hyper Upgrades PvP, Hyper Upgrades MvM, MvM...
+    validations:
+      required: true
+
+  - type: input
+    id: map
+    attributes:
+      label: Map Played On
+      placeholder: e.g., mvm_bigrock, pl_upward
+    validations:
+      required: true
+
+  - type: input
+    id: plugins
+    attributes:
+      label: Related Plugin(s)
+      placeholder: e.g., Hyper Upgrades, Projectile Speed Mod
+    validations:
+      required: true
+
+  - type: textarea
+    id: imbalance
+    attributes:
+      label: What feels unbalanced?
+      description: Explain the imbalance and why you think it’s a problem.
+      placeholder: Tell us exactly what feels too strong or too weak.
+    validations:
+      required: true
+
+  - type: textarea
+    id: cause
+    attributes:
+      label: Suspected Cause
+      placeholder: e.g., Damage multiplier too high, cost too low, stacking upgrades
+    validations:
+      required: false
+
+  - type: dropdown
+    id: urgency
+    attributes:
+      label: Urgency
+      options:
+        - Low
+        - Medium
+        - High
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Info
+      placeholder: Screenshots, logs, or examples from gameplay
+    validations:
+      required: false
