@@ -1,38 +1,94 @@
----
-name: Bug report
-about: Create a report to help us improve
-title: ''
-labels: ''
-assignees: ''
+name: Bug or Balance Issue
+description: Report a bug or balance issue related to the plugin(s)
+title: "[Issue]: "
+labels:
+  - bug
+  - balance issue
+body:
+  - type: dropdown
+    id: issue_type
+    attributes:
+      label: Issue type
+      description: What kind of issue is this?
+      options:
+        - Bug
+        - Balance issue
+    validations:
+      required: true
 
----
+  - type: input
+    id: server_used
+    attributes:
+      label: Server used
+      description: e.g., Windows SRCDS, Linux SRCDS, game host name, etc.
+      placeholder: "Linux SRCDS on Ubuntu 22.04"
+    validations:
+      required: true
 
-**Describe the bug**
-A clear and concise description of what the bug is.
+  - type: input
+    id: map_played
+    attributes:
+      label: Map played on
+      placeholder: "mvm_bigrock, pl_badwater"
+    validations:
+      required: true
 
-**To Reproduce**
-Steps to reproduce the behavior:
-1. Go to '...'
-2. Click on '....'
-3. Scroll down to '....'
-4. See error
+  - type: textarea
+    id: plugins
+    attributes:
+      label: Plugin(s) related to the issue
+      description: List the plugin(s) involved (name and version if possible).
+      placeholder: |
+        - Hyper Upgrades v0.B1
+        - TF2Attributes v1.7.5
+        - Custom Attributes (commit abc123)
+    validations:
+      required: true
 
-**Expected behavior**
-A clear and concise description of what you expected to happen.
+  - type: textarea
+    id: what_happened
+    attributes:
+      label: What is the issue?
+      description: What happened? What did you expect to happen?
+      placeholder: |
+        Describe the problem and the expected behavior.
+        Include any errors shown in the game console or server logs.
+    validations:
+      required: true
 
-**Screenshots**
-If applicable, add screenshots to help explain your problem.
+  - type: textarea
+    id: suspected_cause
+    attributes:
+      label: What seems to cause the issue?
+      description: If you have an idea, explain what might be causing it (specific actions, conditions, steps).
+      placeholder: |
+        Example:
+        - Happens after changing class to Spy
+        - Only on MvM maps
+        - After buying "Fire Resistance" upgrade
+    validations:
+      required: false
 
-**Desktop (please complete the following information):**
- - OS: [e.g. iOS]
- - Browser [e.g. chrome, safari]
- - Version [e.g. 22]
+  - type: dropdown
+    id: urgency
+    attributes:
+      label: Urgency
+      description: How urgent do you think fixing this is?
+      options:
+        - Low – minor inconvenience
+        - Medium – impacts gameplay but not game-breaking
+        - High – game-breaking or server-crashing
+    validations:
+      required: true
 
-**Smartphone (please complete the following information):**
- - Device: [e.g. iPhone6]
- - OS: [e.g. iOS8.1]
- - Browser [e.g. stock browser, safari]
- - Version [e.g. 22]
-
-**Additional context**
-Add any other context about the problem here.
+  - type: textarea
+    id: additional_info
+    attributes:
+      label: Additional information
+      description: Add any extra details that may help (screenshots, logs, config snippets).
+      placeholder: |
+        - Relevant log excerpts
+        - Steps to reproduce
+        - Config files (hu_upgrades.cfg, hu_attributes.cfg, etc.)
+    validations:
+      required: false
