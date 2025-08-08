@@ -1,0 +1,65 @@
+name: Feature Request
+description: Suggest a new idea, upgrade, or mechanic.
+labels: [enhancement]
+body:
+  - type: input
+    id: server
+    attributes:
+      label: Server Used
+      description: Name or type of server you were on when the bug occurred.
+      placeholder: e.g., TF2-1, Zombie Riot, TF2-2, TF2-3, Hyper Upgrades PvP, Hyper Upgrades MvM, MvM...
+    validations:
+      required: true
+
+  - type: input
+    id: map
+    attributes:
+      label: Map Played On
+      placeholder: e.g., mvm_bigrock, pl_upward
+    validations:
+      required: false
+
+  - type: input
+    id: plugins
+    attributes:
+      label: Related Plugin(s)
+      placeholder: e.g., Hyper Upgrades, Kaboom Charge
+    validations:
+      required: false
+
+  - type: textarea
+    id: feature
+    attributes:
+      label: Describe the Feature
+      description: Clearly explain what you’d like to see added or changed.
+      placeholder: Describe your idea in detail.
+    validations:
+      required: true
+
+  - type: textarea
+    id: benefit
+    attributes:
+      label: Why should we add it?
+      description: Explain the benefit for players or server admins.
+      placeholder: e.g., Improves balance, adds variety, fixes an annoyance
+    validations:
+      required: true
+
+  - type: dropdown
+    id: urgency
+    attributes:
+      label: Urgency
+      options:
+        - Low
+        - Medium
+        - High
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Info
+      placeholder: Any extra context or mockups.
+    validations:
+      required: false
