@@ -67,6 +67,11 @@ Handle g_hCurrencySyncTimer = null;
 
 Database g_hSettingsDB;
 
+//First Timer Handling
+bool g_bFirstTimeNotice[MAXPLAYERS + 1];
+Handle g_hFirstTimeTimer[MAXPLAYERS + 1];
+Handle g_hHudFirstTimeSync = null; // HudSynchronizer
+
 //MvM wave snapshot
 //int g_iMoneyPoolSnapshot = 0;
 int g_iMoneySpentSnapshot[MAXPLAYERS + 1];
@@ -373,6 +378,8 @@ public void OnPluginStart()
             {
                 g_hRefreshTimer[i] = CreateTimer(0.2, Timer_CheckMenuRefresh, i, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
             }
+            g_bFirstTimeNotice[i] = false;
+            g_hFirstTimeTimer[i] = null;
         }
     }
 
@@ -715,7 +722,7 @@ public void OnSafeSettingsQueryResult(Database db, DBResultSet results, const ch
     }
     else
     {
-        PrintToServer("[Info] No settings found for client %N. Applying defaults.", client);
+        PrintToServer("[Hyper Upgrades] No settings found for client %N. Applying defaults.", client);
         g_bShowMoneyHud[client] = true;
         g_iHudCorner[client] = HUD_BOTTOM_RIGHT;
         g_iResistanceHudMode[client] = 0;
@@ -723,6 +730,17 @@ public void OnSafeSettingsQueryResult(Database db, DBResultSet results, const ch
         g_iDamageTypeHudMode[client] = 0;
 
         SavePlayerSettings(client);
+
+        // First-time notice: create HUD sync lazily only when needed
+        if (g_hHudFirstTimeSync == null)
+        {
+            g_hHudFirstTimeSync = CreateHudSynchronizer();
+        }
+
+        // Start self-rescheduling one-shot loop
+        g_bFirstTimeNotice[client] = true;
+        int userid = GetClientUserId(client);
+        g_hFirstTimeTimer[client] = CreateTimer(0.7, Timer_FirstTimeTip, userid);
     }
 }
 
@@ -1592,6 +1610,34 @@ public int MenuHandler_DamageHudPosition(Menu menu, MenuAction action, int clien
     return 0;
 }
 
+public Action Timer_FirstTimeTip(Handle timer, any userid)
+{
+    int client = GetClientOfUserId(userid);
+
+    // Clear the handle slot for this one-shot instance
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        if (g_hFirstTimeTimer[i] == timer)
+        {
+            g_hFirstTimeTimer[i] = null;
+            break;
+        }
+    }
+
+    if (client <= 0 || !IsClientInGame(client) || !g_bFirstTimeNotice[client])
+        return Plugin_Stop;
+
+    // Big, bright, centered message
+    SetHudTextParams(-1.0, 0.35, 2.5, 255, 255, 64, 255, 0, 0.0, 0.05, 0.15);
+    ShowSyncHudText(client, g_hHudFirstTimeSync,
+        "Press TAB (scoreboard) or type /buy or /shop to open Hyper Upgrades");
+
+    // Re-schedule once; loop continues only while g_bFirstTimeNotice[client] is true
+    g_hFirstTimeTimer[client] = CreateTimer(2.6, Timer_FirstTimeTip, GetClientUserId(client));
+    return Plugin_Stop;
+}
+
+
 // ------------------------------------------------------------------ //
 // <Helpers for Upgrades and Purchases Handles>
 // ------------------------------------------------------------------ //
@@ -2108,6 +2154,9 @@ public Action Command_OpenMenu(int client, int args)
 {
     if (!IsClientInGame(client))
         return Plugin_Handled;
+
+    // First actual open → stop future reschedules (no need to kill existing timer)
+    g_bFirstTimeNotice[client] = false;
 
     ShowMainMenu(client);
     return Plugin_Handled;
