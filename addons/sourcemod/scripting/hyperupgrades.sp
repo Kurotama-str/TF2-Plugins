@@ -8,37 +8,52 @@
 #include <tf2_stocks>
 #include <tf2attributes>
 #include <tf_econ_data>
+#include <tf_custom_attributes>
 
 #include <stocksoup/handles>
-#include <stocksoup/memory>
+//#include <stocksoup/memory>
 
 
 #define TF_ITEMDEF_DEFAULT -1
 #define MAX_EDICTS 2048
 
 #define PLUGIN_NAME "Hyper Upgrades"
-#define PLUGIN_VERSION "0.60"
+#define PLUGIN_VERSION "0.C0"
 #define CONFIG_ATTR "hu_attributes.cfg"
 #define CONFIG_UPGR "hu_upgrades.cfg"
 #define CONFIG_WEAP "hu_weapons_list.txt"
 #define CONFIG_ALIAS "hu_alias_list.txt"
 #define TRANSLATION_FILE "hu_translations.txt"
 
-//#define IN_DUCK (1 << 2)     // Crouch key already defined
-//#define IN_RELOAD (1 << 13)  // Reload key already defined
+ConVar g_hMoneyBossMultiplier;
+ConVar g_hMoreUpgrades;
+ConVar g_hMvmMode;
+
 bool g_bBossRewarded[MAX_EDICTS + 1];
 bool g_bMenuPressed[MAXPLAYERS + 1];
 bool g_bPlayerBrowsing[MAXPLAYERS + 1];
 bool g_bShowMoneyHud[MAXPLAYERS + 1];
+bool g_bInUpgradeList[MAXPLAYERS + 1];
+
+bool g_bHasCustomAttributes = false; // checks if Custom Attributes is loaded
+bool g_bMvMActive = false;
 
 char g_sPlayerCategory[MAXPLAYERS + 1][64];
 char g_sPlayerAlias[MAXPLAYERS + 1][64];
 char g_sPlayerUpgradeGroup[MAXPLAYERS + 1][64];
+char g_sPreviousAliases[MAXPLAYERS + 1][6][64]; // 6 slots, 64-char alias - tracks weapon alias for slot
+char g_sCurrentMission[64]; // mvm mission name if applicable
+
+int g_MenuClient[MAXPLAYERS + 1];
+int g_iUpgradeMenuPage[MAXPLAYERS + 1];
 
 Handle g_hMoneyPool;
 int g_iMoneySpent[MAXPLAYERS + 1];
 
+ConVar g_hMoneyPerObjective;
+
 Handle g_hPlayerUpgrades[MAXPLAYERS + 1];
+Handle g_hPlayerPurchases[MAXPLAYERS + 1];
 int g_iPlayerBrowsingSlot[MAXPLAYERS + 1];
 ConVar g_hResetMoneyPoolOnMapStart;
 
@@ -46,8 +61,17 @@ Handle g_hRefreshTimer[MAXPLAYERS + 1] = { INVALID_HANDLE, ... };
 int g_iPlayerLastMultiplier[MAXPLAYERS + 1];
 
 Handle g_hHudMoneySync;
+Handle g_hHudResistSync;
+Handle g_hHudDamageSync;
+Handle g_hCurrencySyncTimer = null;
 
 Database g_hSettingsDB;
+
+//MvM wave snapshot
+//int g_iMoneyPoolSnapshot = 0;
+int g_iMoneySpentSnapshot[MAXPLAYERS + 1];
+Handle g_hPlayerUpgradesSnapshot[MAXPLAYERS + 1];
+Handle g_hPlayerPurchasesSnapshot[MAXPLAYERS + 1];
 
 public Plugin myinfo =
 {
@@ -77,19 +101,19 @@ ArrayList g_attributeMappings = null;
 //init upgrades list
 enum struct UpgradeData
 {
-    char name[64];    // display name
-    char alias[64];   // internal alias
-    float cost;
-    float ratio;
+    char name[64];
+    char alias[64];
+    int cost;
+    int costIncrease;
     float increment;
     float limit;
     float initValue;
-    bool hadLimit;    // ✅ true if a limit was explicitly set in cfg
+    bool hadLimit;
 }
 ArrayList g_upgrades; // Each entry is an UpgradeDat
 StringMap g_upgradeIndex; // key = name, value = index into g_upgrades
 
-enum HudCorner
+enum HudCorner // Currency Hud
 {
     HUD_TOP_LEFT,
     HUD_TOP_RIGHT,
@@ -98,13 +122,186 @@ enum HudCorner
 };
 HudCorner g_iHudCorner[MAXPLAYERS + 1];
 
+enum ResistanceHudPosition // Res Hud
+{
+    HUDPOS_LEFT,
+    HUDPOS_TOP,
+    HUDPOS_RIGHT
+};
+ResistanceHudPosition g_iResistHudCorner[MAXPLAYERS + 1];
+
+// --- Damage Types for Res HUD ---
+enum DamageType
+{
+    DAMAGE_FIRE,
+    DAMAGE_BULLET,
+    DAMAGE_BLAST,
+    DAMAGE_CRIT,
+    DAMAGE_MELEE,
+    DAMAGE_OTHER,
+    DAMAGE_COUNT
+};
+
+enum DamageHudPosition
+{
+    DMGHUD_TOP = 0,
+    DMGHUD_BOTTOM,
+    DMGHUD_LEFT,
+    DMGHUD_RIGHT
+};
+DamageHudPosition g_iDamageHudPosition[MAXPLAYERS + 1];
+
+float g_fDamageTaken[MAXPLAYERS + 1][DAMAGE_COUNT];
+StringMap g_resistanceSources[MAXPLAYERS + 1][DAMAGE_COUNT];
+ArrayList g_resistanceMappings; 
+enum struct ResistanceMapping
+{
+    char upgradeName[64];
+    DamageType type;
+}
+
+int g_iResistanceHudMode[MAXPLAYERS + 1]; // 0 = off, 1 = standard, 2 = abridged
+
+enum struct EquippedItem // Used to help with wearables
+{
+    int entity;
+    int defindex;
+    char alias[64];
+}
+
+int g_iDamageTypeHudMode[MAXPLAYERS + 1]; // 0 = off, 1 = basic, 2 = verbose
+
+enum DmgFlagType
+{
+    DFLAG_GENERIC,
+    DFLAG_DIRECT,
+    DFLAG_CRUSH,
+    DFLAG_CRIT,
+    DFLAG_BULLET,
+    DFLAG_SLASH,
+    DFLAG_BUCKSHOT,
+    DFLAG_BURN,
+    DFLAG_IGNITE,
+    DFLAG_CLUB,
+    DFLAG_SHOCK,
+    DFLAG_SONIC,
+    DFLAG_BLAST,
+    DFLAG_BLAST_SURFACE,
+    DFLAG_ACID,
+    DFLAG_POISON,
+    DFLAG_RADIATION,
+    DFLAG_DROWN,
+    DFLAG_DROWNRECOVER,
+    DFLAG_PARALYZE,
+    DFLAG_NERVEGAS,
+    DFLAG_SLOWBURN,
+    DFLAG_PLASMA,
+    DFLAG_AIRBOAT,
+    DFLAG_VEHICLE,
+    DFLAG_DISSOLVE,
+    DFLAG_PREVENT_PHYSICS_FORCE,
+    DFLAG_USE_HITLOCATIONS,
+    DFLAG_NOCLOSEDISTANCEMOD,
+    DFLAG_USEDISTANCEMOD,
+    DFLAG_HALF_FALLOFF,
+    DFLAG_NEVERGIB,
+    DFLAG_ALWAYSGIB,
+    DFLAG_REMOVENORAGDOLL,
+    DFLAG_ENERGYBEAM,
+    DFLAG_RADIUS_MAX,
+    DFLAG_PHYSGUN,
+    DFLAG_COUNT
+};
+
+static const int g_DmgFlagBits[DFLAG_COUNT] = {
+    DMG_GENERIC,
+    DMG_DIRECT,
+    DMG_CRUSH,
+    DMG_CRIT,
+    DMG_BULLET,
+    DMG_SLASH,
+    DMG_BUCKSHOT,
+    DMG_BURN,
+    DMG_IGNITE,
+    DMG_CLUB,
+    DMG_SHOCK,
+    DMG_SONIC,
+    DMG_BLAST,
+    DMG_BLAST_SURFACE,
+    DMG_ACID,
+    DMG_POISON,
+    DMG_RADIATION,
+    DMG_DROWN,
+    DMG_DROWNRECOVER,
+    DMG_PARALYZE,
+    DMG_NERVEGAS,
+    DMG_SLOWBURN,
+    DMG_PLASMA,
+    DMG_AIRBOAT,
+    DMG_VEHICLE,
+    DMG_DISSOLVE,
+    DMG_PREVENT_PHYSICS_FORCE,
+    DMG_USE_HITLOCATIONS,
+    DMG_NOCLOSEDISTANCEMOD,
+    DMG_USEDISTANCEMOD,
+    DMG_HALF_FALLOFF,
+    DMG_NEVERGIB,
+    DMG_ALWAYSGIB,
+    DMG_REMOVENORAGDOLL,
+    DMG_ENERGYBEAM,
+    DMG_RADIUS_MAX,
+    DMG_PHYSGUN
+};
+
+static const char g_DmgFlagNames[DFLAG_COUNT][] = {
+    "Generic",
+    "Direct",
+    "Crush",
+    "Crit",
+    "Bullet",
+    "Slash",
+    "Buckshot",
+    "Burn",
+    "Ignite",
+    "Club",
+    "Shock",
+    "Sonic",
+    "Blast",
+    "Blast Surface",
+    "Acid",
+    "Poison",
+    "Radiation",
+    "Drown",
+    "Drown Recovery",
+    "Paralyze",
+    "Nervegas",
+    "Slowburn",
+    "Plasma",
+    "Airboat",
+    "Vehicle",
+    "Dissolve",
+    "Physics",
+    "Hit Location",
+    "NCD Mod",
+    "UD Mod",
+    "Half Falloff",
+    "Nevergib",
+    "Alwaysgib",
+    "Ragdoll Removal",
+    "Energybeam",
+    "Max Radius",
+    "Physgun"
+};
+
 public void OnPluginStart()
 {
     RegConsoleCmd("sm_buy", Command_OpenMenu);
     RegConsoleCmd("sm_shop", Command_OpenMenu);
 
-    RegAdminCmd("sm_addmoney", Command_AddMoney, ADMFLAG_GENERIC, "Add money to the pool.");
-    RegAdminCmd("sm_subtractmoney", Command_SubtractMoney, ADMFLAG_GENERIC, "Subtract money from the pool.");
+    RegAdminCmd("hu_addmoney", Command_AddMoney, ADMFLAG_GENERIC, "Add money to the pool.");
+    RegAdminCmd("mvm_addcash", Command_AddMvMCash, ADMFLAG_CHEATS, "Adds MvM credits to all active players");
+    RegAdminCmd("hu_subtmoney", Command_SubtractMoney, ADMFLAG_GENERIC, "Subtract money from the pool.");
+    RegAdminCmd("hu_attscan", Cmd_AttributeScanner, ADMFLAG_GENERIC, "Scan a client's attribute values");
 
     HookEvent("player_death", Event_PlayerDeath, EventHookMode_Post);
     HookEvent("teamplay_point_captured", Event_ObjectiveComplete, EventHookMode_Post);
@@ -112,20 +309,32 @@ public void OnPluginStart()
     HookEvent("teamplay_round_win", Event_ObjectiveComplete, EventHookMode_Post);
     HookEvent("player_changeclass", Event_PlayerChangeClass, EventHookMode_Post);
     HookEvent("player_spawn", Event_PlayerSpawn, EventHookMode_Post);
+    HookEvent("mvm_begin_wave", Event_MvmWaveBegin, EventHookMode_Post);
+    HookEvent("mvm_wave_failed", Event_MvmWaveFailed, EventHookMode_Post);
+    HookEvent("mvm_reset_stats", OnMissionReset, EventHookMode_PostNoCopy);
 
-    CreateConVar("hu_money_per_kill", "100", "Money gained per kill.");
-    CreateConVar("hu_money_per_objective", "300", "Money gained per objective.");
-    CreateConVar("hu_money_boss_multiplier", "5.0", "Multiplier for boss kills.");
+    CreateConVar("hu_money_pool", "0", "Current money pool shared by all players.");
+    CreateConVar("hu_money_per_kill", "10", "Money gained per kill.");
+    CreateConVar("hu_money_per_objective", "30", "Money gained per objective.");
+    CreateConVar("hu_money_boss_multiplier", "2", "Multiplier for boss kills.");
+    CreateConVar("hu_moreupgrades", "0", "Allow precise limit upgrade behavior. 0 = snap to limit, 1 = divide increment, else =  old behavior");
+    g_hMvmMode = CreateConVar("hu_mvm_mode", "0", "Hyper Upgrades MvM mode. 0 = auto, 1 = manual disable, 2 = manual enable.", FCVAR_NOTIFY);
 
-    g_hMoneyPool = CreateConVar("hu_money_pool", "0", "Current money pool shared by all players.", FCVAR_NOTIFY);
+    g_hMoneyBossMultiplier = FindConVar("hu_money_boss_multiplier");
+    g_hMoreUpgrades = FindConVar("hu_moreupgrades");
+    g_hMoneyPool = FindConVar("hu_money_pool");
+    g_hMoneyPerObjective = FindConVar("hu_money_per_objective");
 
     LoadTranslations(TRANSLATION_FILE);
 
     GenerateConfigFiles();
 
-    RegAdminCmd("sm_reloadweapons", Command_ReloadWeaponAliases, ADMFLAG_GENERIC, "Reload the weapon aliases.");
-    RegAdminCmd("sm_reloadattalias", Command_ReloadAttributesAliases, ADMFLAG_GENERIC, "Reload the attributes aliases.");
-    RegAdminCmd("sm_reloadupgrades", Command_ReloadUpgrades, ADMFLAG_GENERIC, "Reload the upgrade data from hu_upgrades.cfg");
+    RegAdminCmd("hu_reloadweapons", Command_ReloadWeaponAliases, ADMFLAG_GENERIC, "Reload the weapon aliases.");
+    RegAdminCmd("hu_reloadattalias", Command_ReloadAttributesAliases, ADMFLAG_GENERIC, "Reload the attributes aliases.");
+    RegAdminCmd("hu_reloadupgrades", Command_ReloadUpgrades, ADMFLAG_GENERIC, "Reload the upgrade data from hu_upgrades.cfg");
+
+    RegAdminCmd("hu_debugupghandle", Command_DebugUpgradeHandle, ADMFLAG_ROOT, "Dump the current upgrade array of the first valid player.");
+    RegAdminCmd("hu_debugpurhandle", Command_DebugPurchaseHandle, ADMFLAG_GENERIC, "Debug Hyper Upgrades purchase tree.");
 
     g_weaponAliases = new ArrayList(sizeof(WeaponAlias));
     LoadWeaponAliases();
@@ -137,28 +346,214 @@ public void OnPluginStart()
 
     // Settings stuff
     g_hHudMoneySync = CreateHudSynchronizer();
-    InitSettingsDatabase();
+    g_hHudResistSync = CreateHudSynchronizer();
+    g_hHudDamageSync = CreateHudSynchronizer();
 
-    // Reset upgrades for all connected players
-    ResetAllPlayerUpgrades();
+    InitSettingsDatabase();
+    if (g_resistanceMappings != null)
+        g_resistanceMappings.Clear();
+    else
+        g_resistanceMappings = new ArrayList(sizeof(ResistanceMapping));
+
+    LoadResistanceMappingsFromFile();
+
+    // Initialize per-player KV stores (quiet, no attribute removal)
+    HU_InitAllPlayerStores();
+
+    for (int i = 1; i <= MaxClients; i++) // apply settings to players
+    {
+        if (IsClientInGame(i) && IsClientAuthorized(i))
+        {
+            LoadPlayerSettings(i);
+        }
+        if (IsClientInGame(i))
+        {
+            SDKHook(i, SDKHook_OnTakeDamage, OnTakeDamage);
+            if (g_hRefreshTimer[i] == INVALID_HANDLE)
+            {
+                g_hRefreshTimer[i] = CreateTimer(0.2, Timer_CheckMenuRefresh, i, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
+            }
+        }
+    }
 
     g_hResetMoneyPoolOnMapStart = CreateConVar("hu_reset_money_on_mapstart", "1", "Reset the money pool to 0 on map start. 1 = Enabled, 0 = Disabled.", FCVAR_NOTIFY);
 
+    // Notify of Custom Attributes support
+    g_bHasCustomAttributes = LibraryExists("tf2custattr");
+    if (g_bHasCustomAttributes)
+    {
+        PrintToServer("[Hyper Upgrades] Custom Attributes support is enabled.");
+    }
+}
+
+void HU_InitPlayerStores(int client)
+{
+    if (!IsClientInGame(client)) return;
+
+    if (g_hPlayerUpgrades[client] != null) { delete g_hPlayerUpgrades[client]; }
+    g_hPlayerUpgrades[client] = CreateKeyValues("Upgrades");
+
+    if (g_hPlayerPurchases[client] != null) { delete g_hPlayerPurchases[client]; }
+    g_hPlayerPurchases[client] = CreateKeyValues("Purchases");
+
+    g_iMoneySpent[client] = 0;
+}
+
+void HU_InitAllPlayerStores()
+{
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        if (IsClientInGame(i))
+            HU_InitPlayerStores(i);
+    }
 }
 
 public void OnPluginEnd()
 {
+    // Notify and clean up each player
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        if (!IsClientInGame(i))
+            continue;
+
+        PrintToChat(i, "\x04[HU] \x01Hyper Upgrades reloaded, you may need to change class.");
+
+        // Kill any per-player refresh timers
+        if (g_hRefreshTimer[i] != INVALID_HANDLE)
+        {
+            KillTimer(g_hRefreshTimer[i]);
+            g_hRefreshTimer[i] = INVALID_HANDLE;
+        }
+
+        // Delete per-player upgrade maps
+        if (g_hPlayerUpgrades[i] != null)
+        {
+            delete g_hPlayerUpgrades[i];
+            g_hPlayerUpgrades[i] = null;
+        }
+        // Delete per-player upgrade maps
+        if (g_hPlayerPurchases[i] != null)
+        {
+            delete g_hPlayerPurchases[i];
+            g_hPlayerPurchases[i] = null;
+        }
+
+        // Delete per-player resistance source maps
+        for (DamageType d = view_as<DamageType>(0); d < DAMAGE_COUNT; d++)
+        {
+            if (g_resistanceSources[i][d] != null)
+            {
+                delete g_resistanceSources[i][d];
+                g_resistanceSources[i][d] = null;
+            }
+        }
+
+    }
+
+    // Delete global lists/maps
     if (g_weaponAliases != null)
     {
         delete g_weaponAliases;
         g_weaponAliases = null;
     }
+
+    if (g_attributeMappings != null)
+    {
+        delete g_attributeMappings;
+        g_attributeMappings = null;
+    }
+
+    if (g_upgrades != null)
+    {
+        delete g_upgrades;
+        g_upgrades = null;
+    }
+
+    if (g_upgradeIndex != null)
+    {
+        delete g_upgradeIndex;
+        g_upgradeIndex = null;
+    }
+
+    if (g_resistanceMappings != null)
+    {
+        delete g_resistanceMappings;
+        g_resistanceMappings = null;
+    }
+
+    // Delete HUD synchronizers
+    if (g_hHudMoneySync != null)
+    {
+        delete g_hHudMoneySync;
+        g_hHudMoneySync = null;
+    }
+
+    if (g_hHudResistSync != null)
+    {
+        delete g_hHudResistSync;
+        g_hHudResistSync = null;
+    }
+
+    // Delete database handle if open
+    if (g_hSettingsDB != null)
+    {
+        delete g_hSettingsDB;
+        g_hSettingsDB = null;
+    }
+
+    // Delete convars
+    if (g_hMoneyPool != null)
+    {
+        delete g_hMoneyPool;
+        g_hMoneyPool = null;
+    }
+
+    if (g_hMoneyBossMultiplier != null)
+    {
+        delete g_hMoneyBossMultiplier;
+        g_hMoneyBossMultiplier = null;
+    }
+
+    if (g_hResetMoneyPoolOnMapStart != null)
+    {
+        delete g_hResetMoneyPoolOnMapStart;
+        g_hResetMoneyPoolOnMapStart = null;
+    }
+
+    if (g_hCurrencySyncTimer != null)
+    {
+        KillTimer(g_hCurrencySyncTimer);
+        g_hCurrencySyncTimer = null;
+    }
 }
 
+// Checks for libraries like Custom Upgrades
+public void OnLibraryAdded(const char[] name) 
+{
+    if (StrEqual(name, "tf2custattr"))
+    {
+        g_bHasCustomAttributes = true;
+        PrintToServer("[Hyper Upgrades] Custom Attributes plugin detected.");
+    }
+}
+
+public void OnLibraryRemoved(const char[] name)
+{
+    if (StrEqual(name, "tf2custattr"))
+    {
+        g_bHasCustomAttributes = false;
+        PrintToServer("[Hyper Upgrades] Custom Attributes plugin unloaded.");
+    }
+}
+
+//Client Handling
 public void OnClientPutInServer(int client)
 {
+    SDKHook(client, SDKHook_OnTakeDamage, OnTakeDamage);
     RefundPlayerUpgrades(client, false); // No message on join
     LoadPlayerSettings(client);
+    g_hRefreshTimer[client] = CreateTimer(0.2, Timer_CheckMenuRefresh, client, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
+
 }
 
 public void OnClientDisconnect(int client)
@@ -173,8 +568,91 @@ public void OnClientDisconnect(int client)
 
     // Reset browsing state
     g_bPlayerBrowsing[client] = false;
+    SDKUnhook(client, SDKHook_OnTakeDamage, OnTakeDamage);
 }
 
+// Main safety for weapon changes
+public Action OnWeaponEquip(int client, int weapon)
+{
+    g_bInUpgradeList[client] = false;
+    CancelClientMenu(client, true);
+    // Defensive: only respond to valid weapon assignments
+    if (!IsValidEntity(weapon) || !IsClientInGame(client))
+        return Plugin_Continue;
+
+    // Optionally: skip if weapon was already equipped
+    static int lastEquipped[MAXPLAYERS + 1][6];
+    int defindex = GetEntProp(weapon, Prop_Send, "m_iItemDefinitionIndex");
+
+    bool alreadySeen = false;
+    for (int i = 0; i < 6; i++)
+    {
+        if (lastEquipped[client][i] == defindex)
+        {
+            alreadySeen = true;
+            break;
+        }
+    }
+
+    if (!alreadySeen)
+    {
+        // Track the weapon
+        for (int i = 0; i < 6; i++)
+        {
+            if (lastEquipped[client][i] == 0)
+            {
+                lastEquipped[client][i] = defindex;
+                break;
+            }
+        }
+
+        CheckAndHandleWeaponAliasChange(client);
+    }
+
+    return Plugin_Continue;
+}
+
+// Damage Taken Handling
+
+public Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
+{
+    if (!IsClientInGame(victim) || !IsPlayerAlive(victim))
+        return Plugin_Continue;
+
+    char typeString[256];
+    int mode = g_iDamageTypeHudMode[victim];
+
+    if (mode == 1)
+    {
+        FormatSimplifiedDamageFlags(damagetype, typeString, sizeof(typeString));
+    }
+    else if (mode == 2)
+    {
+        FormatDamageFlags(damagetype, typeString, sizeof(typeString));
+        PrintToConsole(victim, "[HU] You took %.1f damage of type(s): %s", damage, typeString);
+    }
+    else // mode 0 or invalid = do nothing
+    {
+        return Plugin_Continue;
+    }
+
+    float x = -1.0, y = 0.35;
+
+    switch (g_iDamageHudPosition[victim])
+    {
+        case DMGHUD_BOTTOM: y = 0.55;
+        case DMGHUD_LEFT:   x = 0.15, y = -1.0;
+        case DMGHUD_RIGHT:  x = 0.75, y = -1.0;
+        // default = top/center
+    }
+
+    SetHudTextParams(x, y, 2.0, 255, 128, 128, 255, 0, 0.0, 0.1, 2.0);
+    ShowSyncHudText(victim, g_hHudDamageSync, typeString);
+
+    return Plugin_Continue;
+}
+
+//Map Handling
 public void OnMapStart()
 {
     if (g_hResetMoneyPoolOnMapStart.BoolValue)
@@ -182,50 +660,162 @@ public void OnMapStart()
         SetConVarInt(g_hMoneyPool, 0);
 
         // Also reset player upgrades
-        for (int i = 1; i <= MaxClients; i++)
-        {
-            if (IsClientInGame(i))
-            {
-                RefundPlayerUpgrades(i,false);
-            }
-        }
+        ResetAllPlayerUpgrades();
     }
     // Money_HUD_Handler
     CreateTimer(1.0, Timer_DisplayMoneyHUD, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
+    CreateTimer(1.0, Timer_DisplayResistanceHUD, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
+    CheckMvMMapMode();
 }
 
-public void OnSettingsQueryResult(Database db, DBResultSet results, const char[] error, any client)
+// Database Handling
+public void OnSafeSettingsQueryResult(Database db, DBResultSet results, const char[] error, any client)
 {
-    if (results != null && results.FetchRow())
+    if (results == null || error[0] != '\0')
     {
+        PrintToServer("[Warning] Failed to query settings for client %N: %s", client, error);
+        return;
+    }
+
+    if (results.FetchRow())
+    {
+        if (results.FieldCount < 6)
+        {
+            PrintToServer("[Warning] Settings row for client %N is missing columns. Using defaults.", client);
+            g_bShowMoneyHud[client] = true;
+            g_iHudCorner[client] = HUD_BOTTOM_RIGHT;
+            g_iResistanceHudMode[client] = 0;
+            g_iResistHudCorner[client] = HUDPOS_LEFT;
+            g_iDamageTypeHudMode[client] = 0;
+            g_iDamageHudPosition[client] = DMGHUD_TOP;
+
+            SavePlayerSettings(client);
+            return;
+        }
+
         g_bShowMoneyHud[client] = results.FetchInt(0) != 0;
 
-        // NEW: Read hud_position from column index 1
         char pos[32];
         results.FetchString(1, pos, sizeof(pos));
-        g_iHudCorner[client] = ParseHudPosition(pos); // Use helper function
+        g_iHudCorner[client] = ParseHudPosition(pos);
+
+        g_iResistanceHudMode[client] = results.FetchInt(2);
+
+        char resistPosStr[16];
+        results.FetchString(3, resistPosStr, sizeof(resistPosStr));
+        g_iResistHudCorner[client] = ParseResistanceHudPosition(resistPosStr);
+
+        g_iDamageTypeHudMode[client] = results.FetchInt(4);
+
+        char dmgPosStr[16];
+        results.FetchString(5, dmgPosStr, sizeof(dmgPosStr));
+        g_iDamageHudPosition[client] = ParseDamageHudPosition(dmgPosStr);
+
+        // PrintToServer("[Hyper Upgrades] [%N] dmg_hud_mode=%d", client, g_iDamageTypeHudMode[client]);
     }
     else
     {
-        // Defaults if no row exists
+        PrintToServer("[Info] No settings found for client %N. Applying defaults.", client);
         g_bShowMoneyHud[client] = true;
         g_iHudCorner[client] = HUD_BOTTOM_RIGHT;
+        g_iResistanceHudMode[client] = 0;
+        g_iResistHudCorner[client] = HUDPOS_LEFT;
+        g_iDamageTypeHudMode[client] = 0;
 
-        // Create default row in DB
         SavePlayerSettings(client);
     }
 }
 
+void EnsureSettingsSchemaUpToDate()
+{
+    if (g_hSettingsDB == null)
+        return;
+
+    Handle results = SQL_Query(g_hSettingsDB, "PRAGMA table_info(settings);");
+
+    bool hasResistHudMode = false;
+    bool hasResistHudPos = false;
+    bool hasDamageHudMode = false;
+    bool hasDamageHudPos = false;
+
+    while (SQL_FetchRow(results))
+    {
+        char columnName[64];
+        SQL_FetchString(results, 1, columnName, sizeof(columnName));
+
+        if (StrEqual(columnName, "resistance_hud_mode"))
+            hasResistHudMode = true;
+        else if (StrEqual(columnName, "resistance_hud_pos"))
+            hasResistHudPos = true;
+        else if (StrEqual(columnName, "damage_type_hud_mode"))
+            hasDamageHudMode = true;
+        else if (StrEqual(columnName, "damage_type_hud_pos"))
+            hasDamageHudPos = true;
+    }
+    delete results;
+
+    if (!hasResistHudMode)
+    {
+        PrintToServer("[Hyper Upgrades] Adding missing column 'resistance_hud_mode' to settings table...");
+        SQL_FastQuery(g_hSettingsDB, "ALTER TABLE settings ADD COLUMN resistance_hud_mode INTEGER DEFAULT 0;");
+    }
+
+    if (!hasResistHudPos)
+    {
+        PrintToServer("[Hyper Upgrades] Adding missing column 'resistance_hud_pos' to settings table...");
+        SQL_FastQuery(g_hSettingsDB, "ALTER TABLE settings ADD COLUMN resistance_hud_pos TEXT DEFAULT 'left';");
+    }
+
+    if (!hasDamageHudMode)
+    {
+        PrintToServer("[Hyper Upgrades] Adding missing column 'damage_type_hud_mode' to settings table...");
+        SQL_FastQuery(g_hSettingsDB, "ALTER TABLE settings ADD COLUMN damage_type_hud_mode INTEGER DEFAULT 1;");
+    }
+    if (!hasDamageHudPos)
+    {
+        SQL_FastQuery(g_hSettingsDB, "ALTER TABLE settings ADD COLUMN damage_type_hud_pos TEXT DEFAULT 'top';");
+    }
+}
+
+//Events
 public void Event_PlayerChangeClass(Event event, const char[] name, bool dontBroadcast)
 {
     int client = GetClientOfUserId(event.GetInt("userid"));
 
     if (IsClientInGame(client))
     {
+        g_bInUpgradeList[client] = false;
+        CancelClientMenu(client, true);
         RefundPlayerUpgrades(client, false);
+        RefreshClientResistances(client);
     }
 }
 
+public void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
+{
+    int attacker = GetClientOfUserId(event.GetInt("attacker"));
+    int victim = GetClientOfUserId(event.GetInt("userid"));
+
+    if (attacker <= 0 || !IsClientInGame(attacker)) return;
+    if (victim <= 0 || !IsClientInGame(victim)) return;
+    if (attacker == victim) return; // Ignore self-kills (e.g., killbind)
+    
+
+    if (!g_bMvMActive)
+    {
+        // Classic mode kill reward
+        int reward = GetConVarInt(FindConVar("hu_money_per_kill"));
+        SetConVarInt(g_hMoneyPool, GetConVarInt(g_hMoneyPool) + reward);
+    }
+
+    // Force upgrade menu exit on death
+    int client = victim;
+    if (IsClientInGame(client))
+    {
+        g_bInUpgradeList[client] = false;
+        CancelClientMenu(client, true);
+    }
+}
 
 public void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
 {
@@ -233,7 +823,11 @@ public void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast
 
     if (IsClientInGame(client))
     {
+        g_bInUpgradeList[client] = false;
+        CancelClientMenu(client, true);
+        CheckAndHandleWeaponAliasChange(client);
         ApplyPlayerUpgrades(client);
+        RefreshClientResistances(client);
     }
 }
 
@@ -262,13 +856,19 @@ void LoadUpgradeData()
 
         kv.GetSectionName(upgrade.name, sizeof(upgrade.name));
         kv.GetString("Alias", upgrade.alias, sizeof(upgrade.alias));
-        upgrade.cost = kv.GetFloat("Cost", 100.0);
-        upgrade.ratio = kv.GetFloat("Ratio", 1.5);
+
+        upgrade.cost = kv.GetNum("Cost", 20);
+
+        // Updated: Use "CostIncrease" instead of "Ratio"
+        upgrade.costIncrease = kv.GetNum("CostIncrease", 10); // Default 10
+
         upgrade.increment = kv.GetFloat("Increment", 0.1);
+
         char limitStr[32];
         kv.GetString("Limit", limitStr, sizeof(limitStr), "");
         upgrade.hadLimit = limitStr[0] != '\0';
         upgrade.limit = upgrade.hadLimit ? StringToFloat(limitStr) : 0.0;
+
         upgrade.initValue = kv.GetFloat("InitValue", 0.0);
 
         int index = g_upgrades.PushArray(upgrade);
@@ -279,22 +879,35 @@ void LoadUpgradeData()
     delete kv;
 
     PrintToServer("[Hyper Upgrades] Loaded %d upgrades into memory.", g_upgrades.Length);
+
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        if (IsClientInGame(i) && g_iResistanceHudMode[i] != 0)
+        {
+            RefreshClientResistances(i);
+        }
+    }
 }
 
-void LoadPlayerSettings(int client)
+void CheckAndHandleWeaponAliasChange(int client)
 {
-    if (g_hSettingsDB == null || !IsClientAuthorized(client))
-        return;
+    for (int slot = 0; slot <= 5; slot++)
+    {
+        EquippedItem item;
+        item = GetEquippedEntityForSlot(client, slot);
 
-    char steamid[32];
-    GetClientAuthId(client, AuthId_Steam2, steamid, sizeof(steamid), true);
+        if (!StrEqual(g_sPreviousAliases[client][slot], item.alias))
+        {
+            PrintToServer("[HU] Alias changed for client %N slot %d: %s → %s",
+                          client, slot,
+                          g_sPreviousAliases[client][slot],
+                          item.alias);
 
-    char query[128];
-    Format(query, sizeof(query), "SELECT show_money_hud, hud_position FROM settings WHERE steamid = '%s'", steamid);
-
-    g_hSettingsDB.Query(OnSettingsQueryResult, query, client);
+            RefundAllUpgradesInSlot(client, slot);
+            strcopy(g_sPreviousAliases[client][slot], sizeof(g_sPreviousAliases[][]), item.alias);
+        }
+    }
 }
-
 
 // Settings
 
@@ -309,8 +922,44 @@ void InitSettingsDatabase()
     }
 
     SQL_LockDatabase(g_hSettingsDB);
-    SQL_FastQuery(g_hSettingsDB, "CREATE TABLE IF NOT EXISTS settings (steamid TEXT PRIMARY KEY, show_money_hud INTEGER, hud_position TEXT DEFAULT 'bottom-right');");
+
+    SQL_FastQuery(g_hSettingsDB, "CREATE TABLE IF NOT EXISTS settings (steamid TEXT PRIMARY KEY, show_money_hud INTEGER, hud_position TEXT DEFAULT 'bottom-right', resistance_hud_mode INTEGER DEFAULT 0, resistance_hud_pos TEXT DEFAULT 'left', damage_type_hud_mode INTEGER DEFAULT 1, damage_type_hud_pos TEXT DEFAULT 'top');");
+
+    EnsureSettingsSchemaUpToDate();
+
     SQL_UnlockDatabase(g_hSettingsDB);
+}
+
+void LoadPlayerSettings(int client)
+{
+    if (g_hSettingsDB == null || !IsClientAuthorized(client))
+        return;
+
+    char steamid[32], query[320];
+    GetClientAuthId(client, AuthId_Steam2, steamid, sizeof(steamid), true);
+    
+    Format(query, sizeof(query),
+        "SELECT show_money_hud, hud_position, resistance_hud_mode, resistance_hud_pos, damage_type_hud_mode, damage_type_hud_pos FROM settings WHERE steamid = '%s'",
+        steamid
+    );
+
+    g_hSettingsDB.Query(OnSafeSettingsQueryResult, query, client);
+}
+
+void ShowSettingsMenu(int client)
+{
+    Menu menu = new Menu(MenuHandler_SettingsMenu);
+    menu.SetTitle("Settings");
+
+    menu.AddItem("toggle_money_hud", "Toggle Money Display HUD");
+    menu.AddItem("money_hud_position", "Money Display HUD Position");
+    menu.AddItem("toggle_resistance_hud", "Toggle Resistance HUD");
+    menu.AddItem("resist_hud_position", "Resistance HUD Position");
+    menu.AddItem("toggle_damage_hud", "Toggle Damage Type HUD");
+    menu.AddItem("open_dmg_hud_pos_menu", "Damage Taken HUD Position");
+
+    menu.ExitBackButton = true;
+    menu.Display(client, MENU_TIME_FOREVER);
 }
 
 public int MenuHandler_SettingsMenu(Menu menu, MenuAction action, int client, int param)
@@ -324,13 +973,31 @@ public int MenuHandler_SettingsMenu(Menu menu, MenuAction action, int client, in
         {
             ToggleHudSetting(client);
         }
-        else if (StrEqual(info, "hud_position"))
+        else if (StrEqual(info, "money_hud_position"))
         {
-            ShowHudPositionMenu(client);
+            ShowMoneyHudPositionMenu(client);
         }
+        else if (StrEqual(info, "toggle_resistance_hud"))
+        {
+            ToggleResistanceHudSetting(client);
+        }
+        else if (StrEqual(info, "resist_hud_position"))
+        {
+            ShowResistHudPositionMenu(client);
+        }
+        else if (StrEqual(info, "toggle_damage_hud"))
+        {
+            ToggleDamageHudSetting(client);
+        }
+        else if (StrEqual(info, "open_dmg_hud_pos_menu"))
+        {
+            ShowDamageHudPositionMenu(client);
+        }
+
     }
     else if (action == MenuAction_Cancel && param == MenuCancel_ExitBack)
     {
+        g_bInUpgradeList[client] = false;
         ShowMainMenu(client);
     }
     return 0;
@@ -345,15 +1012,23 @@ void SavePlayerSettings(int client)
     GetClientAuthId(client, AuthId_Steam2, steamid, sizeof(steamid), true);
 
     char posStr[32];
-    HudPositionToString(g_iHudCorner[client], posStr, sizeof(posStr));
+    MoneyHudPositionToString(g_iHudCorner[client], posStr, sizeof(posStr));
 
-    char query[256];
+    char resistPosStr[32];
+    ResHudPositionToString(g_iResistHudCorner[client], resistPosStr, sizeof(resistPosStr));
 
-    Format(query, sizeof(query),
-        "REPLACE INTO settings (steamid, show_money_hud, hud_position) VALUES ('%s', %d, '%s')",
+    char dmgPosStr[32];
+    DamageHudPositionToString(g_iDamageHudPosition[client], dmgPosStr, sizeof(dmgPosStr));
+
+    char query[512];
+    Format(query, sizeof(query), "REPLACE INTO settings (steamid, show_money_hud, hud_position, resistance_hud_mode, resistance_hud_pos, damage_type_hud_mode, damage_type_hud_pos) VALUES ('%s', %d, '%s', %d, '%s', %d, '%s')",
         steamid,
         g_bShowMoneyHud[client] ? 1 : 0,
-        posStr
+        posStr,
+        g_iResistanceHudMode[client],
+        resistPosStr,
+        g_iDamageTypeHudMode[client],
+        dmgPosStr
     );
 
     SQL_FastQuery(g_hSettingsDB, query);
@@ -366,9 +1041,9 @@ void ToggleHudSetting(int client)
     PrintToChat(client, "[Settings] Money HUD is now %s.", g_bShowMoneyHud[client] ? "enabled" : "disabled");
 }
 
-void ShowHudPositionMenu(int client)
+void ShowMoneyHudPositionMenu(int client)
 {
-    Menu menu = new Menu(MenuHandler_HudPositionMenu);
+    Menu menu = new Menu(MenuHandler_MoneyHudPositionMenu);
     menu.SetTitle("Select HUD Position");
 
     menu.AddItem("top-left", "Top Left");
@@ -380,7 +1055,7 @@ void ShowHudPositionMenu(int client)
     menu.Display(client, MENU_TIME_FOREVER);
 }
 
-public int MenuHandler_HudPositionMenu(Menu menu, MenuAction action, int client, int param)
+public int MenuHandler_MoneyHudPositionMenu(Menu menu, MenuAction action, int client, int param)
 {
     if (action == MenuAction_Select)
     {
@@ -392,11 +1067,68 @@ public int MenuHandler_HudPositionMenu(Menu menu, MenuAction action, int client,
     }
     else if (action == MenuAction_Cancel && param == MenuCancel_ExitBack)
     {
+        g_bInUpgradeList[client] = false;
         ShowSettingsMenu(client);
     }
 
     return 0;
 }
+
+void ShowResistHudPositionMenu(int client)
+{
+    Menu menu = new Menu(MenuHandler_ResistHudPositionMenu);
+    menu.SetTitle("Select Resistance HUD Position");
+
+    menu.AddItem("left", "Left");
+    menu.AddItem("top", "Top");
+    menu.AddItem("right", "Right");
+
+    menu.ExitBackButton = true;
+    menu.Display(client, MENU_TIME_FOREVER);
+}
+
+public int MenuHandler_ResistHudPositionMenu(Menu menu, MenuAction action, int client, int param)
+{
+    if (action == MenuAction_Select)
+    {
+        char pos[16];
+        menu.GetItem(param, pos, sizeof(pos));
+
+        if (StrEqual(pos, "left")) g_iResistHudCorner[client] = HUDPOS_LEFT;
+        else if (StrEqual(pos, "top")) g_iResistHudCorner[client] = HUDPOS_TOP;
+        else g_iResistHudCorner[client] = HUDPOS_RIGHT;
+
+        SavePlayerSettings(client);
+        PrintToChat(client, "[Settings] Resistance HUD position set to: %s", pos);
+    }
+    else if (action == MenuAction_Cancel && param == MenuCancel_ExitBack)
+    {
+        g_bInUpgradeList[client] = false;
+        ShowSettingsMenu(client);
+    }
+
+    return 0;
+}
+
+DamageHudPosition ParseDamageHudPosition(const char[] str)
+{
+    if (StrEqual(str, "bottom", false)) return DMGHUD_BOTTOM;
+    if (StrEqual(str, "left", false)) return DMGHUD_LEFT;
+    if (StrEqual(str, "right", false)) return DMGHUD_RIGHT;
+    return DMGHUD_TOP;
+}
+
+void DamageHudPositionToString(DamageHudPosition pos, char[] buffer, int maxlen)
+{
+    switch (pos)
+    {
+        case DMGHUD_BOTTOM: strcopy(buffer, maxlen, "bottom");
+        case DMGHUD_LEFT:   strcopy(buffer, maxlen, "left");
+        case DMGHUD_RIGHT:  strcopy(buffer, maxlen, "right");
+        default:            strcopy(buffer, maxlen, "top");
+    }
+}
+
 
 HudCorner ParseHudPosition(const char[] input)
 {
@@ -404,6 +1136,13 @@ HudCorner ParseHudPosition(const char[] input)
     if (StrEqual(input, "top-right")) return HUD_TOP_RIGHT;
     if (StrEqual(input, "bottom-left")) return HUD_BOTTOM_LEFT;
     return HUD_BOTTOM_RIGHT;
+}
+
+ResistanceHudPosition ParseResistanceHudPosition(const char[] input)
+{
+    if (StrEqual(input, "left", false)) return HUDPOS_LEFT;
+    if (StrEqual(input, "top", false)) return HUDPOS_TOP;
+    return HUDPOS_LEFT; // default fallback
 }
 
 public Action Timer_DisplayMoneyHUD(Handle timer)
@@ -451,10 +1190,10 @@ void SetHudPositionByCorner(HudCorner corner)
         }
     }
 
-    SetHudTextParams(x, y, 1.1, 255, 255, 255, 255, 0, 6.0, 0.1, 0.2);
+    SetHudTextParams(x, y, 1.0, 255, 255, 255, 255, 0, 0.0, 0.8, 0.8); 
 }
 
-void HudPositionToString(HudCorner pos, char[] buffer, int maxlen)
+void MoneyHudPositionToString(HudCorner pos, char[] buffer, int maxlen) // money
 {
     switch (pos)
     {
@@ -479,25 +1218,631 @@ void HudPositionToString(HudCorner pos, char[] buffer, int maxlen)
     strcopy(buffer, maxlen, "bottom-right");
 }
 
+void ResHudPositionToString(ResistanceHudPosition pos, char[] buffer, int maxlen)
+{
+    switch (pos)
+    {
+        case HUDPOS_LEFT:
+        {
+            strcopy(buffer, maxlen, "left");
+            return;
+        }
+        case HUDPOS_TOP:
+        {
+            strcopy(buffer, maxlen, "top");
+            return;
+        }
+        case HUDPOS_RIGHT:
+        {
+            strcopy(buffer, maxlen, "right");
+            return;
+        }
+    }
+
+    // Fallback (shouldn't happen if enum is valid)
+    strcopy(buffer, maxlen, "left");
+}
+
+void ToggleResistanceHudSetting(int client)
+{
+    g_iResistanceHudMode[client] = (g_iResistanceHudMode[client] + 1) % 3;
+    SavePlayerSettings(client);
+
+    char modeName[16];
+
+    switch (g_iResistanceHudMode[client])
+    {
+        case 0:
+        {
+            strcopy(modeName, sizeof(modeName), "Off");
+        }
+        case 1:
+        {
+            strcopy(modeName, sizeof(modeName), "Standard");
+        }
+        case 2:
+        {
+            strcopy(modeName, sizeof(modeName), "Abridged");
+        }
+    }
+
+    PrintToChat(client, "[Settings] Resistance HUD mode set to: %s", modeName);
+}
+
+void FormatDamagePercentString(float value, bool hasAny, char[] buffer, int maxlen)
+{
+    if (!hasAny) { strcopy(buffer, maxlen, "0"); return; }
+
+    float pct = value * 100.0;
+    if (pct < 0.0)   pct = 0.0;
+    if (pct > 100.0) pct = 100.0;
+
+    // Higher precision at 95% and above
+    if (pct >= 99.0)
+        Format(buffer, maxlen, "%.4f", pct);
+    else
+        Format(buffer, maxlen, "%.2f", pct);
+}
+
+public Action Timer_DisplayResistanceHUD(Handle timer)
+{
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        if (!IsClientInGame(i) || !IsPlayerAlive(i) || g_iResistanceHudMode[i] == 0)
+            continue;
+
+        char buffer[256];
+
+        char fireStr[16], bulletStr[16], blastStr[16], critStr[16], meleeStr[16], otherStr[16];
+        FormatDamagePercentString(1.0 - g_fDamageTaken[i][DAMAGE_FIRE],   HasAnyResistanceSource(i, DAMAGE_FIRE),   fireStr,   sizeof(fireStr));
+        FormatDamagePercentString(1.0 - g_fDamageTaken[i][DAMAGE_BULLET], HasAnyResistanceSource(i, DAMAGE_BULLET), bulletStr, sizeof(bulletStr));
+        FormatDamagePercentString(1.0 - g_fDamageTaken[i][DAMAGE_BLAST],  HasAnyResistanceSource(i, DAMAGE_BLAST),  blastStr,  sizeof(blastStr));
+        FormatDamagePercentString(1.0 - g_fDamageTaken[i][DAMAGE_CRIT],   HasAnyResistanceSource(i, DAMAGE_CRIT),   critStr,   sizeof(critStr));
+        FormatDamagePercentString(1.0 - g_fDamageTaken[i][DAMAGE_MELEE],  HasAnyResistanceSource(i, DAMAGE_MELEE),  meleeStr,  sizeof(meleeStr));
+        FormatDamagePercentString(1.0 - g_fDamageTaken[i][DAMAGE_OTHER],  HasAnyResistanceSource(i, DAMAGE_OTHER),  otherStr,  sizeof(otherStr));
+
+        if (g_iResistanceHudMode[i] == 1) // Standard
+        {
+            Format(buffer, sizeof(buffer),
+                "Fire : %s%%    Bullet : %s%%\nCrit : %s%%    Melee : %s%%\nBlast : %s%%   Other : %s%%",
+                fireStr, bulletStr, critStr, meleeStr, blastStr, otherStr);
+        }
+        else // Abridged
+        {
+            Format(buffer, sizeof(buffer),
+                "f %s%%        • %s%%\nc %s%%        m %s%%\n# %s%%        o %s%%",
+                fireStr, bulletStr, critStr, meleeStr, blastStr, otherStr);
+        }
+
+        float x = 0.01, y = 0.3;
+        switch (g_iResistHudCorner[i])
+        {
+            case HUDPOS_LEFT:  { x = 0.01; y = 0.2; }
+            case HUDPOS_TOP:   { x = -1.0; y = 0.05; }
+            case HUDPOS_RIGHT: { x = 0.8; y = 0.2; }
+        }
+
+        SetHudTextParams(x, y, 1.0, 255, 255, 255, 255, 0, 0.0, 0.8, 0.8);
+        ShowSyncHudText(i, g_hHudResistSync, "%s", buffer); // <-- important
+    }
+
+    return Plugin_Continue;
+}
+
+void SetPlayerResistanceSource(int client, DamageType type, const char[] sourceKey, float multiplier)
+{
+    if (g_resistanceSources[client][type] == null)
+        g_resistanceSources[client][type] = new StringMap();
+
+    g_resistanceSources[client][type].SetValue(sourceKey, multiplier);
+    RecalculateTotalResistance(client, type);
+}
+
+void RecalculateTotalResistance(int client, DamageType type)
+{
+    float total = 1.0;
+
+    if (g_resistanceSources[client][type] != null)
+    {
+        StringMapSnapshot snap = g_resistanceSources[client][type].Snapshot();
+        for (int i = 0; i < snap.Length; i++)
+        {
+            char key[64];
+            snap.GetKey(i, key, sizeof(key));
+            float value;
+            g_resistanceSources[client][type].GetValue(key, value);
+            total *= value;
+            // PrintToServer("[Hyper Upgrades] [%N] Resistance source '%s' → %.6f for type %d", client, key, value, type);
+        }
+        delete snap;
+    }
+
+    g_fDamageTaken[client][type] = total;
+    // PrintToServer("[Hyper Upgrades] [%N] Final resistance multiplier for type %d: %.6f", client, type, total);
+}
+
+void BuildResistanceKey(const char[] upgradeName, int slot, const char[] slotAlias, char[] buffer, int maxlen)
+{
+    if (slot == -1)
+    {
+        // Body upgrade
+        Format(buffer, maxlen, "%s%s", upgradeName, slotAlias); // e.g., "*Fire Resistancebody_demoman"
+    }
+    else
+    {
+        Format(buffer, maxlen, "%s_slot%d", upgradeName, slot); // e.g., "*Fire Resistance_slot1"
+    }
+}
+
+void LoadResistanceMappingsFromFile()
+{
+    char filePath[PLATFORM_MAX_PATH];
+    BuildPath(Path_SM, filePath, sizeof(filePath), "configs/hu_res_mappings.txt");
+
+    // If file doesn't exist, create a basic template
+    if (!FileExists(filePath))
+    {
+        Handle file = OpenFile(filePath, "w");
+        if (file != null)
+        {
+            WriteFileLine(file, "// Format: DAMAGE_TYPE,Upgrade Name");
+            WriteFileLine(file, "// Example: DAMAGE_FIRE,*Fire Resistance");
+            WriteFileLine(file, "");
+            WriteFileLine(file, "// Available damage types:");
+            WriteFileLine(file, "// DAMAGE_FIRE");
+            WriteFileLine(file, "// DAMAGE_BULLET");
+            WriteFileLine(file, "// DAMAGE_BLAST");
+            WriteFileLine(file, "// DAMAGE_CRIT");
+            WriteFileLine(file, "// DAMAGE_MELEE");
+            WriteFileLine(file, "// DAMAGE_OTHER");
+
+            CloseHandle(file);
+        }
+
+        PrintToServer("[Hyper Upgrades] Resistance mapping file not found. Created default template.");
+        return;
+    }
+
+    Handle file = OpenFile(filePath, "r");
+    if (file == null)
+    {
+        PrintToServer("[Hyper Upgrades] Failed to open hu_res_mappings.txt.");
+        return;
+    }
+
+    char line[256];
+    while (!IsEndOfFile(file) && ReadFileLine(file, line, sizeof(line)))
+    {
+        TrimString(line);
+
+        // Skip comments or empty lines
+        if (line[0] == '\0' || line[0] == '#' || StrContains(line, "//") == 0)
+            continue;
+
+        char parts[2][128];
+        int count = ExplodeString(line, ",", parts, sizeof(parts), sizeof(parts[]));
+        if (count != 2)
+        {
+            PrintToServer("[Hyper Upgrades] Skipping malformed line in hu_res_mappings.txt: %s", line);
+            continue;
+        }
+
+        TrimString(parts[0]);
+        TrimString(parts[1]);
+
+        DamageType type = ParseDamageType(parts[0]);
+        if (type == DAMAGE_COUNT)
+        {
+            PrintToServer("[Hyper Upgrades] Unknown damage type in mapping: %s", parts[0]);
+            continue;
+        }
+
+        ResistanceMapping entry;
+        strcopy(entry.upgradeName, sizeof(entry.upgradeName), parts[1]);
+        entry.type = type;
+        g_resistanceMappings.PushArray(entry);
+    }
+
+    CloseHandle(file);
+
+    PrintToServer("[Hyper Upgrades] Resistance upgrade mappings loaded.");
+}
+
+DamageType ParseDamageType(const char[] str)
+{
+    if (StrEqual(str, "DAMAGE_FIRE", false)) return DAMAGE_FIRE;
+    if (StrEqual(str, "DAMAGE_BULLET", false)) return DAMAGE_BULLET;
+    if (StrEqual(str, "DAMAGE_BLAST", false)) return DAMAGE_BLAST;
+    if (StrEqual(str, "DAMAGE_CRIT", false)) return DAMAGE_CRIT;
+    if (StrEqual(str, "DAMAGE_MELEE", false)) return DAMAGE_MELEE;
+    if (StrEqual(str, "DAMAGE_OTHER", false)) return DAMAGE_OTHER;
+    return DAMAGE_COUNT; // Invalid
+}
+
+bool HasAnyResistanceSource(int client, DamageType type)
+{
+    if (g_resistanceSources[client][type] == null)
+        return false;
+
+    StringMapSnapshot snap = g_resistanceSources[client][type].Snapshot();
+    int len = snap.Length;
+    delete snap;
+    return (len > 0);
+}
+
+void RefreshClientResistances(int client)
+{
+    // Reset all to 0.0 and clear sources
+    for (int i = 0; i < view_as<int>(DAMAGE_COUNT); i++)
+    {
+        DamageType type = view_as<DamageType>(i);
+        if (g_resistanceSources[client][type] != null)
+            g_resistanceSources[client][type].Clear();
+        g_fDamageTaken[client][type] = 0.0;
+    }
+
+    if (g_hPlayerUpgrades[client] == null)
+        return;
+
+    // --- Collect slot names FIRST to avoid cursor conflicts with UpgradeRead() ---
+    char slotNames[64][64];
+    int slotCount = 0;
+
+    KvRewind(g_hPlayerUpgrades[client]);
+    if (KvGotoFirstSubKey(g_hPlayerUpgrades[client], false)) // slots are sections
+    {
+        do
+        {
+            if (slotCount >= 64) break;
+            KvGetSectionName(g_hPlayerUpgrades[client], slotNames[slotCount], sizeof(slotNames[]));
+            slotCount++;
+        }
+        while (KvGotoNextKey(g_hPlayerUpgrades[client], false));
+    }
+    KvRewind(g_hPlayerUpgrades[client]);
+
+    // --- For each slot, read levels via helper and push resistance sources ---
+    for (int s = 0; s < slotCount; s++)
+    {
+        char slotName[64];
+        strcopy(slotName, sizeof(slotName), slotNames[s]);
+
+        // slot index: body/custom = -1, "slotN" -> N
+        int slot = -1;
+        if (StrContains(slotName, "slot", false) == 0)
+            slot = StringToInt(slotName[4]); // parse after "slot"
+
+        // Loop mapped resistance upgrades
+        for (int j = 0; j < g_resistanceMappings.Length; j++)
+        {
+            ResistanceMapping map;
+            g_resistanceMappings.GetArray(j, map);
+
+            // Read stored level for this upgrade in this slot
+            float level = UpgradeRead(client, slotName, map.upgradeName);
+            if (level == 0.0)
+                continue;
+
+            // Build unique source key and push multiplier
+            char key[64];
+            BuildResistanceKey(
+                map.upgradeName,
+                slot,
+                (slot == -1) ? g_sPlayerAlias[client] : "",
+                key, sizeof(key)
+            );
+
+            float multiplier = 1.0 - FloatAbs(level);
+            SetPlayerResistanceSource(client, map.type, key, multiplier);
+        }
+    }
+}
+
+void ToggleDamageHudSetting(int client)
+{
+    g_iDamageTypeHudMode[client] = (g_iDamageTypeHudMode[client] + 1) % 3;
+    SavePlayerSettings(client);
+
+    char modeName[16];
+
+    switch (g_iDamageTypeHudMode[client])
+    {
+        case 0: Format(modeName, sizeof(modeName), "Off");
+        case 1: Format(modeName, sizeof(modeName), "Basic");
+        case 2: Format(modeName, sizeof(modeName), "Verbose");
+    }
+
+    PrintToChat(client, "[Settings] Damage Type HUD mode set to: %s", modeName);
+}
+
+void ShowDamageHudPositionMenu(int client)
+{
+    Menu menu = new Menu(MenuHandler_DamageHudPosition);
+    menu.SetTitle("Select Damage HUD Position:");
+
+    menu.AddItem("top", "Top (above crosshair)");
+    menu.AddItem("bottom", "Bottom (below crosshair)");
+    menu.AddItem("left", "Left");
+    menu.AddItem("right", "Right");
+
+    menu.ExitBackButton = true;
+    menu.Display(client, 20);
+}
+
+public int MenuHandler_DamageHudPosition(Menu menu, MenuAction action, int client, int item)
+{
+    if (action == MenuAction_End)
+    {
+        delete menu;
+    }
+    else if (action == MenuAction_Select)
+    {
+        char info[16];
+        menu.GetItem(item, info, sizeof(info));
+        g_iDamageHudPosition[client] = ParseDamageHudPosition(info);
+        SavePlayerSettings(client);
+
+        char buffer[16];
+        DamageHudPositionToString(g_iDamageHudPosition[client], buffer, sizeof(buffer));
+        PrintToChat(client, "[Settings] Damage HUD position set to: %s", buffer);
+
+        ShowSettingsMenu(client); // re-open main menu
+    }
+
+    return 0;
+}
+
+// ------------------------------------------------------------------ //
+// <Helpers for Upgrades and Purchases Handles>
+// ------------------------------------------------------------------ //
+
+// READ
+stock float UpgradeRead(int client, const char[] slotName, const char[] upgradeName)
+{
+    if (!IsClientInGame(client) || slotName[0] == '\0' || upgradeName[0] == '\0')
+        return 0.0;
+
+    Handle kv = g_hPlayerUpgrades[client];
+    if (kv == null)
+        return 0.0;
+
+    KvRewind(kv);
+    if (!KvJumpToKey(kv, slotName, false))
+        return 0.0;
+
+    float value = KvGetFloat(kv, upgradeName, 0.0);
+    KvGoBack(kv);
+    return value;
+}
+
+stock int PurchaseRead(int client, const char[] slotName, const char[] upgradeName)
+{
+    if (!IsClientInGame(client) || slotName[0] == '\0' || upgradeName[0] == '\0')
+        return 0;
+
+    Handle kv = g_hPlayerPurchases[client];
+    if (kv == null)
+        return 0;
+
+    KvRewind(kv);
+    if (!KvJumpToKey(kv, slotName, false))
+        return 0;
+
+    int count = KvGetNum(kv, upgradeName, 0);
+    KvGoBack(kv);
+    return count;
+}
+
+// WRITE
+
+/*
+void UpgradeWrite(int client, const char[] slot, const char[] upgradeName, float value)
+{
+    if (g_hPlayerUpgrades[client] == null)
+        g_hPlayerUpgrades[client] = CreateKeyValues("Upgrades");
+
+    KvRewind(g_hPlayerUpgrades[client]);
+    if (!KvJumpToKey(g_hPlayerUpgrades[client], slot, true))
+        return;
+
+    KvSetFloat(g_hPlayerUpgrades[client], upgradeName, value);
+    KvGoBack(g_hPlayerUpgrades[client]); // <- back to root
+}
+
+void PurchaseWrite(int client, const char[] slot, const char[] upgradeName, int purchases)
+{
+    if (g_hPlayerPurchases[client] == null)
+        g_hPlayerPurchases[client] = CreateKeyValues("Purchases");
+
+    KvRewind(g_hPlayerPurchases[client]);
+    if (!KvJumpToKey(g_hPlayerPurchases[client], slot, true))
+        return;
+
+    KvSetNum(g_hPlayerPurchases[client], upgradeName, purchases);
+    KvGoBack(g_hPlayerPurchases[client]); // <- back to root
+}
+*/
+
+// ADD (increment)
+float UpgradeAdd(int client, const char[] slot, const char[] upgradeName, float delta)
+{
+    if (g_hPlayerUpgrades[client] == null)
+        g_hPlayerUpgrades[client] = CreateKeyValues("Upgrades");
+
+    KvRewind(g_hPlayerUpgrades[client]);
+    if (!KvJumpToKey(g_hPlayerUpgrades[client], slot, true))
+        return 0.0;
+
+    float current = KvGetFloat(g_hPlayerUpgrades[client], upgradeName, 0.0);
+    float newValue = current + delta;
+    KvSetFloat(g_hPlayerUpgrades[client], upgradeName, newValue);
+    KvGoBack(g_hPlayerUpgrades[client]); // <- back to root
+    return newValue;
+}
+
+int PurchaseAdd(int client, const char[] slot, const char[] upgradeName, int delta)
+{
+    if (g_hPlayerPurchases[client] == null)
+        g_hPlayerPurchases[client] = CreateKeyValues("Purchases");
+
+    KvRewind(g_hPlayerPurchases[client]);
+    if (!KvJumpToKey(g_hPlayerPurchases[client], slot, true))
+        return 0;
+
+    int current = KvGetNum(g_hPlayerPurchases[client], upgradeName, 0);
+    int newValue = current + delta;
+    KvSetNum(g_hPlayerPurchases[client], upgradeName, newValue);
+    KvGoBack(g_hPlayerPurchases[client]); // <- back to root
+    return newValue;
+}
+
+// DELETE single key (no prune)
+bool UpgradeDelete(int client, const char[] slot, const char[] upgradeName)
+{
+    if (g_hPlayerUpgrades[client] == null) return false;
+
+    KvRewind(g_hPlayerUpgrades[client]);
+    if (!KvJumpToKey(g_hPlayerUpgrades[client], slot, false))
+        return false;
+
+    bool deleted = KvDeleteKey(g_hPlayerUpgrades[client], upgradeName);
+    KvGoBack(g_hPlayerUpgrades[client]);
+    return deleted;
+}
+
+bool PurchaseDelete(int client, const char[] slot, const char[] upgradeName)
+{
+    if (g_hPlayerPurchases[client] == null) return false;
+
+    KvRewind(g_hPlayerPurchases[client]);
+    if (!KvJumpToKey(g_hPlayerPurchases[client], slot, false))
+        return false;
+
+    bool deleted = KvDeleteKey(g_hPlayerPurchases[client], upgradeName);
+    KvGoBack(g_hPlayerPurchases[client]);
+    return deleted;
+}
+
+// DELETE entire slot explicitly
+bool UpgradeDeleteSlot(int client, const char[] slot)
+{
+    if (g_hPlayerUpgrades[client] == null) return false;
+    KvRewind(g_hPlayerUpgrades[client]);
+    return KvDeleteKey(g_hPlayerUpgrades[client], slot);
+}
+
+bool PurchaseDeleteSlot(int client, const char[] slot)
+{
+    if (g_hPlayerPurchases[client] == null) return false;
+    KvRewind(g_hPlayerPurchases[client]);
+    return KvDeleteKey(g_hPlayerPurchases[client], slot);
+}
+
+/*
+// Same with a check
+bool UpgradePruneSlotIfEmpty(int client, const char[] slot)
+{
+    if (g_hPlayerUpgrades[client] == null) return false;
+
+    KvRewind(g_hPlayerUpgrades[client]);
+    if (!KvJumpToKey(g_hPlayerUpgrades[client], slot, false))
+        return false;
+
+    bool hasAny = KvGotoFirstSubKey(g_hPlayerUpgrades[client], false);
+    KvGoBack(g_hPlayerUpgrades[client]); // back to root
+
+    if (!hasAny)
+    {
+        return KvDeleteKey(g_hPlayerUpgrades[client], slot);
+    }
+    return false;
+}
+
+bool PurchasePruneSlotIfEmpty(int client, const char[] slot)
+{
+    if (g_hPlayerPurchases[client] == null) return false;
+
+    KvRewind(g_hPlayerPurchases[client]);
+    if (!KvJumpToKey(g_hPlayerPurchases[client], slot, false))
+        return false;
+
+    bool hasAny = KvGotoFirstSubKey(g_hPlayerPurchases[client], false);
+    KvGoBack(g_hPlayerPurchases[client]); // back to root
+
+    if (!hasAny)
+    {
+        return KvDeleteKey(g_hPlayerPurchases[client], slot);
+    }
+    return false;
+}
+
+
+// Ensure slot/upgrade exists check
+bool UpgradeEnsureSlot(int client, const char[] slot)
+{
+    if (g_hPlayerUpgrades[client] == null)
+        g_hPlayerUpgrades[client] = CreateKeyValues("Upgrades");
+    KvRewind(g_hPlayerUpgrades[client]);
+    bool ok = KvJumpToKey(g_hPlayerUpgrades[client], slot, true);
+    KvGoBack(g_hPlayerUpgrades[client]); // <- back to root
+    return ok;
+}
+
+bool PurchaseEnsureSlot(int client, const char[] slot)
+{
+    if (g_hPlayerPurchases[client] == null)
+        g_hPlayerPurchases[client] = CreateKeyValues("Purchases");
+    KvRewind(g_hPlayerPurchases[client]);
+    bool ok = KvJumpToKey(g_hPlayerPurchases[client], slot, true);
+    KvGoBack(g_hPlayerPurchases[client]); // <- back to root
+    return ok;
+}
+*/
+
+bool UpgradeExists(int client, const char[] slot, const char[] upgradeName)
+{
+    if (g_hPlayerUpgrades[client] == null) return false;
+    KvRewind(g_hPlayerUpgrades[client]);
+    if (!KvJumpToKey(g_hPlayerUpgrades[client], slot, false)) return false;
+    bool exists = (KvGetDataType(g_hPlayerUpgrades[client], upgradeName) != KvData_None);
+    KvGoBack(g_hPlayerUpgrades[client]);
+    return exists;
+}
+
+bool PurchaseExists(int client, const char[] slot, const char[] upgradeName)
+{
+    if (g_hPlayerPurchases[client] == null) return false;
+    KvRewind(g_hPlayerPurchases[client]);
+    if (!KvJumpToKey(g_hPlayerPurchases[client], slot, false)) return false;
+    bool exists = (KvGetDataType(g_hPlayerPurchases[client], upgradeName) != KvData_None);
+    KvGoBack(g_hPlayerPurchases[client]);
+    return exists;
+}
+
+// ------------------------------------------------------------------ //
+
 // Money handler for players
 void RefundPlayerUpgrades(int client, bool bShowMessage = true)
 {
     if (!IsClientInGame(client))
         return;
 
-    // Remove all applied attributes from player and their weapons
+    // Strip applied attributes from player and their weapons
     RemovePlayerUpgrades(client);
 
-    // Clear the KeyValues upgrades
+    // Fresh Upgrades KV
     if (g_hPlayerUpgrades[client] != null)
     {
-        CloseHandle(g_hPlayerUpgrades[client]); // Delete all stored upgrades
-        g_hPlayerUpgrades[client] = CreateKeyValues("Upgrades"); // Fresh upgrades
+        delete g_hPlayerUpgrades[client];
     }
-    else
+    g_hPlayerUpgrades[client] = CreateKeyValues("Upgrades");
+
+    // Fresh Purchases KV
+    if (g_hPlayerPurchases[client] != null)
     {
-        g_hPlayerUpgrades[client] = CreateKeyValues("Upgrades"); // Safety in case it's null
+        delete g_hPlayerPurchases[client];
     }
+    g_hPlayerPurchases[client] = CreateKeyValues("Purchases");
 
     // Reset money spent
     g_iMoneySpent[client] = 0;
@@ -505,6 +1850,17 @@ void RefundPlayerUpgrades(int client, bool bShowMessage = true)
     if (bShowMessage)
     {
         PrintToChat(client, "[Hyper Upgrades] All upgrades refunded.");
+    }
+}
+
+void RefundAllPlayersUpgrades()
+{
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        if (IsClientInGame(i))
+        {
+            RefundPlayerUpgrades(i, true);
+        }
     }
 }
 
@@ -567,10 +1923,165 @@ public Action Command_ReloadUpgrades(int client, int args)
     // Reload upgrade definitions
     LoadUpgradeData();
 
+    // Reload resistance mappings from config file
+    if (g_resistanceMappings != null)
+        g_resistanceMappings.Clear();
+    else
+        g_resistanceMappings = new ArrayList(sizeof(ResistanceMapping));
+
+    LoadResistanceMappingsFromFile();
+
     PrintToConsole(client, "[Hyper Upgrades] Upgrade definitions reloaded from hu_upgrades.cfg.");
+    PrintToConsole(client, "[Hyper Upgrades] Resistance upgrade mappings reloaded from hu_res_mappings.txt.");
     return Plugin_Handled;
 }
 
+public Action Cmd_AttributeScanner(int admin, int args)
+{
+    if (args < 2)
+    {
+        PrintToServer("[Hyper Upgrades] Usage: hu_attscan <client> <attribute_name> [vanilla=0|1]");
+        return Plugin_Handled;
+    }
+
+    char clientStr[64];
+    GetCmdArg(1, clientStr, sizeof(clientStr));
+
+    int client = 0;
+
+    // Try to parse as client index
+    if (StrToInt(clientStr, client) && client >= 1 && client <= MaxClients && IsClientInGame(client))
+    {
+        // valid client index
+    }
+    else
+    {
+        // Try to find by name
+        client = FindClientByName(clientStr);
+        if (client == 0)
+        {
+            PrintToServer("[Hyper Upgrades] Could not find client '%s'", clientStr);
+            return Plugin_Handled;
+        }
+    }
+
+    char attrName[64];
+    GetCmdArg(2, attrName, sizeof(attrName));
+
+    bool isVanilla = true;
+    if (args >= 3)
+    {
+        char vanillaArg[8];
+        GetCmdArg(3, vanillaArg, sizeof(vanillaArg));
+        isVanilla = (StringToInt(vanillaArg) != 0);
+    }
+
+    PrintToServer("[Hyper Upgrades] Scanning client %N for attribute '%s' (%s)", client, attrName, isVanilla ? "vanilla" : "custom");
+
+    float total = 0.0;
+
+    // Check attribute on player entity
+    if (isVanilla)
+    {
+        Address addr = TF2Attrib_GetByName(client, attrName);
+        if (addr != Address_Null)
+        {
+            float val = TF2Attrib_GetValue(addr);
+            total += val;
+            PrintToServer("[AttributeScan] Client entity %d value: %.3f", client, val);
+        }
+    }
+    else
+    {
+        float val = TF2CustAttr_GetFloat(client, attrName);
+        if (val != 0.0)
+        {
+            total += val;
+            PrintToServer("[AttributeScan] Client entity %d value: %.3f", client, val);
+        }
+    }
+
+    // Scan equipped entities
+    int maxEntities = GetMaxEntities();
+    for (int ent = MaxClients + 1; ent < maxEntities; ent++)
+    {
+        if (!IsValidEntity(ent))
+            continue;
+
+        if (!IsEquippedByClient(ent, client))
+            continue;
+
+        if (isVanilla)
+        {
+            Address addr = TF2Attrib_GetByName(ent, attrName);
+            if (addr == Address_Null)
+                continue;
+
+            float val = TF2Attrib_GetValue(addr);
+            if (val == 0.0)
+                continue;
+
+            total += val;
+            char classname[64];
+            GetEntityClassname(ent, classname, sizeof(classname));
+            PrintToServer("[AttributeScan] Entity %d (%s) value: %.3f", ent, classname, val);
+        }
+        else
+        {
+            float val = TF2CustAttr_GetFloat(ent, attrName);
+            if (val == 0.0)
+                continue;
+
+            total += val;
+            char classname[64];
+            GetEntityClassname(ent, classname, sizeof(classname));
+            PrintToServer("[AttributeScan] Entity %d (%s) value: %.3f", ent, classname, val);
+        }
+    }
+
+    PrintToServer("[Hyper Upgrades] Total attribute value for client %N: %.3f", client, total);
+
+    return Plugin_Handled;
+}
+
+bool IsEquippedByClient(int ent, int client)
+{
+    if (!IsValidEntity(ent)) return false;
+    if (!HasEntProp(ent, Prop_Send, "m_hOwnerEntity")) return false;
+    return (GetEntPropEnt(ent, Prop_Send, "m_hOwnerEntity") == client);
+}
+
+int FindClientByName(const char[] name)
+{
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        if (!IsClientInGame(i))
+            continue;
+
+        char clientName[64];
+        GetClientName(i, clientName, sizeof(clientName));
+
+        if (StrContains(clientName, name, false) != -1)
+            return i;
+    }
+    return 0;
+}
+
+bool StrToInt(const char[] str, int &value)
+{
+    // StringToInt returns 0 if parsing fails, so we need to check explicitly
+    // We'll assume that if str starts with a digit or '-' it is valid
+    if (str[0] == '\0')
+        return false;
+
+    if ((str[0] >= '0' && str[0] <= '9') || str[0] == '-')
+    {
+        value = StringToInt(str);
+        return true;
+    }
+
+    return false;
+}
 
 // Detect scoreboard key press
 public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3], float angles[3], int &weapon)
@@ -605,6 +2116,7 @@ public Action Command_OpenMenu(int client, int args)
 // Build the main menu
 void ShowMainMenu(int client)
 {
+    g_bInUpgradeList[client] = false;
     Menu menu = new Menu(MenuHandler_MainMenu);
     menu.SetTitle("Hyper Upgrades \nBalance: %d/%d$", GetPlayerBalance(client), GetConVarInt(g_hMoneyPool));
 
@@ -621,7 +2133,8 @@ void ShowMainMenu(int client)
     //}
     //else if (class == TFClass_Engineer)
     //{
-    //    menu.AddItem("engineer", "Engineer Upgrades");
+    //    menu.AddItem("engineer", "PDA Upgrades");
+    //    menu.AddItem("engineer", "Building Upgrades");
     //}
 
     menu.AddItem("refund", "Upgrades List / Refund");
@@ -635,6 +2148,11 @@ public int MenuHandler_MainMenu(Menu menu, MenuAction action, int client, int pa
 {
     if (action == MenuAction_End)
     {
+        if (client > 0 && client < MAXPLAYERS+1)
+        {
+            g_bInUpgradeList[client] = false;
+        }
+        // PrintToServer("[Hyper Upgrades] MenuAction_End triggered for client %d", client);
         delete menu;
     }
     else if (action == MenuAction_Select)
@@ -662,15 +2180,17 @@ public int MenuHandler_MainMenu(Menu menu, MenuAction action, int client, int pa
         {
             ShowRefundSlotMenu(client); // ✅ Launch the refund menu
         }
-        //  else if (StrEqual(info, "engineer"))
-        // {
-        //     ShowCategoryMenu(client, "Engineer Upgrades");
-        //     // PrintToServer("[Debug] Showing class-specific upgrades: %s", info);
-        // }
         // else if (StrEqual(info, "spy"))
         // {
         //     ShowCategoryMenu(client, "Spy Upgrades");
-        //     PrintToServer("[Debug] Showing class-specific upgrades: %s", info);
+        //     PrintToServer("[Hyper Upgrades] Showing class-specific upgrades: %s", info);
+        // }
+        //  else if (StrEqual(info, "engineer"))
+        // {
+        //     ShowCategoryMenu(client, "PDA Upgrades");
+        //     // PrintToServer("[Hyper Upgrades] Showing class-specific upgrades: %s", info);
+        //     ShowCategoryMenu(client, "Building Upgrades");
+        //     // PrintToServer("[Hyper Upgrades] Showing class-specific upgrades: %s", info);
         // }
         else if (StrEqual(info, "settings"))
         {
@@ -682,13 +2202,7 @@ public int MenuHandler_MainMenu(Menu menu, MenuAction action, int client, int pa
         if (param == MenuCancel_ExitBack)
         {
             g_bPlayerBrowsing[client] = false;
-
-            // Stop refresh timer
-            if (g_hRefreshTimer[client] != INVALID_HANDLE)
-            {
-                CloseHandle(g_hRefreshTimer[client]);
-                g_hRefreshTimer[client] = INVALID_HANDLE;
-            }
+            g_bInUpgradeList[client] = false;
 
             ShowCategoryMenu(client, g_sPlayerCategory[client]);
         }
@@ -701,59 +2215,128 @@ void ShowRefundSlotMenu(int client)
     Menu menu = new Menu(MenuHandler_RefundSlotMenu);
     menu.SetTitle("Select Upgrade Group to Refund");
 
-    KvRewind(g_hPlayerUpgrades[client]);
-
-    if (!KvGotoFirstSubKey(g_hPlayerUpgrades[client], false))
+    if (g_hPlayerUpgrades[client] == null && g_hPlayerPurchases[client] == null)
     {
         PrintToChat(client, "[Hyper Upgrades] No upgrades to refund.");
+        g_bInUpgradeList[client] = false;
         delete menu;
         return;
     }
 
-    do
+    // Gather slots from both handles
+    char slots[64][64];
+    int slotCount = 0;
+
+    if (g_hPlayerUpgrades[client] != null)
+    {
+        KvRewind(g_hPlayerUpgrades[client]);
+        if (KvGotoFirstSubKey(g_hPlayerUpgrades[client], false))
+        {
+            do
+            {
+                if (slotCount >= 64) break;
+                char nm[64];
+                KvGetSectionName(g_hPlayerUpgrades[client], nm, sizeof(nm));
+
+                bool seen = false;
+                for (int s = 0; s < slotCount; s++)
+                    if (StrEqual(slots[s], nm)) { seen = true; break; }
+
+                if (!seen)
+                {
+                    strcopy(slots[slotCount], sizeof(slots[]), nm);
+                    slotCount++;
+                }
+            }
+            while (KvGotoNextKey(g_hPlayerUpgrades[client], false));
+        }
+    }
+
+    if (g_hPlayerPurchases[client] != null)
+    {
+        KvRewind(g_hPlayerPurchases[client]);
+        if (KvGotoFirstSubKey(g_hPlayerPurchases[client], false))
+        {
+            do
+            {
+                if (slotCount >= 64) break;
+                char nm[64];
+                KvGetSectionName(g_hPlayerPurchases[client], nm, sizeof(nm));
+
+                bool seen = false;
+                for (int s = 0; s < slotCount; s++)
+                    if (StrEqual(slots[s], nm)) { seen = true; break; }
+
+                if (!seen)
+                {
+                    strcopy(slots[slotCount], sizeof(slots[]), nm);
+                    slotCount++;
+                }
+            }
+            while (KvGotoNextKey(g_hPlayerPurchases[client], false));
+        }
+    }
+
+    // Add only non-empty slots (exists-checks), else they won't appear
+    bool addedAny = false;
+    for (int s = 0; s < slotCount; s++)
     {
         char slotName[64];
-        KvGetSectionName(g_hPlayerUpgrades[client], slotName, sizeof(slotName));
+        strcopy(slotName, sizeof(slotName), slots[s]);
+
+        bool hasAny = false;
+        for (int u = 0; u < g_upgrades.Length; u++)
+        {
+            UpgradeData up;
+            g_upgrades.GetArray(u, up);
+
+            if (UpgradeExists(client, slotName, up.name) || PurchaseExists(client, slotName, up.name))
+            {
+                hasAny = true;
+                break;
+            }
+        }
+
+        if (!hasAny)
+        {
+            // Clean up any stale empty node just in case:
+            UpgradeDeleteSlot(client, slotName);
+            PurchaseDeleteSlot(client, slotName);
+            continue;
+        }
 
         if (StrEqual(slotName, "body"))
-        {
             menu.AddItem("body", "Body Upgrades");
-        }
         else if (StrEqual(slotName, "slot0"))
-        {
             menu.AddItem("slot0", "Primary Upgrades");
-        }
         else if (StrEqual(slotName, "slot1"))
-        {
             menu.AddItem("slot1", "Secondary Upgrades");
-        }
         else if (StrEqual(slotName, "slot2"))
-        {
             menu.AddItem("slot2", "Melee Upgrades");
+        else if (StrContains(slotName, "slot", false) == 0)
+        {
+            char label[64];
+            int slotNum = StringToInt(slotName[4]);
+            Format(label, sizeof(label), "Other Upgrades (%d)", slotNum);
+            menu.AddItem(slotName, label);
         }
         else
         {
             char label[64];
-            int slotNum = StringToInt(slotName[4]); // Extract number from 'slotX'
-            Format(label, sizeof(label), "Other Upgrades (%d)", slotNum);
+            Format(label, sizeof(label), "Other: %s", slotName);
             menu.AddItem(slotName, label);
         }
 
-    } while (KvGotoNextKey(g_hPlayerUpgrades[client], false));
+        addedAny = true;
+    }
 
-    KvRewind(g_hPlayerUpgrades[client]);
-
-    menu.ExitBackButton = true;
-    menu.Display(client, MENU_TIME_FOREVER);
-}
-
-void ShowSettingsMenu(int client)
-{
-    Menu menu = new Menu(MenuHandler_SettingsMenu);
-    menu.SetTitle("Settings");
-
-    menu.AddItem("toggle_money_hud", "Toggle Money Display HUD");
-    menu.AddItem("hud_position", "Money Display HUD Position");
+    if (!addedAny)
+    {
+        PrintToChat(client, "[Hyper Upgrades] No upgrades to refund.");
+        g_bInUpgradeList[client] = false;
+        delete menu;
+        return;
+    }
 
     menu.ExitBackButton = true;
     menu.Display(client, MENU_TIME_FOREVER);
@@ -773,6 +2356,7 @@ public int MenuHandler_RefundSlotMenu(Menu menu, MenuAction action, int client, 
     {
         if (item == MenuCancel_ExitBack)
         {
+            g_bInUpgradeList[client] = false;
             ShowMainMenu(client);
         }
     }
@@ -782,57 +2366,64 @@ public int MenuHandler_RefundSlotMenu(Menu menu, MenuAction action, int client, 
 // Upgrade List for the Slot
 void ShowRefundUpgradeMenu(int client, const char[] slotKey)
 {
-    // PrintToChat(client, "[Debug] ShowRefundUpgradeMenu launched for slot: %s", slotKey);
-
     Menu menu = new Menu(MenuHandler_RefundUpgradeMenu);
     char title[128];
     Format(title, sizeof(title), "Refund Upgrades - %s", slotKey);
     menu.SetTitle(title);
 
-    // Attempt to jump into the slot node in the player's upgrade keyvalues
-    if (!KvJumpToKey(g_hPlayerUpgrades[client], slotKey, false))
+    if (g_hPlayerUpgrades[client] == null)
     {
         PrintToChat(client, "[Hyper Upgrades] No upgrades found in this group.");
+        g_bInUpgradeList[client] = false;
         delete menu;
         return;
     }
 
-    // If no upgrades exist in the slot
-    if (!KvGotoFirstSubKey(g_hPlayerUpgrades[client], false))
+    KvRewind(g_hPlayerUpgrades[client]);
+
+    if (!KvJumpToKey(g_hPlayerUpgrades[client], slotKey, false))
     {
-        KvGoBack(g_hPlayerUpgrades[client]);
         PrintToChat(client, "[Hyper Upgrades] No upgrades found in this group.");
+        g_bInUpgradeList[client] = false;
+        delete menu;
         return;
     }
 
-    // Loop through each upgrade name stored under the slot
+    if (!KvGotoFirstSubKey(g_hPlayerUpgrades[client], false))
+    {
+        KvGoBack(g_hPlayerUpgrades[client]); // back to root
+        PrintToChat(client, "[Hyper Upgrades] No upgrades found in this group.");
+        g_bInUpgradeList[client] = false;
+        delete menu;
+        return;
+    }
+
     do
     {
         char upgradeName[64];
         KvGetSectionName(g_hPlayerUpgrades[client], upgradeName, sizeof(upgradeName));
 
-        // Check if this upgrade exists in the upgrade index
+        // If we have a nicer display name in g_upgradeIndex, use it; otherwise use the raw key.
         int idx;
         if (g_upgradeIndex.GetValue(upgradeName, idx))
         {
             UpgradeData upgrade;
             g_upgrades.GetArray(idx, upgrade);
 
-            // Use the known display name
-            menu.AddItem(upgrade.name, upgrade.name);
+            char itemData[128];
+            Format(itemData, sizeof(itemData), "%s|%s", upgrade.name, slotKey); // "upgradeName|slotKey"
+            menu.AddItem(itemData, upgrade.name);
         }
         else
         {
-            // Fallback if not found in index (shouldn't happen)
-            menu.AddItem(upgradeName, upgradeName);
+            char itemData[128];
+            Format(itemData, sizeof(itemData), "%s|%s", upgradeName, slotKey);
+            menu.AddItem(itemData, upgradeName);
         }
-
-        // PrintToConsole(client, "[Debug] Added upgrade to refund menu: %s", upgradeName);
 
     } while (KvGotoNextKey(g_hPlayerUpgrades[client], false));
 
-    // Restore keyvalue state
-    KvGoBack(g_hPlayerUpgrades[client]);
+    KvGoBack(g_hPlayerUpgrades[client]); // back to root
     KvRewind(g_hPlayerUpgrades[client]);
 
     menu.ExitBackButton = true;
@@ -842,14 +2433,20 @@ void ShowRefundUpgradeMenu(int client, const char[] slotKey)
 // Handle Refund Action
 public int MenuHandler_RefundUpgradeMenu(Menu menu, MenuAction action, int client, int item)
 {
-    // PrintToChat(client, "[Debug] Refund menu handler triggered.");
-
     if (action == MenuAction_Select)
     {
-        char upgradeName[64];
-        menu.GetItem(item, upgradeName, sizeof(upgradeName));
-        RefundSpecificUpgrade(client, upgradeName);
+        char itemData[128];
+        menu.GetItem(item, itemData, sizeof(itemData));
 
+        // Split "upgradeName|slotKey" into two parts
+        char parts[2][64];
+        ExplodeString(itemData, "|", parts, sizeof(parts), sizeof(parts[]));
+
+        char upgradeName[64], slotKey[64];
+        strcopy(upgradeName, sizeof(upgradeName), parts[0]);
+        strcopy(slotKey, sizeof(slotKey), parts[1]);
+
+        RefundSpecificUpgrade(client, upgradeName, slotKey);  // Updated call
         ApplyPlayerUpgrades(client);
         ShowRefundSlotMenu(client);
     }
@@ -857,91 +2454,130 @@ public int MenuHandler_RefundUpgradeMenu(Menu menu, MenuAction action, int clien
     {
         if (item == MenuCancel_ExitBack)
         {
+            g_bInUpgradeList[client] = false;
             ShowRefundSlotMenu(client);
         }
     }
+
     return 0;
 }
 
 // Refund Logic
-void RefundSpecificUpgrade(int client, const char[] upgradeName)
+void RefundSpecificUpgrade(int client, const char[] upgradeName, const char[] slotKey)
 {
-    // PrintToChat(client, "[Debug] Refund Specific Upgrade handler triggered.");
+    if (!IsClientInGame(client)) return;
+    if (g_hPlayerUpgrades[client] == null || g_hPlayerPurchases[client] == null) return;
 
-    if (g_hPlayerUpgrades[client] == null)
+    // 1) How many purchases? (0 => nothing to refund)
+    int purchases = PurchaseRead(client, slotKey, upgradeName);
+    if (purchases <= 0)
     {
-        // PrintToChat(client, "[Hyper Upgrades] No upgrades exist to refund.");
+        PrintToServer("[Hyper Upgrades] No purchases found for '%s' in slot '%s' (client %d).", upgradeName, slotKey, client);
         return;
     }
 
-    KvRewind(g_hPlayerUpgrades[client]);
+    // 2) Debug info
+    float value = UpgradeRead(client, slotKey, upgradeName);
+    PrintToServer("[Hyper Upgrades] Refunding upgrade '%s' from slot '%s' (value=%.6f, purchases=%d) for client %d",
+                  upgradeName, slotKey, value, purchases, client);
 
-    if (!KvGotoFirstSubKey(g_hPlayerUpgrades[client], false))
+    // 3) Money back
+    int refundAmount = CalculateRefundAmountFromPurchases(upgradeName, purchases);
+    g_iMoneySpent[client] -= refundAmount;
+    if (g_iMoneySpent[client] < 0) g_iMoneySpent[client] = 0;
+
+    // 4) Remove the upgrade in both trees
+    UpgradeDelete(client, slotKey, upgradeName);
+    PurchaseDelete(client, slotKey, upgradeName);
+
+    // 5) If the slot is now empty (no remaining keys in upgrades/purchases), nuke it.
+    bool hasAny = false;
+    for (int u = 0; u < g_upgrades.Length; u++)
     {
-        // PrintToChat(client, "[Hyper Upgrades] No upgrade slots found for client %d.", client);
-        return;
-    }
+        UpgradeData up;
+        g_upgrades.GetArray(u, up);
 
-   do
-    {
-        char slotName[64];
-        KvGetSectionName(g_hPlayerUpgrades[client], slotName, sizeof(slotName));
-
-        // PrintToConsole(client, "[Debug] Checking slot: %s", slotName);
-
-        // We are already inside the slot section here — DO NOT JumpToKey again.
-
-        int storedLevel = KvGetNum(g_hPlayerUpgrades[client], upgradeName, -1);
-        if (storedLevel == -1)
+        if (UpgradeExists(client, slotKey, up.name) || PurchaseExists(client, slotKey, up.name))
         {
-            continue;
+            hasAny = true;
+            break;
         }
-
-        float level = float(storedLevel) / 1000.0;
-        float refundAmount = CalculateRefundAmount(upgradeName, level);
-
-        g_iMoneySpent[client] -= RoundToNearest(refundAmount);
-        if (g_iMoneySpent[client] < 0)
-            g_iMoneySpent[client] = 0;
-
-        KvDeleteKey(g_hPlayerUpgrades[client], upgradeName);
-
-        PrintToConsole(client, "[Hyper Upgrades] Refunded upgrade: %s. Amount refunded: %.0f$", upgradeName, refundAmount);
-
-        break; // Done — exit the loop after successful refund
     }
-    while (KvGotoNextKey(g_hPlayerUpgrades[client], false));
 
-    KvRewind(g_hPlayerUpgrades[client]);
+    if (!hasAny)
+    {
+        UpgradeDeleteSlot(client, slotKey);
+        PurchaseDeleteSlot(client, slotKey);
+    }
+
+    // 6) Done
+    PrintToConsole(client, "[Hyper Upgrades] Refunded upgrade: %s. Amount refunded: %d$", upgradeName, refundAmount);
+}
+
+void RefundAllUpgradesInSlot(int client, int slot)
+{
+    if (!IsClientInGame(client)) return;
+    if (g_hPlayerUpgrades[client] == null || g_hPlayerPurchases[client] == null) return;
+
+    char slotKey[16];
+    Format(slotKey, sizeof(slotKey), "slot%d", slot);
+
+    // --- Step 1: Calculate total refund from this slot (read-only) ---
+    int totalRefund = 0;
+
+    KvRewind(g_hPlayerPurchases[client]);
+    if (KvJumpToKey(g_hPlayerPurchases[client], slotKey, false))
+    {
+        if (KvGotoFirstSubKey(g_hPlayerPurchases[client], false))
+        {
+            do
+            {
+                char upgradeName[64];
+                KvGetSectionName(g_hPlayerPurchases[client], upgradeName, sizeof(upgradeName));
+
+                // Read via helper (don’t mutate directly)
+                int purchases = PurchaseRead(client, slotKey, upgradeName);
+                if (purchases > 0)
+                {
+                    totalRefund += CalculateRefundAmountFromPurchases(upgradeName, purchases);
+                    PrintToServer("[HU] Refunding upgrade '%s' (%d purchases) from slot %s", upgradeName, purchases, slotKey);
+                }
+            }
+            while (KvGotoNextKey(g_hPlayerPurchases[client], false));
+
+            KvGoBack(g_hPlayerPurchases[client]); // back to slot level
+        }
+        KvGoBack(g_hPlayerPurchases[client]); // back to root
+    }
+
+    g_iMoneySpent[client] -= totalRefund;
+    if (g_iMoneySpent[client] < 0)
+        g_iMoneySpent[client] = 0;
+
+    // --- Step 2: Delete this slot from both handles via helpers ---
+    // (No manual rebuilding of trees.)
+    UpgradeDeleteSlot(client, slotKey);
+    PurchaseDeleteSlot(client, slotKey);
+
+    PrintToConsole(client, "[Hyper Upgrades] Refunded all upgrades in %s. Amount refunded: %d$", slotKey, totalRefund);
 }
 
 
-
 // I like explicit names. Just to be clear, this calculates it for one specific upgrade.
-float CalculateRefundAmount(const char[] upgradeName, float currentLevel)
+int CalculateRefundAmountFromPurchases(const char[] upgradeName, int purchases)
 {
-    // Attempt to find the upgrade's index in our memory cache
     int idx;
     if (!g_upgradeIndex.GetValue(upgradeName, idx))
-        return 0.0; // Upgrade not found, return nothing
+        return 0;
 
-    // Retrieve the upgrade data from our in-memory array
     UpgradeData upgrade;
     g_upgrades.GetArray(idx, upgrade);
 
-    float baseCost = upgrade.cost;
-    float costMultiplier = upgrade.ratio;
-    float increment = upgrade.increment;
+    int baseCost = upgrade.cost;
+    int costIncrease = upgrade.costIncrease;
 
-    // Figure out how many times this upgrade was purchased based on increment
-    int purchases = RoundToFloor(currentLevel / increment);
-
-    // 🔸 Apply the same linear cost formula in reverse to get total refund
-    float totalCost = 0.0;
-    for (int i = 0; i < purchases; i++)
-    {
-        totalCost += baseCost + (baseCost * costMultiplier * float(i));
-    }
+    // Refund formula: base * n + inc * n*(n-1)/2
+    int totalCost = purchases * baseCost + (costIncrease * purchases * (purchases - 1)) / 2;
 
     return totalCost;
 }
@@ -1062,7 +2698,7 @@ bool GetWeaponAlias(int defindex, char[] alias, int maxlen)
         if (weapon.defindex == defindex)
         {
             strcopy(alias, maxlen, weapon.alias);
-            // PrintToServer("[Debug] Retrieved alias: %s", alias);
+            // PrintToServer("[Hyper Upgrades] Retrieved alias: %s", alias);
             return true;
         }
     }
@@ -1077,7 +2713,7 @@ int GetPlayerBalance(int client)
 
 void ShowCategoryMenu(int client, const char[] category)
 {
-    int weaponSlot = -1; // ✅ Declare once at the top to avoid undefined symbol errors
+    int weaponSlot = -1; // Declared once at the top to avoid undefined symbol errors
 
     char filePath[PLATFORM_MAX_PATH];
     BuildPath(Path_SM, filePath, sizeof(filePath), "configs/hu_attributes.cfg");
@@ -1099,39 +2735,51 @@ void ShowCategoryMenu(int client, const char[] category)
         aliasFound = true; // We assume body upgrades always resolve to a valid alias
         weaponSlot = -1;   // Body upgrades tracked as slot -1
     }
-    else if (StrEqual(category, "Engineer Upgrades"))
+    else if (StrEqual(category, "PDA Upgrades"))
     {
         strcopy(alias, sizeof(alias), "buildings"); // Hardcoded special alias
         aliasFound = true;
-        weaponSlot = -2; // ✅ Special marker for non-slot items like buildings
+        weaponSlot = 3; // Slot 3 or non slotted
+    }
+    else if (StrEqual(category, "Building Upgrades"))
+    {
+        strcopy(alias, sizeof(alias), "buildings"); // Hardcoded special alias
+        aliasFound = true;
+        weaponSlot = -2; // Building specific
     }
     else if (StrEqual(category, "Primary Upgrades"))
     {
-        int weapon = GetPlayerWeaponSlot(client, 0);
-        if (IsValidEntity(weapon))
+        EquippedItem item;
+        item = GetEquippedEntityForSlot(client, 0);
+        PrintToServer("[Hyper Upgrades] Slot %d: weapon defindex = %d", 0, item.defindex);
+        if (IsValidEntity(item.entity))
         {
-            int defindex = GetEntProp(weapon, Prop_Send, "m_iItemDefinitionIndex");
-            aliasFound = GetWeaponAlias(defindex, alias, sizeof(alias));
+            strcopy(alias, sizeof(alias), item.alias);
+            aliasFound = true;
             weaponSlot = 0;
         }
     }
     else if (StrEqual(category, "Secondary Upgrades"))
     {
-        int weapon = GetPlayerWeaponSlot(client, 1);
-        if (IsValidEntity(weapon))
+        EquippedItem item;
+        item = GetEquippedEntityForSlot(client, 1);
+        PrintToServer("[Hyper Upgrades] Slot %d: weapon defindex = %d", 1, item.defindex);
+        if (IsValidEntity(item.entity))
         {
-            int defindex = GetEntProp(weapon, Prop_Send, "m_iItemDefinitionIndex");
-            aliasFound = GetWeaponAlias(defindex, alias, sizeof(alias));
+            strcopy(alias, sizeof(alias), item.alias);
+            aliasFound = true;
             weaponSlot = 1;
         }
     }
     else if (StrEqual(category, "Melee Upgrades"))
     {
-        int weapon = GetPlayerWeaponSlot(client, 2);
-        if (IsValidEntity(weapon))
+        EquippedItem item;
+        item = GetEquippedEntityForSlot(client, 2);
+        PrintToServer("[Hyper Upgrades] Slot %d: weapon defindex = %d", 2, item.defindex);
+        if (IsValidEntity(item.entity))
         {
-            int defindex = GetEntProp(weapon, Prop_Send, "m_iItemDefinitionIndex");
-            aliasFound = GetWeaponAlias(defindex, alias, sizeof(alias));
+            strcopy(alias, sizeof(alias), item.alias);
+            aliasFound = true;
             weaponSlot = 2;
         }
     }
@@ -1149,7 +2797,7 @@ void ShowCategoryMenu(int client, const char[] category)
     g_iPlayerBrowsingSlot[client] = weaponSlot;
     g_bPlayerBrowsing[client] = true;
 
-    PrintToServer("[Debug] Showing upgrades for category: %s | alias: %s", g_sPlayerCategory[client], g_sPlayerAlias[client]);
+    PrintToServer("[Hyper Upgrades] Showing upgrades for category: %s | alias: %s", g_sPlayerCategory[client], g_sPlayerAlias[client]);
 
     if (!kv.JumpToKey(category, false))
     {
@@ -1183,13 +2831,119 @@ void ShowCategoryMenu(int client, const char[] category)
     delete kv;
 }
 
+EquippedItem GetEquippedEntityForSlot(int client, int slot) // Used to get equipped items not in expected slots (like wearables) | returns entity,index,alias
+{
+    EquippedItem result;
+    result.entity = -1;
+    result.defindex = -1;
+    strcopy(result.alias, sizeof(result.alias), "");
+
+    // Step 1: Try normal weapon slot
+    int weapon = GetPlayerWeaponSlot(client, slot);
+    if (IsValidEntity(weapon))
+    {
+        int defindex = GetEntProp(weapon, Prop_Send, "m_iItemDefinitionIndex");
+        if (defindex > 0)
+        {
+            char alias[64];
+            if (GetWeaponAlias(defindex, alias, sizeof(alias)))
+            {
+                result.entity = weapon;
+                result.defindex = defindex;
+                strcopy(result.alias, sizeof(result.alias), alias);
+                return result;
+            }
+        }
+    }
+
+    // Step 2: Fallback – scan equipped items with known aliases
+    KeyValues kv = new KeyValues("Upgrades");
+    char filePath[PLATFORM_MAX_PATH];
+    BuildPath(Path_SM, filePath, sizeof(filePath), "configs/hu_attributes.cfg");
+
+    if (!kv.ImportFromFile(filePath))
+    {
+        PrintToServer("[HU] Error loading hu_attributes.cfg");
+        delete kv;
+        return result;
+    }
+
+    char slotName[32];
+    switch (slot)
+    {
+        case 0: strcopy(slotName, sizeof(slotName), "Primary Upgrades");
+        case 1: strcopy(slotName, sizeof(slotName), "Secondary Upgrades");
+        case 2: strcopy(slotName, sizeof(slotName), "Melee Upgrades");
+        case 3: strcopy(slotName, sizeof(slotName), "Slot3 Upgrades");
+        case 4: strcopy(slotName, sizeof(slotName), "Slot4 Upgrades");
+        case 5: strcopy(slotName, sizeof(slotName), "Slot5 Upgrades");
+        default:
+        {
+            delete kv;
+            return result;
+        }
+    }
+
+    // Collect potential alias misses
+    ArrayList missingAliases = new ArrayList(64);
+    ArrayList missingDefindexes = new ArrayList();
+
+    for (int ent = MaxClients + 1; ent < GetMaxEntities(); ent++)
+    {
+        if (!IsValidEntity(ent)) continue;
+        if (!HasEntProp(ent, Prop_Send, "m_hOwnerEntity")) continue;
+        if (GetEntPropEnt(ent, Prop_Send, "m_hOwnerEntity") != client) continue;
+        if (!HasEntProp(ent, Prop_Send, "m_iItemDefinitionIndex")) continue;
+
+        int defindex = GetEntProp(ent, Prop_Send, "m_iItemDefinitionIndex");
+        char alias[64];
+        if (!GetWeaponAlias(defindex, alias, sizeof(alias)))
+            continue;
+
+        if (!kv.JumpToKey(slotName, false))
+            continue;
+
+        if (kv.JumpToKey(alias, false))
+        {
+            result.entity = ent;
+            result.defindex = defindex;
+            strcopy(result.alias, sizeof(result.alias), alias);
+            delete kv;
+            delete missingAliases;
+            delete missingDefindexes;
+            return result;
+        }
+
+        kv.GoBack(); // alias not found under this slot
+        missingAliases.PushString(alias);
+        missingDefindexes.Push(defindex);
+    }
+
+    delete kv;
+
+    if (missingAliases.Length > 0)
+    {
+        PrintToServer("[HU] No valid upgrade match found for slot %d. The following equipped items have known aliases but are missing from hu_attributes.cfg:", slot);
+        for (int i = 0; i < missingAliases.Length; i++)
+        {
+            char alias[64];
+            missingAliases.GetString(i, alias, sizeof(alias));
+            int defindex = missingDefindexes.Get(i);
+            PrintToServer("  • alias = \"%s\" (defindex = %d) is not listed under \"%s\"", alias, defindex, slotName);
+        }
+    }
+
+    delete missingAliases;
+    delete missingDefindexes;
+    return result;
+}
 
 
 public int MenuHandler_Submenu(Menu menu, MenuAction action, int client, int item)
 {
     if (action == MenuAction_Select)
     {
-        char upgradeGroup[64];
+        char upgradeGroup[128];
         menu.GetItem(item, upgradeGroup, sizeof(upgradeGroup));
 
         // Load the upgrades in the selected group
@@ -1200,6 +2954,7 @@ public int MenuHandler_Submenu(Menu menu, MenuAction action, int client, int ite
         if (item == MenuCancel_ExitBack)
         {
             // Go back to the main category menu
+            g_bInUpgradeList[client] = false;
             ShowMainMenu(client);
         }
     }
@@ -1233,28 +2988,36 @@ public int MenuHandler_UpgradeMenu(Menu menu, MenuAction action, int client, int
 {
     if (action == MenuAction_End)
     {
+        for (int i = 1; i <= MaxClients; i++)
+        {
+            if (g_MenuClient[i] == i)
+            {
+                g_bInUpgradeList[i] = false;
+                g_MenuClient[i] = 0;
+                break;
+            }
+        }
         delete menu;
     }
     else if (action == MenuAction_Select)
     {
         char itemData[64];
         menu.GetItem(item, itemData, sizeof(itemData));
+        g_iUpgradeMenuPage[client] = menu.Selection;
 
         char parts[3][64];
-        int count = ExplodeString(itemData, "|", parts, sizeof(parts), sizeof(parts[]));
-        if (count != 3)
+        if (ExplodeString(itemData, "|", parts, sizeof(parts), sizeof(parts[])) != 3)
         {
             PrintToChat(client, "[Hyper Upgrades] Failed to parse item string.");
             return 0;
         }
 
-        int weaponSlot = StringToInt(parts[0]); // Extract weapon slot
+        int weaponSlot = StringToInt(parts[0]);
         char upgradeName[64];
-        strcopy(upgradeName, sizeof(upgradeName), parts[1]); // Extract upgrade name
+        strcopy(upgradeName, sizeof(upgradeName), parts[1]);
         char upgradeGroup[64];
-        strcopy(upgradeGroup, sizeof(upgradeGroup), parts[2]); // Extract upgrade group
+        strcopy(upgradeGroup, sizeof(upgradeGroup), parts[2]);
 
-        // Lookup upgrade from memory
         int idx;
         if (!g_upgradeIndex.GetValue(upgradeName, idx))
         {
@@ -1268,128 +3031,303 @@ public int MenuHandler_UpgradeMenu(Menu menu, MenuAction action, int client, int
         char upgradeAlias[64];
         strcopy(upgradeAlias, sizeof(upgradeAlias), upgrade.alias);
 
-        float baseCost = upgrade.cost;
-        float costMultiplier = upgrade.ratio;
-        float increment = upgrade.increment;
-        float initValue = upgrade.initValue;
+        int baseCost      = upgrade.cost;
+        int costIncrease  = upgrade.costIncrease;
+        float increment   = upgrade.increment;
+        float initValue   = upgrade.initValue;
+        float limit       = upgrade.limit;
+        bool hasLimit     = upgrade.hadLimit;
 
-        float currentLevel = GetPlayerUpgradeLevelForSlot(client, weaponSlot, upgradeName);
-        int upgradeMultiplier = GetUpgradeMultiplier(client);
-        int maxPurchasable = upgradeMultiplier;
+        // Resolve slot path for handle helpers
+        char slotPath[16];
+        if (weaponSlot == -1)
+            strcopy(slotPath, sizeof(slotPath), "body");
+        else if (weaponSlot == -2)
+            strcopy(slotPath, sizeof(slotPath), "buildings");
+        else
+            Format(slotPath, sizeof(slotPath), "slot%d", weaponSlot);
 
-        // Handle limit enforcement if applicable
-        if (upgrade.hadLimit)
+        // Read current value/purchases strictly via helpers
+        float currentLevel = UpgradeRead(client, slotPath, upgradeName);
+        int purchases      = PurchaseRead(client, slotPath, upgradeName);
+
+        int upgradeMultiplier = g_bInUpgradeList[client] ? GetUpgradeMultiplier(client) : 1;
+
+        int scale = (FloatAbs(limit) > 2000.0 || FloatAbs(currentLevel) > 2000.0) ? 1000 : 100000;
+
+        int legalMultiplier = upgradeMultiplier;
+        float legalIncrement = increment;
+
+        if (hasLimit)
         {
-            float appliedCurrent = initValue + currentLevel;
-            float appliedPotential = appliedCurrent + (increment * upgradeMultiplier);
+            int cvarMode = (g_hMoreUpgrades != null) ? g_hMoreUpgrades.IntValue : -1;
+            int outMult = 0;
+            float outInc = 0.0;
 
-            if (increment > 0.0 && appliedPotential > upgrade.limit)
-            {
-                float room = upgrade.limit - appliedCurrent;
-                maxPurchasable = RoundToFloor(room / increment);
-            }
-            else if (increment < 0.0 && appliedPotential < upgrade.limit)
-            {
-                float room = appliedCurrent - upgrade.limit;
-                maxPurchasable = RoundToFloor(room / (-increment));
-            }
-
-            if (maxPurchasable <= 0)
+            if (!GetLegalUpgradeIncrementEx(currentLevel, initValue, increment, limit, scale,
+                                            upgradeMultiplier, cvarMode, outMult, outInc))
             {
                 PrintToChat(client, "[Hyper Upgrades] Cannot purchase: would exceed upgrade limit.");
                 return 0;
             }
+
+            legalMultiplier = outMult;
+            legalIncrement  = outInc;
         }
 
-        // Calculate how many times the upgrade was purchased so far
-        int purchases = RoundToFloor(currentLevel / increment);
+        // Cost calculation
+        int b = baseCost;
+        int n = legalMultiplier;
+        int p = purchases;
+        int totalCost = n * b + (costIncrease * n * (2 * p + n - 1)) / 2;
 
-        // 🔸 Linear cost calculation
-        float totalCost = 0.0;
-        for (int i = 0; i < maxPurchasable; i++)
+        if (g_iMoneySpent[client] + totalCost > GetConVarInt(g_hMoneyPool))
         {
-            totalCost += baseCost + (baseCost * costMultiplier * float(purchases + i));
+            int result[2] = {0, 0};
+            GetAffordableUpgradeResult(client, upgradeName, purchases, result);
+
+            legalMultiplier = result[0];
+            if (legalMultiplier <= 0)
+            {
+                PrintToChat(client, "[Hyper Upgrades] Not enough money to buy this upgrade.");
+                return 0;
+            }
+
+            totalCost = result[1];
         }
 
-        if (g_iMoneySpent[client] + RoundToNearest(totalCost) > GetConVarInt(g_hMoneyPool))
-        {
-            PrintToChat(client, "[Hyper Upgrades] Not enough money to buy %d levels of this upgrade.", maxPurchasable);
-            return 0;
-        }
-
-        // Apply the upgrade
-        float newLevel = currentLevel + (increment * maxPurchasable);
-
-        char slotPath[16];
-        if (weaponSlot == -1)
-        {
-            strcopy(slotPath, sizeof(slotPath), "body");
-        }
-        else if (weaponSlot == -2)
-        {
-            strcopy(slotPath, sizeof(slotPath), "buildings"); // special handling
-        }
-        else
-        {
-            Format(slotPath, sizeof(slotPath), "slot%d", weaponSlot);
-        }
-        // PrintToServer("[DEBUG] Storing upgrade \"%s\" under slotPath = \"%s\"", upgradeName, slotPath);
-        KvJumpToKey(g_hPlayerUpgrades[client], slotPath, true);
-        KvSetNum(g_hPlayerUpgrades[client], upgradeName, RoundToNearest(newLevel * 1000.0)); // Store flat
-        KvRewind(g_hPlayerUpgrades[client]);
+        // ---- ADD THROUGH HELPERS ONLY ----
+        UpgradeAdd(client, slotPath, upgradeName, legalIncrement * legalMultiplier);
+        PurchaseAdd(client, slotPath, upgradeName, legalMultiplier);
 
         ApplyPlayerUpgrades(client);
+        g_iMoneySpent[client] += totalCost;
 
-        // Deduct money
-        g_iMoneySpent[client] += RoundToNearest(totalCost);
+        PrintToConsole(client,
+            "[Hyper Upgrades] Purchased upgrade: %s (+%.4f x%d). Total Cost: %d$",
+            upgradeAlias, legalIncrement, legalMultiplier, totalCost);
 
-        // Feedback
-        PrintToConsole(client, "[Hyper Upgrades] Purchased upgrade: %s (+%.2f x%d). Total Cost: %.0f$",
-            upgradeAlias, increment, maxPurchasable, totalCost);
-
-        // Refresh menu
-        ShowUpgradeListMenu(client, upgradeGroup);
+        DataPack dp = new DataPack();
+        dp.WriteCell(client);
+        dp.WriteString(upgradeGroup);
+        CreateTimer(0.0, Timer_DeferMenuReopen, dp);
     }
     else if (action == MenuAction_Cancel)
     {
+        g_bInUpgradeList[client] = false;
         if (item == MenuCancel_ExitBack)
-        {
             ShowCategoryMenu(client, g_sPlayerCategory[client]);
-        }
     }
 
     return 0;
 }
 
+public Action Timer_DeferMenuReopen(Handle timer, DataPack dp)
+{
+    dp.Reset();
+    int client = dp.ReadCell();
+    char group[64];
+    dp.ReadString(group, sizeof(group));
+    delete dp;
+
+    if (IsClientInGame(client) && g_bPlayerBrowsing[client])
+    {
+        ShowUpgradeListMenu(client, group);
+    }
+
+    return Plugin_Stop;
+}
+
+// Returns an array: result[0] = purchases, result[1] = totalCost
+void GetAffordableUpgradeResult(int client, const char[] upgradeName, int currentPurchases, int result[2])
+{
+    result[0] = 0;
+    result[1] = 0;
+
+    int idx;
+    if (!g_upgradeIndex.GetValue(upgradeName, idx))
+        return;
+
+    UpgradeData upgrade;
+    g_upgrades.GetArray(idx, upgrade);
+
+    int baseCost = upgrade.cost;
+    int costIncrease = upgrade.costIncrease;
+    int moneyLeft = GetConVarInt(g_hMoneyPool) - g_iMoneySpent[client];
+
+    int cost = 0;
+    for (int i = 1; i <= 1000; i++)
+    {
+        int thisCost = baseCost + costIncrease * (currentPurchases + i - 1);
+        if (cost + thisCost > moneyLeft)
+        {
+            result[0] = i - 1;
+            result[1] = cost;
+            return;
+        }
+
+        cost += thisCost;
+    }
+
+    result[0] = 1000;
+    result[1] = cost;
+}
+
+// Limit Handler :
+/**
+ * Determines the maximum legal upgrade multiplier and increment value that can be applied,
+ * based on the player's current level, the upgrade configuration, and the hu_moreupgrades mode.
+ *
+ * @param currentValue     Player's current level (unscaled)
+ * @param initValue        Initial value of the upgrade
+ * @param increment        Normal increment per purchase (can be negative)
+ * @param limit            Upgrade limit (same sign as increment)
+ * @param scale            Integer scaling factor (e.g. 100000)
+ * @param requestedMult    Multiplier the player wants to apply (e.g. 1000)
+ * @param cvarMode         hu_moreupgrades mode (0, 1, or fallback)
+ * @param outMult          OUTPUT: number of upgrades allowed
+ * @param outIncrement     OUTPUT: increment to apply
+ *
+ * @return true if at least 1 upgrade is allowed, false otherwise.
+ */
+bool GetLegalUpgradeIncrementEx(float currentValue, float initValue, float increment, float limit, int scale, int requestedMult, int cvarMode, int &outMult, float &outIncrement)
+{
+    int IntInit = RoundToNearest(initValue * scale);
+    int IntCurrent = RoundToNearest(currentValue * scale);
+    int IntIncrement = RoundToNearest(increment * scale);
+    int IntLimit = RoundToNearest(limit * scale);
+    int IntApplied = IntInit + IntCurrent;
+
+    if (IntIncrement == 0 || requestedMult <= 0)
+    {
+        outMult = 0;
+        outIncrement = 0.0;
+        return false;
+    }
+
+    int direction = IntIncrement > 0 ? 1 : -1;
+    int maxSteps;
+
+    if (direction > 0)
+    {
+        maxSteps = (IntLimit - IntApplied) / IntIncrement;
+    }
+    else
+    {
+        maxSteps = (IntApplied - IntLimit) / -IntIncrement;
+    }
+
+    if (maxSteps >= requestedMult)
+    {
+        outMult = requestedMult;
+        outIncrement = increment;
+        return true;
+    }
+
+    if (maxSteps > 0)
+    {
+        // Partially allowed before hitting the limit
+        outMult = maxSteps;
+        outIncrement = increment;
+        return true;
+    }
+
+    // Can't apply even one full step — now check cvar behavior
+    if (cvarMode == 0)
+    {
+        if ((direction > 0 && IntApplied < IntLimit) || (direction < 0 && IntApplied > IntLimit))
+        {
+            outMult = 1;
+            outIncrement = float(IntLimit - IntApplied) / float(scale);
+            return true;
+        }
+    }
+    else if (cvarMode == 1)
+    {
+        for (int i = 2; i <= 10; i++)
+        {
+            int step = IntIncrement / i;
+            int testApplied = IntApplied + step;
+
+            if ((direction > 0 && testApplied <= IntLimit) ||
+                (direction < 0 && testApplied >= IntLimit))
+            {
+                outMult = 1;
+                outIncrement = float(step) / float(scale);
+                return true;
+            }
+        }
+
+        // fallback to mode 0 behavior
+        if ((direction > 0 && IntApplied < IntLimit) || (direction < 0 && IntApplied > IntLimit))
+        {
+            outMult = 1;
+            outIncrement = float(IntLimit - IntApplied) / float(scale);
+            return true;
+        }
+    }
+
+    // Nothing allowed
+    outMult = 0;
+    outIncrement = 0.0;
+    return false;
+}
 
 
 public Action Timer_CheckMenuRefresh(Handle timer, any client)
 {
-    if (!IsClientInGame(client) || !g_bPlayerBrowsing[client])
+    // PrintToServer("[Hyper Upgrades] Client %d | g_bInUpgradeList = %d", client, g_bInUpgradeList[client]);
+    // PrintToServer("[Timer] Client %d | This handle: %x | Stored handle: %x", client, timer, g_hRefreshTimer[client]);
+    if (client < 1 || client > MaxClients || !IsClientInGame(client))
     {
-        g_hRefreshTimer[client] = INVALID_HANDLE;
-        return Plugin_Stop;
+        return Plugin_Continue;
     }
-
+    // Only act if player is actively in the upgrade menu
+    if (!g_bPlayerBrowsing[client] || !g_bInUpgradeList[client])
+    {
+        return Plugin_Continue;
+    }
     int currentMultiplier = GetUpgradeMultiplier(client);
-
+    
     if (currentMultiplier != g_iPlayerLastMultiplier[client])
     {
         g_iPlayerLastMultiplier[client] = currentMultiplier;
 
-        // Refresh the menu
-        ShowUpgradeListMenu(client, g_sPlayerUpgradeGroup[client]);
+        // PrintToServer("[Timer Refresh] Client %d triggered refresh (multiplier change)", client);
+        
+        // Defer menu refresh
+        DataPack dp = new DataPack();
+        dp.WriteCell(client);
+        dp.WriteString(g_sPlayerUpgradeGroup[client]);
+        CreateTimer(0.0, Timer_DeferMenuRefresh, dp);
     }
 
     return Plugin_Continue;
+}
+public Action Timer_DeferMenuRefresh(Handle timer, DataPack dp)
+{
+    dp.Reset();
+    int client = dp.ReadCell();
+    char group[64];
+    dp.ReadString(group, sizeof(group));
+    delete dp;
+
+    if (client >= 1 && client <= MaxClients && IsClientInGame(client) && g_bPlayerBrowsing[client])
+    {
+        ShowUpgradeListMenu(client, group);
+    }
+
+    return Plugin_Stop;
 }
 
 void ShowUpgradeListMenu(int client, const char[] upgradeGroup)
 {
     if (!g_bPlayerBrowsing[client])
+    {
+        g_bInUpgradeList[client] = false;
         return;
+    }
 
-    // Load hu_attributes.cfg to find the upgrades in the selected group
     char attrFile[PLATFORM_MAX_PATH];
     BuildPath(Path_SM, attrFile, sizeof(attrFile), "configs/hu_attributes.cfg");
 
@@ -1398,26 +3336,29 @@ void ShowUpgradeListMenu(int client, const char[] upgradeGroup)
     {
         PrintToChat(client, "[Hyper Upgrades] Failed to load attributes config.");
         delete kv;
+        g_bInUpgradeList[client] = false;
         return;
     }
 
-    // Jump to the correct location: Category -> Alias -> Group
     bool foundPath = kv.JumpToKey(g_sPlayerCategory[client], false)
                   && kv.JumpToKey(g_sPlayerAlias[client], false)
                   && kv.JumpToKey(upgradeGroup, false);
 
     if (!foundPath)
     {
+        PrintToServer("[Hyper Upgrades] ShowUpgradeListMenu for client %d", client);
+        PrintToServer("[Hyper Upgrades] g_sPlayerCategory = '%s'", g_sPlayerCategory[client]);
+        PrintToServer("[Hyper Upgrades] g_sPlayerAlias = '%s'", g_sPlayerAlias[client]);
+        PrintToServer("[Hyper Upgrades] upgradeGroup = '%s'", upgradeGroup);
         PrintToChat(client, "[Hyper Upgrades] No upgrades found for this item.");
         delete kv;
+        g_bInUpgradeList[client] = false;
         return;
     }
 
-    // Get the current multiplier when building the menu
-    int multiplier = GetUpgradeMultiplier(client);
-    g_iPlayerLastMultiplier[client] = multiplier; // Save it for refresh tracking
+    int multiplier = g_bInUpgradeList[client] ? GetUpgradeMultiplier(client) : 1; 
+    g_iPlayerLastMultiplier[client] = multiplier;
 
-    // Build the upgrade menu
     Menu upgradeMenu = new Menu(MenuHandler_UpgradeMenu);
     upgradeMenu.SetTitle("%s - %s\nBalance: %d/%d$ | Multiplier: x%d",
         g_sPlayerCategory[client], upgradeGroup,
@@ -1433,17 +3374,15 @@ void ShowUpgradeListMenu(int client, const char[] upgradeGroup)
 
         char upgradeName[64];
         kv.GetString(NULL_STRING, upgradeName, sizeof(upgradeName));
-        TrimString(upgradeName); // ✅ Remove trailing whitespace from config strings
+        TrimString(upgradeName);
 
-        // Lookup upgrade alias from the name
         char upgradeAlias[64];
         if (!GetUpgradeAliasFromName(upgradeName, upgradeAlias, sizeof(upgradeAlias)))
         {
-            PrintToServer("[Hyper Upgrades] Skipping upgrade with no alias (or name conflicts with alias): \"%s\" in group \"%s\"", upgradeName, upgradeGroup);
+            PrintToServer("[Hyper Upgrades] Skipping upgrade: \"%s\" (alias: \"%s\") in group \"%s\"", upgradeName, upgradeAlias, upgradeGroup);
             continue;
         }
 
-        // Lookup UpgradeData by name (not alias!)
         int idx;
         if (!g_upgradeIndex.GetValue(upgradeName, idx))
         {
@@ -1454,45 +3393,60 @@ void ShowUpgradeListMenu(int client, const char[] upgradeGroup)
         UpgradeData upgrade;
         g_upgrades.GetArray(idx, upgrade);
 
-        float baseCost = upgrade.cost;
-        float costMultiplier = upgrade.ratio;
         float increment = upgrade.increment;
         float initValue = upgrade.initValue;
         float limit = upgrade.limit;
         bool hasLimit = upgrade.hadLimit;
 
-        float currentLevel = GetPlayerUpgradeLevelForSlot(client, g_iPlayerBrowsingSlot[client], upgradeName);
-        //PrintToServer("[DEBUG] Upgrade Menu: Reading level %.3f for \"%s\" (slot = %d)", currentLevel, upgradeName, g_iPlayerBrowsingSlot[client]);
-        int purchases = RoundToFloor(currentLevel / increment);
+        // ---- Build slot path (no extra helpers) ----
+        char slotPath[16];
+        int browseSlot = g_iPlayerBrowsingSlot[client];
+        if (browseSlot == -1)
+            strcopy(slotPath, sizeof(slotPath), "body");
+        else if (browseSlot == -2)
+            strcopy(slotPath, sizeof(slotPath), "buildings");
+        else
+            Format(slotPath, sizeof(slotPath), "slot%d", browseSlot);
 
-        // 🔸 New linear cost formula with multiplier
-        float totalCost = 0.0;
+        // ---- Read current value/purchases strictly via helpers ----
+        float currentLevel = UpgradeRead(client, slotPath, upgradeName);
+        int purchases      = PurchaseRead(client, slotPath, upgradeName);
+
+        int scale = (FloatAbs(limit) > 2000.0 || FloatAbs(currentLevel) > 2000.0) ? 1000 : 100000;
+
         int legalMultiplier = multiplier;
 
-        // Apply limit enforcement
         if (hasLimit)
         {
-            float appliedCurrent = initValue + currentLevel;
-            float appliedPotential = appliedCurrent + (increment * multiplier);
+            int cvarMode = g_hMoreUpgrades != null ? g_hMoreUpgrades.IntValue : -1;
+            int outMult = 0;
+            float outInc = 0.0;
 
-            if (increment > 0.0 && appliedPotential > limit)
+            if (!GetLegalUpgradeIncrementEx(currentLevel, initValue, increment, limit, scale, multiplier, cvarMode, outMult, outInc))
             {
-                float room = limit - appliedCurrent;
-                legalMultiplier = RoundToFloor(room / increment);
+                legalMultiplier = 0;
             }
-            else if (increment < 0.0 && appliedPotential < limit)
+            else
             {
-                float room = appliedCurrent - limit;
-                legalMultiplier = RoundToFloor(room / (-increment));
+                legalMultiplier = outMult;
             }
         }
 
-        for (int i = 0; i < legalMultiplier; i++)
+        int baseCost = upgrade.cost;
+        int costIncrease = upgrade.costIncrease;
+        int n = legalMultiplier;
+        int p = purchases;
+        int totalCost = n * baseCost + (costIncrease * n * (2 * p + n - 1)) / 2;
+
+        if (g_iMoneySpent[client] + totalCost > GetConVarInt(g_hMoneyPool))
         {
-            totalCost += baseCost + (baseCost * costMultiplier * float(purchases + i));
+            int result[2] = {0, 0};
+            GetAffordableUpgradeResult(client, upgradeName, purchases, result);
+
+            legalMultiplier = result[0] > 0 ? result[0] : 1;
+            totalCost = result[1] > 0 ? result[1] : baseCost + costIncrease * purchases;
         }
 
-        // Build display string with multiplier
         char display[128];
         if (legalMultiplier <= 0)
         {
@@ -1500,7 +3454,7 @@ void ShowUpgradeListMenu(int client, const char[] upgradeGroup)
         }
         else
         {
-            Format(display, sizeof(display), "%s (%.2f) %.0f$ (x%d)", upgradeName, currentLevel, totalCost, legalMultiplier);
+            Format(display, sizeof(display), "%s (%.2f) %d$ (x%d)", upgradeName, currentLevel, totalCost, legalMultiplier);
         }
 
         char itemData[64];
@@ -1516,58 +3470,23 @@ void ShowUpgradeListMenu(int client, const char[] upgradeGroup)
         PrintToChat(client, "[Hyper Upgrades] No upgrades available in this group.");
         delete kv;
         delete upgradeMenu;
+        g_bInUpgradeList[client] = false;
         return;
     }
 
     upgradeMenu.ExitBackButton = true;
-    upgradeMenu.Display(client, MENU_TIME_FOREVER);
+    g_MenuClient[client] = client;
+    upgradeMenu.DisplayAt(client, g_iUpgradeMenuPage[client], MENU_TIME_FOREVER);
+    g_bInUpgradeList[client] = true;
 
     delete kv;
-
     strcopy(g_sPlayerUpgradeGroup[client], sizeof(g_sPlayerUpgradeGroup[]), upgradeGroup);
 
-    // 🔸 Start the refresh timer if not already running
-    if (g_hRefreshTimer[client] == INVALID_HANDLE)
+    if (!g_bPlayerBrowsing[client])
     {
-        g_hRefreshTimer[client] = CreateTimer(0.2, Timer_CheckMenuRefresh, client, TIMER_REPEAT);
+        g_bInUpgradeList[client] = false;
+        return;
     }
-}
-
-float GetPlayerUpgradeLevelForSlot(int client, int slot, const char[] upgradeName)
-{
-    if (g_hPlayerUpgrades[client] == null)
-        return 0.0;
-
-    KvRewind(g_hPlayerUpgrades[client]);
-
-    char slotPath[16];
-    if (slot == -1)
-    {
-        strcopy(slotPath, sizeof(slotPath), "body");
-    }
-    else if (slot == -2)
-    {
-        strcopy(slotPath, sizeof(slotPath), "buildings"); // ✅ Support building upgrades
-    }
-    else
-    {
-        Format(slotPath, sizeof(slotPath), "slot%d", slot);
-    }
-
-    if (!KvJumpToKey(g_hPlayerUpgrades[client], slotPath, false))
-    {
-        // PrintToServer("[DEBUG] False Path");
-        return 0.0;
-    }
-
-    // 🔍 Debug output to track where it's looking
-    // PrintToServer("[DEBUG] GetPlayerUpgradeLevelForSlot(): Looking in [%s] for \"%s\"", slotPath, upgradeName);
-
-    int storedLevel = KvGetNum(g_hPlayerUpgrades[client], upgradeName, 0);
-
-    KvRewind(g_hPlayerUpgrades[client]);
-
-    return float(storedLevel) / 1000.0;
 }
 
 bool GetUpgradeAliasFromName(const char[] upgradeName, char[] aliasOut, int maxlen)
@@ -1580,6 +3499,7 @@ bool GetUpgradeAliasFromName(const char[] upgradeName, char[] aliasOut, int maxl
     g_upgrades.GetArray(idx, upgrade);
 
     strcopy(aliasOut, maxlen, upgrade.alias);
+    // PrintToServer("[Hyper Upgrades] Upgrade name: %s → alias: %s", upgradeName, upgrade.alias);
     return true;
 }
 
@@ -1621,6 +3541,244 @@ int GetUpgradeMultiplier(int client)
     return 1; // Default if neither key is pressed
 }
 
+public Action Command_DebugUpgradeHandle(int client, int args)
+{
+    bool useSnapshot = false;
+    if (args >= 1)
+    {
+        char arg[8];
+        GetCmdArg(1, arg, sizeof(arg));
+        useSnapshot = (StringToInt(arg) == 1);
+    }
+
+    PrintToServer("[Hyper Upgrades] Dumping %s upgrade handle contents...", useSnapshot ? "snapshot" : "live");
+
+    bool anyUpgradesFound = false;
+
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        if (!IsClientInGame(i))
+            continue;
+
+        Handle hKv = useSnapshot ? g_hPlayerUpgradesSnapshot[i] : g_hPlayerUpgrades[i];
+        if (hKv == null)
+            continue;
+
+        // Collect slot names first
+        char slotNames[64][64];
+        int slotCount = 0;
+
+        KvRewind(hKv);
+        if (KvGotoFirstSubKey(hKv, false))
+        {
+            do
+            {
+                if (slotCount >= 64) break;
+                KvGetSectionName(hKv, slotNames[slotCount], sizeof(slotNames[]));
+                slotCount++;
+            }
+            while (KvGotoNextKey(hKv, false));
+        }
+        KvRewind(hKv);
+
+        bool printedAnyForClient = false;
+
+        for (int s = 0; s < slotCount; s++)
+        {
+            char slotName[64];
+            strcopy(slotName, sizeof(slotName), slotNames[s]);
+
+            bool printedThisSlot = false;
+
+            for (int u = 0; u < g_upgrades.Length; u++)
+            {
+                UpgradeData up;
+                g_upgrades.GetArray(u, up);
+
+                float level = 0.0;
+                if (useSnapshot)
+                {
+                    KvJumpToKey(hKv, slotName, false);
+                    level = KvGetFloat(hKv, up.name, 0.0);
+                    KvGoBack(hKv);
+                }
+                else
+                {
+                    level = UpgradeRead(i, slotName, up.name);
+                }
+
+                if (level != 0.0)
+                {
+                    if (!printedThisSlot)
+                    {
+                        if (!printedAnyForClient)
+                        {
+                            PrintToServer("---- Client %N (%d) ----", i, i);
+                            printedAnyForClient = true;
+                        }
+                        PrintToServer("  [%s]", slotName);
+                        printedThisSlot = true;
+                    }
+                    PrintToServer("    %s: %.2f", up.name, level);
+                }
+            }
+        }
+
+        if (printedAnyForClient)
+            anyUpgradesFound = true;
+    }
+
+    if (!anyUpgradesFound)
+    {
+        PrintToServer("[Hyper Upgrades] No players currently have any upgrades.");
+    }
+
+    PrintToServer("[Hyper Upgrades] End of dump.");
+    return Plugin_Handled;
+}
+
+public Action Command_DebugPurchaseHandle(int client, int args)
+{
+    bool useSnapshot = false;
+    if (args >= 1)
+    {
+        char arg[8];
+        GetCmdArg(1, arg, sizeof(arg));
+        useSnapshot = (StringToInt(arg) == 1);
+    }
+
+    PrintToServer("[Hyper Upgrades] Dumping %s purchase handle contents...", useSnapshot ? "snapshot" : "live");
+
+    bool anyPurchasesFound = false;
+
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        if (!IsClientInGame(i))
+            continue;
+
+        Handle hKv = useSnapshot ? g_hPlayerPurchasesSnapshot[i] : g_hPlayerPurchases[i];
+        if (hKv == null)
+            continue;
+
+        // Collect slot names first
+        char slotNames[64][64];
+        int slotCount = 0;
+
+        KvRewind(hKv);
+        if (KvGotoFirstSubKey(hKv, false))
+        {
+            do
+            {
+                if (slotCount >= 64) break;
+                KvGetSectionName(hKv, slotNames[slotCount], sizeof(slotNames[]));
+                slotCount++;
+            }
+            while (KvGotoNextKey(hKv, false));
+        }
+        KvRewind(hKv);
+
+        bool printedAnyForClient = false;
+
+        for (int s = 0; s < slotCount; s++)
+        {
+            char slotName[64];
+            strcopy(slotName, sizeof(slotName), slotNames[s]);
+
+            bool printedThisSlot = false;
+
+            for (int u = 0; u < g_upgrades.Length; u++)
+            {
+                UpgradeData up;
+                g_upgrades.GetArray(u, up);
+
+                int count = 0;
+                if (useSnapshot)
+                {
+                    KvJumpToKey(hKv, slotName, false);
+                    count = KvGetNum(hKv, up.name, 0);
+                    KvGoBack(hKv);
+                }
+                else
+                {
+                    count = PurchaseRead(i, slotName, up.name);
+                }
+
+                if (count > 0)
+                {
+                    if (!printedThisSlot)
+                    {
+                        if (!printedAnyForClient)
+                        {
+                            PrintToServer("---- Client %N (%d) ----", i, i);
+                            printedAnyForClient = true;
+                        }
+                        PrintToServer("  [%s]", slotName);
+                        printedThisSlot = true;
+                    }
+                    PrintToServer("    %s: %d", up.name, count);
+                }
+            }
+        }
+
+        if (printedAnyForClient)
+            anyPurchasesFound = true;
+    }
+
+    if (!anyPurchasesFound)
+    {
+        PrintToServer("[Hyper Upgrades] No players currently have any purchases.");
+    }
+
+    PrintToServer("[Hyper Upgrades] End of dump.");
+    return Plugin_Handled;
+}
+
+
+void HU_SetCustomAttribute(int entity, const char[] name, float value) // Call for Custom Upgrades Application
+{
+    if (!g_bHasCustomAttributes)
+        return;
+
+    char strValue[64];
+    Format(strValue, sizeof(strValue), "%.3f", value);
+    TF2CustAttr_SetString(entity, name, strValue);
+}
+
+void HU_ApplyAttributeFromAlias(int entity, const char[] alias, float value) // Apply attribute depending of if vanilla or custom
+{
+    static const char CUSTOM_PREFIX[] = "CUSTOM_";
+    bool isCustom = StrContains(alias, CUSTOM_PREFIX) == 0;
+
+    // Use alias as-is (do NOT strip the prefix)
+    AttributeMapping mapping;
+    bool found = false;
+
+    for (int i = 0; i < g_attributeMappings.Length; i++)
+    {
+        g_attributeMappings.GetArray(i, mapping);
+        if (StrEqual(mapping.alias, alias))
+        {
+            found = true;
+            break;
+        }
+    }
+
+    if (!found)
+    {
+        PrintToServer("[HU] Unknown attribute alias: %s", alias);
+        return;
+    }
+
+    if (isCustom)
+    {
+        HU_SetCustomAttribute(entity, mapping.attributeName, value);
+    }
+    else
+    {
+        TF2Attrib_SetByName(entity, mapping.attributeName, value);
+    }
+}
+
 void ApplyPlayerUpgrades(int client)
 {
     if (g_hPlayerUpgrades[client] == null)
@@ -1630,111 +3788,86 @@ void ApplyPlayerUpgrades(int client)
     TF2Attrib_RemoveAll(client);
     for (int slot = 0; slot <= 5; slot++)
     {
-        int weapon = GetPlayerWeaponSlot(client, slot);
-        if (IsValidEntity(weapon))
+        EquippedItem item;
+        item = GetEquippedEntityForSlot(client, slot);
+        if (IsValidEntity(item.entity))
         {
-            TF2Attrib_RemoveAll(weapon);
+            TF2Attrib_RemoveAll(item.entity);
         }
     }
 
+    // --- Collect slot names first to avoid cursor conflicts with helpers ---
+    char slotNames[64][64];
+    int slotCount = 0;
+
+    KvRewind(g_hPlayerUpgrades[client]);
+    if (KvGotoFirstSubKey(g_hPlayerUpgrades[client], false))
+    {
+        do
+        {
+            if (slotCount >= 64) break;
+            KvGetSectionName(g_hPlayerUpgrades[client], slotNames[slotCount], sizeof(slotNames[]));
+            slotCount++;
+        }
+        while (KvGotoNextKey(g_hPlayerUpgrades[client], false));
+    }
     KvRewind(g_hPlayerUpgrades[client]);
 
-    // Go to the first top-level key (body, slot0, slot1, etc.)
-    if (!KvGotoFirstSubKey(g_hPlayerUpgrades[client], false))
-        return;
-
-    do
+    // --- For each slot, apply any non-zero upgrade values ---
+    for (int s = 0; s < slotCount; s++)
     {
-        char slotName[8];
-        KvGetSectionName(g_hPlayerUpgrades[client], slotName, sizeof(slotName));
+        char slotName[64];
+        strcopy(slotName, sizeof(slotName), slotNames[s]);
 
-        int weapon = -1;
-        bool isBody = StrEqual(slotName, "body");
-
-        if (!isBody)
+        int entity = -1;
+        if (StrEqual(slotName, "body"))
         {
-            // Extract slot number from "slotX"
-            int slot = StringToInt(slotName[4]);
-            weapon = GetPlayerWeaponSlot(client, slot);
-            if (!IsValidEntity(weapon))
+            entity = client;
+        }
+        else if (StrContains(slotName, "slot", false) == 0) // "slotN"
+        {
+            int slotIndex = StringToInt(slotName[4]);
+            EquippedItem item;
+            item = GetEquippedEntityForSlot(client, slotIndex);
+            entity = item.entity;
+            if (!IsValidEntity(entity))
                 continue;
-
-            // PrintToConsole(client, "[Debug] Applying upgrades to weapon slot %d", slot);
         }
         else
         {
-            // PrintToConsole(client, "[Debug] Applying body upgrades");
-        }
-
-        // Go inside this slot section (e.g., body or slot0)
-        if (!KvGotoFirstSubKey(g_hPlayerUpgrades[client], false))
-        {
-            KvGoBack(g_hPlayerUpgrades[client]);
+            // Skip custom groups here (e.g., "buildings" handled elsewhere)
             continue;
         }
 
-        // Loop over all upgrade keys in this slot
-        do
+        // Iterate known upgrades; apply those present for this slot
+        for (int u = 0; u < g_upgrades.Length; u++)
         {
-            char upgradeName[64];
-            KvGetSectionName(g_hPlayerUpgrades[client], upgradeName, sizeof(upgradeName));
+            UpgradeData up;
+            g_upgrades.GetArray(u, up);
 
-            int storedLevel = KvGetNum(g_hPlayerUpgrades[client], NULL_STRING, 0);
-            float level = float(storedLevel) / 1000.0;
+            float value = UpgradeRead(client, slotName, up.name);
+            if (value == 0.0)
+                continue;
 
-            // PrintToConsole(client, "[Debug] Applying upgrade: %s with stored level %d (parsed level %.2f)", upgradeName, storedLevel, level);
-
-            // Lookup alias from name
             char upgradeAlias[64];
-            if (!GetUpgradeAliasFromName(upgradeName, upgradeAlias, sizeof(upgradeAlias)))
+            if (!GetUpgradeAliasFromName(up.name, upgradeAlias, sizeof(upgradeAlias)))
             {
-                PrintToConsole(client, "[Warning] Alias not found for upgrade name: %s", upgradeName);
+                PrintToConsole(client, "[Warning] Alias not found for upgrade name: %s", up.name);
                 continue;
             }
 
-            // Lookup attribute from alias
-            char attributeName[128];
-            if (!GetAttributeName(upgradeAlias, attributeName, sizeof(attributeName)))
-            {
-                PrintToConsole(client, "[Warning] Attribute not found for alias: %s", upgradeAlias);
-                continue;
-            }
+            float finalValue = up.initValue + value;
+            HU_ApplyAttributeFromAlias(entity, upgradeAlias, finalValue);
+        }
+    }
 
-            // Optional: Lookup init value from UpgradeData (if still needed)
-            float initValue = 0.0;
-            int idx;
-            if (g_upgradeIndex.GetValue(upgradeName, idx))
-            {
-                UpgradeData upgrade;
-                g_upgrades.GetArray(idx, upgrade);
-                initValue = upgrade.initValue;
-            }
-
-            float flevel = initValue + level;
-
-            if (isBody)
-            {
-                TF2Attrib_SetByName(client, attributeName, flevel);
-            }
-            else
-            {
-                TF2Attrib_SetByName(weapon, attributeName, flevel);
-            }
-
-        } while (KvGotoNextKey(g_hPlayerUpgrades[client], false));
-
-        KvGoBack(g_hPlayerUpgrades[client]); // Return to slot level
-
-    } while (KvGotoNextKey(g_hPlayerUpgrades[client], false));
-
-    KvRewind(g_hPlayerUpgrades[client]);
+    if (g_iResistanceHudMode[client] != 0)
+    {
+        RefreshClientResistances(client);
+    }
 
     PrintToConsole(client, "[Hyper Upgrades] All upgrades have been applied.");
 }
-
-
-
-
 
 public Action Command_AddMoney(int client, int args)
 {
@@ -1762,22 +3895,11 @@ public Action Command_SubtractMoney(int client, int args)
     return Plugin_Handled;
 }
 
-public void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
-{
-    int attacker = GetClientOfUserId(event.GetInt("attacker"));
-    int victim = GetClientOfUserId(event.GetInt("userid"));
-
-    if (attacker <= 0 || !IsClientInGame(attacker)) return;
-    if (victim <= 0 || !IsClientInGame(victim)) return;
-    if (attacker == victim) return; // Ignore self-kills (e.g., killbind)
-
-    int reward = GetConVarInt(FindConVar("hu_money_per_kill"));
-    SetConVarInt(g_hMoneyPool, GetConVarInt(g_hMoneyPool) + reward);
-}
-
 
 public void Event_ObjectiveComplete(Event event, const char[] name, bool dontBroadcast)
 {
+    if (g_bMvMActive)
+        return;
     if (StrEqual(name, "teamplay_flag_event"))
     {
         int eventType = event.GetInt("eventtype");
@@ -1786,7 +3908,7 @@ public void Event_ObjectiveComplete(Event event, const char[] name, bool dontBro
             return;
     }
 
-    int money = GetConVarInt(FindConVar("hu_money_per_objective"));
+    int money = GetConVarInt(g_hMoneyPerObjective);
     SetConVarInt(g_hMoneyPool, GetConVarInt(g_hMoneyPool) + money);
 }
 
@@ -1837,8 +3959,7 @@ public void OnBossDamaged(int entity, int attacker, int inflictor, float damage,
     int healthMultiplier = CalculateBossHealthMultiplier(maxHealth);
 
     int baseReward = GetConVarInt(FindConVar("hu_money_per_kill"));
-    float staticMultiplier = GetConVarFloat(FindConVar("hu_money_boss_multiplier"));
-    int reward = RoundToNearest(baseReward * staticMultiplier * float(healthMultiplier));
+    int reward = RoundToNearest(baseReward * float(healthMultiplier));
 
     SetConVarInt(g_hMoneyPool, GetConVarInt(g_hMoneyPool) + reward);
 
@@ -1847,23 +3968,29 @@ public void OnBossDamaged(int entity, int attacker, int inflictor, float damage,
 
 int CalculateBossHealthMultiplier(int maxHealth)
 {
-    if (maxHealth < 401)
+    if (maxHealth < 4001)
         return 1; // x1 below threshold
 
     int tier = 0;
-    while (maxHealth >= 401 && tier < 12) // 10 tiers max (x2 to x20)
+    while (maxHealth >= 4001 && tier < 50)
     {
-        maxHealth /= 6;
+        maxHealth /= 2;
         tier++;
     }
 
-    return 2 + (tier * 2); // Starts at x2, adds +2 per tier
+    return 1 + RoundToNearest(Pow(float(tier), GetConVarFloat(g_hMoneyBossMultiplier)));
 }
 
 public void OnBuildingSpawned(int entity)
 {
+    if (!IsValidEntity(entity))
+        return;
+    
     int builder = GetEntPropEnt(entity, Prop_Send, "m_hBuilder");
 
+    if (!IsValidEntity(builder))
+        return;
+    
     if (!IsClientInGame(builder) || !IsPlayerAlive(builder))
         return;
 
@@ -1871,7 +3998,7 @@ public void OnBuildingSpawned(int entity)
     GetEntityClassname(entity, classname, sizeof(classname));
 
     // Debug message
-    PrintToServer("[Hyper Upgrades] Building spawned: %s by %N", classname, builder);
+    //  ("[Hyper Upgrades] Building spawned: %s by %N", classname, builder);
 
     ApplyBuildingUpgrades(builder, entity, classname);
 }
@@ -1880,8 +4007,6 @@ void ApplyBuildingUpgrades(int client, int entity, const char[] classname)
 {
     if (g_hPlayerUpgrades[client] == null)
         return;
-
-    KvRewind(g_hPlayerUpgrades[client]);
 
     // Decide which alias to use (used in hu_attributes.cfg)
     char alias[64];
@@ -1894,28 +4019,35 @@ void ApplyBuildingUpgrades(int client, int entity, const char[] classname)
     else
         return;
 
+    KvRewind(g_hPlayerUpgrades[client]);
+
     // Jump to the "buildings" section in the player upgrade data
     if (!KvJumpToKey(g_hPlayerUpgrades[client], "buildings", false))
         return;
 
     // Loop through all upgrades stored directly under "buildings"
     if (!KvGotoFirstSubKey(g_hPlayerUpgrades[client], false))
+    {
+        KvGoBack(g_hPlayerUpgrades[client]); // back to root
         return;
+    }
 
     do
     {
         char upgradeName[64];
         KvGetSectionName(g_hPlayerUpgrades[client], upgradeName, sizeof(upgradeName));
-        int storedLevel = KvGetNum(g_hPlayerUpgrades[client], NULL_STRING, 0);
-        float level = float(storedLevel) / 1000.0;
 
-        // Get attribute alias from name
+        // Read stored delta/level via helper
+        float value = UpgradeRead(client, "buildings", upgradeName);
+
+        // Get attribute alias from upgrade display name
         char upgradeAlias[64];
         if (!GetUpgradeAliasFromName(upgradeName, upgradeAlias, sizeof(upgradeAlias)))
             continue;
 
         // Only apply upgrades meant for this building type
-        if (!StrContains(upgradeAlias, alias, false)) // Case-insensitive contains check
+        // StrContains(...) returns -1 if not found.
+        if (StrContains(upgradeAlias, alias, false) == -1)
             continue;
 
         // Get attribute name from alias
@@ -1933,619 +4065,605 @@ void ApplyBuildingUpgrades(int client, int entity, const char[] classname)
             initValue = upgrade.initValue;
         }
 
-        float finalValue = initValue + level;
+        float fvalue = initValue + value;
 
-        TF2Attrib_SetByName(entity, attrName, finalValue);
+        TF2Attrib_SetByName(entity, attrName, fvalue);
 
-        PrintToConsole(client, "[Hyper Upgrades] Applied to building: %s = %.3f (%s)", attrName, finalValue, alias);
+        PrintToConsole(client, "[Hyper Upgrades] Applied to building: %s = %.3f (%s)", attrName, fvalue, alias);
 
     } while (KvGotoNextKey(g_hPlayerUpgrades[client], false));
 
+    KvGoBack(g_hPlayerUpgrades[client]); // back to root
     KvRewind(g_hPlayerUpgrades[client]);
 }
 
-void GenerateConfigFiles()
+// Damage Types Handling
+void FormatDamageFlags(int damagetype, char[] buffer, int maxlen)
 {
-    char filePath[PLATFORM_MAX_PATH];
+    buffer[0] = '\0';
 
-    
-
-    // Generate hu_weapons_list.txt
-    BuildPath(Path_SM, filePath, sizeof(filePath), "configs/%s", CONFIG_WEAP);
-    if (!FileExists(filePath))
+    for (int i = 0; i < view_as<int>(DFLAG_COUNT); i++)
     {
-        Handle file = OpenFile(filePath, "w");
-        if (file != null)
+        if ((damagetype & g_DmgFlagBits[i]) != 0)
         {
-
-
-            // indexID,alias
-
-            // Class: All/Multiple
-            WriteFileLine(file, "1152,tf_weapon_grapplinghook");
-            WriteFileLine(file, "1069,tf_weapon_spellbook");
-            WriteFileLine(file, "1070,tf_weapon_spellbook");
-            WriteFileLine(file, "1132,tf_weapon_spellbook");
-            WriteFileLine(file, "5605,tf_weapon_spellbook");
-            WriteFileLine(file, "30015,tf_powerup_bottle");
-            WriteFileLine(file, "489,tf_powerup_bottle");
-
-            WriteFileLine(file, "264,saxxy");
-            WriteFileLine(file, "423,saxxy");
-            WriteFileLine(file, "474,saxxy");
-            WriteFileLine(file, "880,saxxy");
-            WriteFileLine(file, "939,saxxy");
-            WriteFileLine(file, "954,saxxy");
-            WriteFileLine(file, "1013,saxxy");
-            WriteFileLine(file, "1071,saxxy");
-            WriteFileLine(file, "1123,saxxy");
-            WriteFileLine(file, "1127,saxxy");
-            WriteFileLine(file, "30758,saxxy");
-
-            WriteFileLine(file, "357,tf_weapon_katana");
-
-            WriteFileLine(file, "199,tf_weapon_shotgun");
-            WriteFileLine(file, "415,tf_weapon_shotgun");
-            WriteFileLine(file, "1141,tf_weapon_shotgun");
-            WriteFileLine(file, "1153,tf_weapon_shotgun");
-            WriteFileLine(file, "15003,tf_weapon_shotgun");
-            WriteFileLine(file, "15016,tf_weapon_shotgun");
-            WriteFileLine(file, "15044,tf_weapon_shotgun");
-            WriteFileLine(file, "15047,tf_weapon_shotgun");
-            WriteFileLine(file, "15085,tf_weapon_shotgun");
-            WriteFileLine(file, "15109,tf_weapon_shotgun");
-            WriteFileLine(file, "15132,tf_weapon_shotgun");
-            WriteFileLine(file, "15133,tf_weapon_shotgun");
-            WriteFileLine(file, "15152,tf_weapon_shotgun");
-
-            WriteFileLine(file, "1101,tf_weapon_parachute");
-            WriteFileLine(file, "160,tf_weapon_pistol");
-            WriteFileLine(file, "209,tf_weapon_pistol");
-            WriteFileLine(file, "294,tf_weapon_pistol");
-            WriteFileLine(file, "15013,tf_weapon_pistol");
-            WriteFileLine(file, "15018,tf_weapon_pistol");
-            WriteFileLine(file, "15035,tf_weapon_pistol");
-            WriteFileLine(file, "15041,tf_weapon_pistol");
-            WriteFileLine(file, "15046,tf_weapon_pistol");
-            WriteFileLine(file, "15056,tf_weapon_pistol");
-            WriteFileLine(file, "15060,tf_weapon_pistol");
-            WriteFileLine(file, "15061,tf_weapon_pistol");
-            WriteFileLine(file, "15100,tf_weapon_pistol");
-            WriteFileLine(file, "15101,tf_weapon_pistol");
-            WriteFileLine(file, "15102,tf_weapon_pistol");
-            WriteFileLine(file, "15126,tf_weapon_pistol");
-            WriteFileLine(file, "15148,tf_weapon_pistol");
-            WriteFileLine(file, "30666,tf_weapon_pistol");
-
-            // Class: Scout, Slot: 0
-            WriteFileLine(file, "13,tf_weapon_scattergun");
-            WriteFileLine(file, "200,tf_weapon_scattergun");
-            WriteFileLine(file, "45,tf_weapon_scattergun");
-            WriteFileLine(file, "220,tf_weapon_handgun_scout_primary");
-            WriteFileLine(file, "448,tf_weapon_soda_popper");
-            WriteFileLine(file, "669,tf_weapon_scattergun");
-            WriteFileLine(file, "772,tf_weapon_pep_brawler_blaster");
-            WriteFileLine(file, "799,tf_weapon_scattergun");
-            WriteFileLine(file, "808,tf_weapon_scattergun");
-            WriteFileLine(file, "888,tf_weapon_scattergun");
-            WriteFileLine(file, "897,tf_weapon_scattergun");
-            WriteFileLine(file, "906,tf_weapon_scattergun");
-            WriteFileLine(file, "915,tf_weapon_scattergun");
-            WriteFileLine(file, "964,tf_weapon_scattergun");
-            WriteFileLine(file, "973,tf_weapon_scattergun");
-            WriteFileLine(file, "1078,tf_weapon_scattergun");
-            WriteFileLine(file, "1103,tf_weapon_scattergun");
-            WriteFileLine(file, "15002,tf_weapon_scattergun");
-            WriteFileLine(file, "15015,tf_weapon_scattergun");
-            WriteFileLine(file, "15021,tf_weapon_scattergun");
-            WriteFileLine(file, "15029,tf_weapon_scattergun");
-            WriteFileLine(file, "15036,tf_weapon_scattergun");
-            WriteFileLine(file, "15053,tf_weapon_scattergun");
-            WriteFileLine(file, "15065,tf_weapon_scattergun");
-            WriteFileLine(file, "15069,tf_weapon_scattergun");
-            WriteFileLine(file, "15106,tf_weapon_scattergun");
-            WriteFileLine(file, "15107,tf_weapon_scattergun");
-            WriteFileLine(file, "15108,tf_weapon_scattergun");
-            WriteFileLine(file, "15131,tf_weapon_scattergun");
-            WriteFileLine(file, "15151,tf_weapon_scattergun");
-            WriteFileLine(file, "15157,tf_weapon_scattergun");
-
-            // Class: Scout, Slot: 1
-            WriteFileLine(file, "23,tf_weapon_pistol");
-            WriteFileLine(file, "46,tf_weapon_lunchbox_drink");
-            WriteFileLine(file, "163,tf_weapon_lunchbox_drink");
-            WriteFileLine(file, "222,tf_weapon_jar_milk");
-            WriteFileLine(file, "449,tf_weapon_handgun_scout_secondary");
-            WriteFileLine(file, "773,tf_weapon_handgun_scout_secondary");
-            WriteFileLine(file, "812,tf_weapon_cleaver");
-            WriteFileLine(file, "833,tf_weapon_cleaver");
-            WriteFileLine(file, "1121,tf_weapon_jar_milk");
-            WriteFileLine(file, "1145,tf_weapon_lunchbox_drink");
-
-            // Class: Scout, Slot: 2
-            WriteFileLine(file, "0,tf_weapon_bat");
-            WriteFileLine(file, "190,tf_weapon_bat");
-            WriteFileLine(file, "44,tf_weapon_bat_wood");
-            WriteFileLine(file, "221,tf_weapon_bat_fish");
-            WriteFileLine(file, "317,tf_weapon_bat");
-            WriteFileLine(file, "325,tf_weapon_bat");
-            WriteFileLine(file, "349,tf_weapon_bat");
-            WriteFileLine(file, "355,tf_weapon_bat");
-            WriteFileLine(file, "450,tf_weapon_bat");
-            WriteFileLine(file, "452,tf_weapon_bat");
-            WriteFileLine(file, "572,tf_weapon_bat_fish");
-            WriteFileLine(file, "648,tf_weapon_bat_giftwrap");
-            WriteFileLine(file, "660,tf_weapon_bat");
-            WriteFileLine(file, "999,tf_weapon_bat_fish");
-            WriteFileLine(file, "30667,tf_weapon_bat");
-
-            // Class: Soldier, Slot: 0
-            WriteFileLine(file, "18,tf_weapon_rocketlauncher");
-            WriteFileLine(file, "205,tf_weapon_rocketlauncher");
-            WriteFileLine(file, "127,tf_weapon_rocketlauncher_directhit");
-            WriteFileLine(file, "228,tf_weapon_rocketlauncher");
-            WriteFileLine(file, "237,tf_weapon_rocketlauncher");
-            WriteFileLine(file, "414,tf_weapon_rocketlauncher");
-            WriteFileLine(file, "441,tf_weapon_particle_cannon");
-            WriteFileLine(file, "513,tf_weapon_rocketlauncher");
-            WriteFileLine(file, "658,tf_weapon_rocketlauncher");
-            WriteFileLine(file, "730,tf_weapon_rocketlauncher");
-            WriteFileLine(file, "800,tf_weapon_rocketlauncher");
-            WriteFileLine(file, "809,tf_weapon_rocketlauncher");
-            WriteFileLine(file, "889,tf_weapon_rocketlauncher");
-            WriteFileLine(file, "898,tf_weapon_rocketlauncher");
-            WriteFileLine(file, "907,tf_weapon_rocketlauncher");
-            WriteFileLine(file, "916,tf_weapon_rocketlauncher");
-            WriteFileLine(file, "965,tf_weapon_rocketlauncher");
-            WriteFileLine(file, "974,tf_weapon_rocketlauncher");
-            WriteFileLine(file, "1085,tf_weapon_rocketlauncher");
-            WriteFileLine(file, "1104,tf_weapon_rocketlauncher_airstrike");
-            WriteFileLine(file, "15006,tf_weapon_rocketlauncher");
-            WriteFileLine(file, "15014,tf_weapon_rocketlauncher");
-            WriteFileLine(file, "15028,tf_weapon_rocketlauncher");
-            WriteFileLine(file, "15043,tf_weapon_rocketlauncher");
-            WriteFileLine(file, "15052,tf_weapon_rocketlauncher");
-            WriteFileLine(file, "15057,tf_weapon_rocketlauncher");
-            WriteFileLine(file, "15081,tf_weapon_rocketlauncher");
-            WriteFileLine(file, "15104,tf_weapon_rocketlauncher");
-            WriteFileLine(file, "15105,tf_weapon_rocketlauncher");
-            WriteFileLine(file, "15129,tf_weapon_rocketlauncher");
-            WriteFileLine(file, "15130,tf_weapon_rocketlauncher");
-            WriteFileLine(file, "15150,tf_weapon_rocketlauncher");
-
-            // Class: Soldier, Slot: 1
-            WriteFileLine(file, "10,tf_weapon_shotgun_soldier");
-            WriteFileLine(file, "442,tf_weapon_raygun");
-
-            // Class: Soldier, Slot: 2
-            WriteFileLine(file, "6,tf_weapon_shovel");
-            WriteFileLine(file, "196,tf_weapon_shovel");
-            WriteFileLine(file, "128,tf_weapon_shovel");
-            WriteFileLine(file, "154,tf_weapon_shovel");
-            WriteFileLine(file, "416,tf_weapon_shovel");
-            WriteFileLine(file, "447,tf_weapon_shovel");
-            WriteFileLine(file, "775,tf_weapon_shovel");
-
-            // Class: Soldier, Wearables
-            WriteFileLine(file, "129,tf_weapon_buff_item"); // Buff Banner
-            WriteFileLine(file, "226,tf_weapon_buff_item"); // Battalion's Backup
-            WriteFileLine(file, "354,tf_weapon_buff_item"); // Concheror
-            WriteFileLine(file, "1001,tf_weapon_buff_item"); // Festive Buff Banner
-            WriteFileLine(file, "133,tf_wearable"); // Gunboats
-            WriteFileLine(file, "444,tf_wearable"); // Mantreads
-
-            // Class: Pyro, Slot: 0
-            WriteFileLine(file, "21,tf_weapon_flamethrower");
-            WriteFileLine(file, "208,tf_weapon_flamethrower");
-            WriteFileLine(file, "40,tf_weapon_flamethrower");
-            WriteFileLine(file, "215,tf_weapon_flamethrower");
-            WriteFileLine(file, "594,tf_weapon_flamethrower");
-            WriteFileLine(file, "659,tf_weapon_flamethrower");
-            WriteFileLine(file, "741,tf_weapon_flamethrower");
-            WriteFileLine(file, "798,tf_weapon_flamethrower");
-            WriteFileLine(file, "807,tf_weapon_flamethrower");
-            WriteFileLine(file, "887,tf_weapon_flamethrower");
-            WriteFileLine(file, "896,tf_weapon_flamethrower");
-            WriteFileLine(file, "905,tf_weapon_flamethrower");
-            WriteFileLine(file, "914,tf_weapon_flamethrower");
-            WriteFileLine(file, "963,tf_weapon_flamethrower");
-            WriteFileLine(file, "972,tf_weapon_flamethrower");
-            WriteFileLine(file, "1146,tf_weapon_flamethrower");
-            WriteFileLine(file, "1178,tf_weapon_rocketlauncher_fireball");
-            WriteFileLine(file, "15005,tf_weapon_flamethrower");
-            WriteFileLine(file, "15017,tf_weapon_flamethrower");
-            WriteFileLine(file, "15030,tf_weapon_flamethrower");
-            WriteFileLine(file, "15034,tf_weapon_flamethrower");
-            WriteFileLine(file, "15049,tf_weapon_flamethrower");
-            WriteFileLine(file, "15054,tf_weapon_flamethrower");
-            WriteFileLine(file, "15066,tf_weapon_flamethrower");
-            WriteFileLine(file, "15067,tf_weapon_flamethrower");
-            WriteFileLine(file, "15068,tf_weapon_flamethrower");
-            WriteFileLine(file, "15089,tf_weapon_flamethrower");
-            WriteFileLine(file, "15090,tf_weapon_flamethrower");
-            WriteFileLine(file, "15115,tf_weapon_flamethrower");
-            WriteFileLine(file, "15141,tf_weapon_flamethrower");
-            WriteFileLine(file, "30474,tf_weapon_flamethrower");
-
-            // Class: Pyro, Slot: 1
-            WriteFileLine(file, "12,tf_weapon_shotgun_pyro");
-            WriteFileLine(file, "39,tf_weapon_flaregun");
-            WriteFileLine(file, "351,tf_weapon_flaregun");
-            WriteFileLine(file, "595,tf_weapon_flaregun_revenge");
-            WriteFileLine(file, "740,tf_weapon_flaregun");
-            WriteFileLine(file, "1081,tf_weapon_flaregun");
-            WriteFileLine(file, "1179,tf_weapon_rocketpack");
-            WriteFileLine(file, "1180,tf_weapon_jar_gas");
-
-            // Class: Pyro, Slot: 2
-            WriteFileLine(file, "2,tf_weapon_fireaxe");
-            WriteFileLine(file, "192,tf_weapon_fireaxe");
-            WriteFileLine(file, "38,tf_weapon_fireaxe");
-            WriteFileLine(file, "153,tf_weapon_fireaxe");
-            WriteFileLine(file, "214,tf_weapon_fireaxe");
-            WriteFileLine(file, "326,tf_weapon_fireaxe");
-            WriteFileLine(file, "348,tf_weapon_fireaxe");
-            WriteFileLine(file, "457,tf_weapon_fireaxe");
-            WriteFileLine(file, "466,tf_weapon_fireaxe");
-            WriteFileLine(file, "593,tf_weapon_fireaxe");
-            WriteFileLine(file, "739,tf_weapon_fireaxe");
-            WriteFileLine(file, "813,tf_weapon_breakable_sign");
-            WriteFileLine(file, "834,tf_weapon_breakable_sign");
-            WriteFileLine(file, "1000,tf_weapon_fireaxe");
-            WriteFileLine(file, "1181,tf_weapon_slap");
-
-            // Class: Demoman, Slot: 0
-            WriteFileLine(file, "19,tf_weapon_grenadelauncher");
-            WriteFileLine(file, "206,tf_weapon_grenadelauncher");
-            WriteFileLine(file, "308,tf_weapon_grenadelauncher");
-            WriteFileLine(file, "996,tf_weapon_cannon");
-            WriteFileLine(file, "1007,tf_weapon_grenadelauncher");
-            WriteFileLine(file, "1151,tf_weapon_grenadelauncher");
-            WriteFileLine(file, "15077,tf_weapon_grenadelauncher");
-            WriteFileLine(file, "15079,tf_weapon_grenadelauncher");
-            WriteFileLine(file, "15091,tf_weapon_grenadelauncher");
-            WriteFileLine(file, "15092,tf_weapon_grenadelauncher");
-            WriteFileLine(file, "15116,tf_weapon_grenadelauncher");
-            WriteFileLine(file, "15117,tf_weapon_grenadelauncher");
-            WriteFileLine(file, "15142,tf_weapon_grenadelauncher");
-            WriteFileLine(file, "15158,tf_weapon_grenadelauncher");
-            WriteFileLine(file, "405,tf_wearable");
-            WriteFileLine(file, "608,tf_wearable");
-
-            // Class: Demoman, Slot: 1
-            WriteFileLine(file, "20,tf_weapon_pipebomblauncher");
-            WriteFileLine(file, "207,tf_weapon_pipebomblauncher");
-            WriteFileLine(file, "130,tf_weapon_pipebomblauncher");
-            WriteFileLine(file, "131,tf_wearable_demoshield");
-            WriteFileLine(file, "265,tf_weapon_pipebomblauncher");
-            WriteFileLine(file, "406,tf_wearable_demoshield");
-            WriteFileLine(file, "661,tf_weapon_pipebomblauncher");
-            WriteFileLine(file, "797,tf_weapon_pipebomblauncher");
-            WriteFileLine(file, "806,tf_weapon_pipebomblauncher");
-            WriteFileLine(file, "886,tf_weapon_pipebomblauncher");
-            WriteFileLine(file, "895,tf_weapon_pipebomblauncher");
-            WriteFileLine(file, "904,tf_weapon_pipebomblauncher");
-            WriteFileLine(file, "913,tf_weapon_pipebomblauncher");
-            WriteFileLine(file, "962,tf_weapon_pipebomblauncher");
-            WriteFileLine(file, "971,tf_weapon_pipebomblauncher");
-            WriteFileLine(file, "1099,tf_wearable_demoshield");
-            WriteFileLine(file, "1144,tf_wearable_demoshield");
-            WriteFileLine(file, "1150,tf_weapon_pipebomblauncher");
-            WriteFileLine(file, "15009,tf_weapon_pipebomblauncher");
-            WriteFileLine(file, "15012,tf_weapon_pipebomblauncher");
-            WriteFileLine(file, "15024,tf_weapon_pipebomblauncher");
-            WriteFileLine(file, "15038,tf_weapon_pipebomblauncher");
-            WriteFileLine(file, "15045,tf_weapon_pipebomblauncher");
-            WriteFileLine(file, "15048,tf_weapon_pipebomblauncher");
-            WriteFileLine(file, "15082,tf_weapon_pipebomblauncher");
-            WriteFileLine(file, "15083,tf_weapon_pipebomblauncher");
-            WriteFileLine(file, "15084,tf_weapon_pipebomblauncher");
-            WriteFileLine(file, "15113,tf_weapon_pipebomblauncher");
-            WriteFileLine(file, "15137,tf_weapon_pipebomblauncher");
-            WriteFileLine(file, "15138,tf_weapon_pipebomblauncher");
-            WriteFileLine(file, "15155,tf_weapon_pipebomblauncher");
-
-            // Class: Demoman, Slot: 2
-            WriteFileLine(file, "1,tf_weapon_bottle");
-            WriteFileLine(file, "191,tf_weapon_bottle");
-            WriteFileLine(file, "132,tf_weapon_sword");
-            WriteFileLine(file, "172,tf_weapon_sword");
-            WriteFileLine(file, "266,tf_weapon_sword");
-            WriteFileLine(file, "307,tf_weapon_stickbomb");
-            WriteFileLine(file, "327,tf_weapon_sword");
-            WriteFileLine(file, "404,tf_weapon_sword");
-            WriteFileLine(file, "482,tf_weapon_sword");
-            WriteFileLine(file, "609,tf_weapon_bottle");
-            WriteFileLine(file, "1082,tf_weapon_sword");
-
-            // Class: Heavy, Slot: 0
-            WriteFileLine(file, "15,tf_weapon_minigun");
-            WriteFileLine(file, "202,tf_weapon_minigun");
-            WriteFileLine(file, "41,tf_weapon_minigun");
-            WriteFileLine(file, "298,tf_weapon_minigun");
-            WriteFileLine(file, "312,tf_weapon_minigun");
-            WriteFileLine(file, "424,tf_weapon_minigun");
-            WriteFileLine(file, "654,tf_weapon_minigun");
-            WriteFileLine(file, "793,tf_weapon_minigun");
-            WriteFileLine(file, "802,tf_weapon_minigun");
-            WriteFileLine(file, "811,tf_weapon_minigun");
-            WriteFileLine(file, "832,tf_weapon_minigun");
-            WriteFileLine(file, "850,tf_weapon_minigun");
-            WriteFileLine(file, "882,tf_weapon_minigun");
-            WriteFileLine(file, "891,tf_weapon_minigun");
-            WriteFileLine(file, "900,tf_weapon_minigun");
-            WriteFileLine(file, "909,tf_weapon_minigun");
-            WriteFileLine(file, "958,tf_weapon_minigun");
-            WriteFileLine(file, "967,tf_weapon_minigun");
-            WriteFileLine(file, "15004,tf_weapon_minigun");
-            WriteFileLine(file, "15020,tf_weapon_minigun");
-            WriteFileLine(file, "15026,tf_weapon_minigun");
-            WriteFileLine(file, "15031,tf_weapon_minigun");
-            WriteFileLine(file, "15040,tf_weapon_minigun");
-            WriteFileLine(file, "15055,tf_weapon_minigun");
-            WriteFileLine(file, "15086,tf_weapon_minigun");
-            WriteFileLine(file, "15087,tf_weapon_minigun");
-            WriteFileLine(file, "15088,tf_weapon_minigun");
-            WriteFileLine(file, "15098,tf_weapon_minigun");
-            WriteFileLine(file, "15099,tf_weapon_minigun");
-            WriteFileLine(file, "15123,tf_weapon_minigun");
-            WriteFileLine(file, "15124,tf_weapon_minigun");
-            WriteFileLine(file, "15125,tf_weapon_minigun");
-            WriteFileLine(file, "15147,tf_weapon_minigun");
-
-            // Class: Heavy, Slot: 1
-            WriteFileLine(file, "11,tf_weapon_shotgun_hwg");
-            WriteFileLine(file, "42,tf_weapon_lunchbox");
-            WriteFileLine(file, "159,tf_weapon_lunchbox");
-            WriteFileLine(file, "311,tf_weapon_lunchbox");
-            WriteFileLine(file, "425,tf_weapon_shotgun_hwg");
-            WriteFileLine(file, "433,tf_weapon_lunchbox");
-            WriteFileLine(file, "863,tf_weapon_lunchbox");
-            WriteFileLine(file, "1002,tf_weapon_lunchbox");
-            WriteFileLine(file, "1190,tf_weapon_lunchbox");
-
-            // Class: Heavy, Slot: 2
-            WriteFileLine(file, "5,tf_weapon_fists");
-            WriteFileLine(file, "195,tf_weapon_fists");
-            WriteFileLine(file, "43,tf_weapon_fists");
-            WriteFileLine(file, "239,tf_weapon_fists");
-            WriteFileLine(file, "310,tf_weapon_fists");
-            WriteFileLine(file, "331,tf_weapon_fists");
-            WriteFileLine(file, "426,tf_weapon_fists");
-            WriteFileLine(file, "587,tf_weapon_fists");
-            WriteFileLine(file, "656,tf_weapon_fists");
-            WriteFileLine(file, "1084,tf_weapon_fists");
-            WriteFileLine(file, "1100,tf_weapon_fists");
-            WriteFileLine(file, "1184,tf_weapon_fists");
-
-            // Class: Engineer, Slot: 0
-            WriteFileLine(file, "9,tf_weapon_shotgun_primary");
-            WriteFileLine(file, "141,tf_weapon_sentry_revenge");
-            WriteFileLine(file, "527,tf_weapon_shotgun_primary");
-            WriteFileLine(file, "588,tf_weapon_drg_pomson");
-            WriteFileLine(file, "997,tf_weapon_shotgun_building_rescue");
-            WriteFileLine(file, "1004,tf_weapon_sentry_revenge");
-
-            // Class: Engineer, Slot: 1
-            WriteFileLine(file, "22,tf_weapon_pistol");
-            WriteFileLine(file, "140,tf_weapon_laser_pointer");
-            WriteFileLine(file, "528,tf_weapon_mechanical_arm");
-            WriteFileLine(file, "1086,tf_weapon_laser_pointer");
-            WriteFileLine(file, "30668,tf_weapon_laser_pointer");
-
-            // Class: Engineer, Slot: 2
-            WriteFileLine(file, "7,tf_weapon_wrench");
-            WriteFileLine(file, "197,tf_weapon_wrench");
-            WriteFileLine(file, "142,tf_weapon_robot_arm");
-            WriteFileLine(file, "155,tf_weapon_wrench");
-            WriteFileLine(file, "169,tf_weapon_wrench");
-            WriteFileLine(file, "329,tf_weapon_wrench");
-            WriteFileLine(file, "589,tf_weapon_wrench");
-            WriteFileLine(file, "662,tf_weapon_wrench");
-            WriteFileLine(file, "795,tf_weapon_wrench");
-            WriteFileLine(file, "804,tf_weapon_wrench");
-            WriteFileLine(file, "884,tf_weapon_wrench");
-            WriteFileLine(file, "893,tf_weapon_wrench");
-            WriteFileLine(file, "902,tf_weapon_wrench");
-            WriteFileLine(file, "911,tf_weapon_wrench");
-            WriteFileLine(file, "960,tf_weapon_wrench");
-            WriteFileLine(file, "969,tf_weapon_wrench");
-            WriteFileLine(file, "15073,tf_weapon_wrench");
-            WriteFileLine(file, "15074,tf_weapon_wrench");
-            WriteFileLine(file, "15075,tf_weapon_wrench");
-            WriteFileLine(file, "15139,tf_weapon_wrench");
-            WriteFileLine(file, "15140,tf_weapon_wrench");
-            WriteFileLine(file, "15114,tf_weapon_wrench");
-            WriteFileLine(file, "15156,tf_weapon_wrench");
-
-            // Class: Engineer, Slot: 3
-            WriteFileLine(file, "25,tf_weapon_pda_engineer_build");
-            WriteFileLine(file, "737,tf_weapon_pda_engineer_build");
-
-            // Class: Medic, Slot: 0
-            WriteFileLine(file, "17,tf_weapon_syringegun_medic");
-            WriteFileLine(file, "204,tf_weapon_syringegun_medic");
-            WriteFileLine(file, "36,tf_weapon_syringegun_medic");
-            WriteFileLine(file, "305,tf_weapon_crossbow");
-            WriteFileLine(file, "412,tf_weapon_syringegun_medic");
-            WriteFileLine(file, "1079,tf_weapon_crossbow");
-
-            // Class: Medic, Slot: 1
-            WriteFileLine(file, "29,tf_weapon_medigun");
-            WriteFileLine(file, "211,tf_weapon_medigun");
-            WriteFileLine(file, "35,tf_weapon_medigun");
-            WriteFileLine(file, "411,tf_weapon_medigun");
-            WriteFileLine(file, "663,tf_weapon_medigun");
-            WriteFileLine(file, "796,tf_weapon_medigun");
-            WriteFileLine(file, "805,tf_weapon_medigun");
-            WriteFileLine(file, "885,tf_weapon_medigun");
-            WriteFileLine(file, "894,tf_weapon_medigun");
-            WriteFileLine(file, "903,tf_weapon_medigun");
-            WriteFileLine(file, "912,tf_weapon_medigun");
-            WriteFileLine(file, "961,tf_weapon_medigun");
-            WriteFileLine(file, "970,tf_weapon_medigun");
-            WriteFileLine(file, "15008,tf_weapon_medigun");
-            WriteFileLine(file, "15010,tf_weapon_medigun");
-            WriteFileLine(file, "15025,tf_weapon_medigun");
-            WriteFileLine(file, "15039,tf_weapon_medigun");
-            WriteFileLine(file, "15050,tf_weapon_medigun");
-            WriteFileLine(file, "15078,tf_weapon_medigun");
-            WriteFileLine(file, "15097,tf_weapon_medigun");
-            WriteFileLine(file, "15121,tf_weapon_medigun");
-            WriteFileLine(file, "15122,tf_weapon_medigun");
-            WriteFileLine(file, "15123,tf_weapon_medigun");
-            WriteFileLine(file, "15145,tf_weapon_medigun");
-            WriteFileLine(file, "15146,tf_weapon_medigun");
-
-            // Class: Medic, Slot: 2
-            WriteFileLine(file, "8,tf_weapon_bonesaw");
-            WriteFileLine(file, "198,tf_weapon_bonesaw");
-            WriteFileLine(file, "37,tf_weapon_bonesaw");
-            WriteFileLine(file, "173,tf_weapon_bonesaw");
-            WriteFileLine(file, "304,tf_weapon_bonesaw");
-            WriteFileLine(file, "413,tf_weapon_bonesaw");
-            WriteFileLine(file, "1003,tf_weapon_bonesaw");
-            WriteFileLine(file, "1143,tf_weapon_bonesaw");
-
-            // Class: Sniper, Slot: 0
-            WriteFileLine(file, "14,tf_weapon_sniperrifle");
-            WriteFileLine(file, "201,tf_weapon_sniperrifle");
-            WriteFileLine(file, "56,tf_weapon_compound_bow");
-            WriteFileLine(file, "230,tf_weapon_sniperrifle");
-            WriteFileLine(file, "402,tf_weapon_sniperrifle_decap");
-            WriteFileLine(file, "526,tf_weapon_sniperrifle");
-            WriteFileLine(file, "664,tf_weapon_sniperrifle");
-            WriteFileLine(file, "752,tf_weapon_sniperrifle");
-            WriteFileLine(file, "792,tf_weapon_sniperrifle");
-            WriteFileLine(file, "801,tf_weapon_sniperrifle");
-            WriteFileLine(file, "851,tf_weapon_sniperrifle");
-            WriteFileLine(file, "881,tf_weapon_sniperrifle");
-            WriteFileLine(file, "890,tf_weapon_sniperrifle");
-            WriteFileLine(file, "899,tf_weapon_sniperrifle");
-            WriteFileLine(file, "908,tf_weapon_sniperrifle");
-            WriteFileLine(file, "957,tf_weapon_sniperrifle");
-            WriteFileLine(file, "966,tf_weapon_sniperrifle");
-            WriteFileLine(file, "1005,tf_weapon_compound_bow");
-            WriteFileLine(file, "1092,tf_weapon_compound_bow");
-            WriteFileLine(file, "1098,tf_weapon_sniperrifle_classic");
-            WriteFileLine(file, "15000,tf_weapon_sniperrifle");
-            WriteFileLine(file, "15007,tf_weapon_sniperrifle");
-            WriteFileLine(file, "15019,tf_weapon_sniperrifle");
-            WriteFileLine(file, "15023,tf_weapon_sniperrifle");
-            WriteFileLine(file, "15033,tf_weapon_sniperrifle");
-            WriteFileLine(file, "15059,tf_weapon_sniperrifle");
-            WriteFileLine(file, "15070,tf_weapon_sniperrifle");
-            WriteFileLine(file, "15071,tf_weapon_sniperrifle");
-            WriteFileLine(file, "15072,tf_weapon_sniperrifle");
-            WriteFileLine(file, "15111,tf_weapon_sniperrifle");
-            WriteFileLine(file, "15112,tf_weapon_sniperrifle");
-            WriteFileLine(file, "15135,tf_weapon_sniperrifle");
-            WriteFileLine(file, "15136,tf_weapon_sniperrifle");
-            WriteFileLine(file, "15154,tf_weapon_sniperrifle");
-            WriteFileLine(file, "30665,tf_weapon_sniperrifle");
-
-            // Class: Sniper, Slot: 1
-            WriteFileLine(file, "16,tf_weapon_smg");
-            WriteFileLine(file, "203,tf_weapon_smg");
-            WriteFileLine(file, "58,tf_weapon_jar");
-            WriteFileLine(file, "751,tf_weapon_charged_smg");
-            WriteFileLine(file, "1083,tf_weapon_jar");
-            WriteFileLine(file, "1105,tf_weapon_jar");
-            WriteFileLine(file, "1149,tf_weapon_smg");
-            WriteFileLine(file, "15001,tf_weapon_smg");
-            WriteFileLine(file, "15022,tf_weapon_smg");
-            WriteFileLine(file, "15032,tf_weapon_smg");
-            WriteFileLine(file, "15037,tf_weapon_smg");
-            WriteFileLine(file, "15058,tf_weapon_smg");
-            WriteFileLine(file, "15076,tf_weapon_smg");
-            WriteFileLine(file, "15110,tf_weapon_smg");
-            WriteFileLine(file, "15134,tf_weapon_smg");
-            WriteFileLine(file, "15153,tf_weapon_smg");
-            WriteFileLine(file, "57,tf_wearable_razorback");
-            WriteFileLine(file, "231,tf_wearable");
-            WriteFileLine(file, "642,tf_wearable");
-
-            // Class: Sniper, Slot: 2
-            WriteFileLine(file, "3,tf_weapon_club");
-            WriteFileLine(file, "193,tf_weapon_club");
-            WriteFileLine(file, "171,tf_weapon_club");
-            WriteFileLine(file, "232,tf_weapon_club");
-            WriteFileLine(file, "401,tf_weapon_club");
-
-            // Class: Spy, Slot: 0
-            WriteFileLine(file, "24,tf_weapon_revolver");
-            WriteFileLine(file, "210,tf_weapon_revolver");
-            WriteFileLine(file, "61,tf_weapon_revolver");
-            WriteFileLine(file, "161,tf_weapon_revolver");
-            WriteFileLine(file, "224,tf_weapon_revolver");
-            WriteFileLine(file, "460,tf_weapon_revolver");
-            WriteFileLine(file, "525,tf_weapon_revolver");
-            WriteFileLine(file, "1006,tf_weapon_revolver");
-            WriteFileLine(file, "1142,tf_weapon_revolver");
-            WriteFileLine(file, "15011,tf_weapon_revolver");
-            WriteFileLine(file, "15027,tf_weapon_revolver");
-            WriteFileLine(file, "15042,tf_weapon_revolver");
-            WriteFileLine(file, "15051,tf_weapon_revolver");
-            WriteFileLine(file, "15062,tf_weapon_revolver");
-            WriteFileLine(file, "15063,tf_weapon_revolver");
-            WriteFileLine(file, "15064,tf_weapon_revolver");
-            WriteFileLine(file, "15103,tf_weapon_revolver");
-            WriteFileLine(file, "15128,tf_weapon_revolver");
-            WriteFileLine(file, "15127,tf_weapon_revolver");
-            WriteFileLine(file, "15149,tf_weapon_revolver");
-
-            // Class: Spy, Slot: 1
-            WriteFileLine(file, "735,tf_weapon_builder");
-            WriteFileLine(file, "736,tf_weapon_builder");
-            WriteFileLine(file, "810,tf_weapon_sapper");
-            WriteFileLine(file, "831,tf_weapon_sapper");
-            WriteFileLine(file, "933,tf_weapon_sapper");
-            WriteFileLine(file, "1080,tf_weapon_sapper");
-            WriteFileLine(file, "1102,tf_weapon_sapper");
-
-            // Class: Spy, Slot: 2
-            WriteFileLine(file, "4,tf_weapon_knife");
-            WriteFileLine(file, "194,tf_weapon_knife");
-            WriteFileLine(file, "225,tf_weapon_knife");
-            WriteFileLine(file, "356,tf_weapon_knife");
-            WriteFileLine(file, "461,tf_weapon_knife");
-            WriteFileLine(file, "574,tf_weapon_knife");
-            WriteFileLine(file, "638,tf_weapon_knife");
-            WriteFileLine(file, "649,tf_weapon_knife");
-            WriteFileLine(file, "665,tf_weapon_knife");
-            WriteFileLine(file, "727,tf_weapon_knife");
-            WriteFileLine(file, "794,tf_weapon_knife");
-            WriteFileLine(file, "803,tf_weapon_knife");
-            WriteFileLine(file, "883,tf_weapon_knife");
-            WriteFileLine(file, "892,tf_weapon_knife");
-            WriteFileLine(file, "901,tf_weapon_knife");
-            WriteFileLine(file, "910,tf_weapon_knife");
-            WriteFileLine(file, "959,tf_weapon_knife");
-            WriteFileLine(file, "968,tf_weapon_knife");
-            WriteFileLine(file, "15062,tf_weapon_knife");
-            WriteFileLine(file, "15094,tf_weapon_knife");
-            WriteFileLine(file, "15095,tf_weapon_knife");
-            WriteFileLine(file, "15096,tf_weapon_knife");
-            WriteFileLine(file, "15118,tf_weapon_knife");
-            WriteFileLine(file, "15119,tf_weapon_knife");
-            WriteFileLine(file, "15143,tf_weapon_knife");
-            WriteFileLine(file, "15144,tf_weapon_knife");
-
-            // Class: Spy, Slot: 4
-            WriteFileLine(file, "30,tf_weapon_invis");
-            WriteFileLine(file, "212,tf_weapon_invis");
-            WriteFileLine(file, "59,tf_weapon_invis");
-            WriteFileLine(file, "60,tf_weapon_invis");
-            WriteFileLine(file, "297,tf_weapon_invis");
-            WriteFileLine(file, "947,tf_weapon_invis");
-
-            // Fallback option for some other weapons, keep last
-            WriteFileLine(file, "all,all weapons and body");
-            
-            CloseHandle(file);
+            if (buffer[0] != '\0')
+            {
+                strcopy(buffer[strlen(buffer)], maxlen - strlen(buffer), ", ");
+            }
+            strcopy(buffer[strlen(buffer)], maxlen - strlen(buffer), g_DmgFlagNames[i]);
         }
     }
 
+    if (buffer[0] == '\0')
+    {
+        strcopy(buffer, maxlen, "None");
+    }
+}
+
+void FormatSimplifiedDamageFlags(int damagetype, char[] buffer, int maxlen)
+{
+    buffer[0] = '\0';
+    bool hasAny = false;
+    bool written[7]; // 0=Bullet, 1=Blast, 2=Fire, 3=Crit, 4=Melee, 5=Other, 6=Weird
+
+    char label[16];
+
+    for (int i = 0; i < view_as<int>(DFLAG_COUNT); i++)
+    {
+        if ((damagetype & g_DmgFlagBits[i]) == 0)
+            continue;
+
+        int index = -1;
+        label[0] = '\0';
+
+        switch (i)
+        {
+            case DFLAG_BULLET:
+                if (!written[0]) { strcopy(label, sizeof(label), "Bullet"); written[0] = true; index = 0; }
+
+            case DFLAG_BLAST:
+                if (!written[1]) { strcopy(label, sizeof(label), "Blast"); written[1] = true; index = 1; }
+
+            case DFLAG_RADIATION:
+                if (!written[6]) { strcopy(label, sizeof(label), "WEIRD"); written[6] = true; index = 0; }
+
+            case DFLAG_BURN:
+                if (!written[2]) { strcopy(label, sizeof(label), "Fire"); written[2] = true; index = 2; }
+
+            case DFLAG_PLASMA:
+                if (!written[6]) { strcopy(label, sizeof(label), "WEIRD"); written[6] = true; index = 0; }
+
+            case DFLAG_CRIT:
+                if (!written[3]) { strcopy(label, sizeof(label), "Crit"); written[3] = true; index = 3; }
+
+            case DFLAG_ACID:
+                if (!written[6]) { strcopy(label, sizeof(label), "WEIRD"); written[6] = true; index = 0; }
+
+            case DFLAG_CLUB:
+                if (!written[4]) { strcopy(label, sizeof(label), "Melee"); written[4] = true; index = 4; }
+
+            case DFLAG_NEVERGIB:
+                if (!written[6]) { strcopy(label, sizeof(label), "WEIRD"); written[6] = true; index = 0; }
+
+            case DFLAG_SLOWBURN:
+                if (!written[6]) { strcopy(label, sizeof(label), "WEIRD"); written[6] = true; index = 0; }
+
+            case DFLAG_POISON:
+                if (!written[6]) { strcopy(label, sizeof(label), "WEIRD"); written[6] = true; index = 0; }
+            
+
+            default:
+                if (!written[5]) { strcopy(label, sizeof(label), "Other"); written[5] = true; index = 5; }
+        }
+
+        if (index == -1 || index == -2)
+            continue;
+
+        if (hasAny)
+            strcopy(buffer[strlen(buffer)], maxlen - strlen(buffer), ", ");
+        strcopy(buffer[strlen(buffer)], maxlen - strlen(buffer), label);
+        hasAny = true;
+    }
+
+    if (!hasAny && !written[5])
+    {
+        strcopy(buffer, maxlen, "Other");
+        written[5] = true;
+    }
+}
+
+// MvM Functions
+
+void CheckMvMMapMode()
+{
+    char map[PLATFORM_MAX_PATH];
+    GetCurrentMap(map, sizeof(map));
+
+    int mode = g_hMvmMode.IntValue;
+
+    switch (mode)
+    {
+        case 0: // auto
+        {
+            g_bMvMActive = (StrContains(map, "mvm_", false) == 0);
+        }
+        case 1: // force classic
+        {
+            g_bMvMActive = false;
+        }
+        case 2: // force MvM
+        {
+            g_bMvMActive = true;
+        }
+    }
+
+    if (g_bMvMActive)
+    {
+        CreateTimer(1.0, MvMStartup, _, TIMER_FLAG_NO_MAPCHANGE);
+    }
+
+    PrintToServer("[HU] hu_mvm_mode = %d → MvM mode active: %s", mode, g_bMvMActive ? "Yes" : "No");
+}
+
+public Action MvMStartup(Handle timer)
+{
+    DisableMvMUpgradeStations();
+    CreateTimer(0.5, Timer_TryInitMissionName, _, TIMER_FLAG_NO_MAPCHANGE);
+    if (g_hCurrencySyncTimer != null && IsValidHandle(g_hCurrencySyncTimer))
+    {
+        KillTimer(g_hCurrencySyncTimer);
+        g_hCurrencySyncTimer = null;
+    }
+    g_hCurrencySyncTimer = CreateTimer(0.5, Timer_CurrencySync, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
+    PrintToServer("Money Sync Initialised");
+    return Plugin_Stop;
+}
+
+public Action Timer_TryInitMissionName(Handle timer)
+{
+    int ent = FindEntityByClassname(-1, "tf_objective_resource");
+
+    if (ent != -1)
+    {
+
+        char popfile[PLATFORM_MAX_PATH];
+        if (GetEntPropString(ent, Prop_Send, "m_iszMvMPopfileName", popfile, sizeof(popfile)))
+        {
+            char filename[64];
+            ExtractFileName(popfile, filename, sizeof(filename));
+
+            char missionName[64];
+            strcopy(missionName, sizeof(missionName), filename);
+            int dot = FindCharInString(missionName, '.');
+            if (dot != -1)
+                missionName[dot] = '\0';
+
+            strcopy(g_sCurrentMission, sizeof(g_sCurrentMission), missionName);
+            PrintToServer("[HU] Mission detected on map start: \"%s\"", g_sCurrentMission);
+
+            return Plugin_Stop;
+        }
+    }
+
+    PrintToServer("[HU] Waiting for tf_objective_resource to appear...");
+
+    // Retry in 0.5s
+    CreateTimer(0.5, Timer_TryInitMissionName, _, TIMER_FLAG_NO_MAPCHANGE);
+    return Plugin_Stop;
+}
+
+public Action Timer_CurrencySync(Handle timer)
+{
+    if (!g_bMvMActive)
+    {
+        g_hCurrencySyncTimer = null;
+        return Plugin_Stop;
+    }
+
+    int totalMvMCurrency = 0;
+    int playerCount = 0;
+
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        if (!IsClientInGame(i) || IsFakeClient(i) || GetClientTeam(i) <= 1)
+            continue;
+
+        int currency = GetEntProp(i, Prop_Send, "m_nCurrency");
+        if (currency < 0)
+            continue;
+
+        totalMvMCurrency += currency;
+        playerCount++;
+    }
+
+    if (playerCount == 0)
+        return Plugin_Continue;
+
+    int avgCurrency = RoundToNearest(float(totalMvMCurrency) / float(playerCount));
+
+    SetConVarInt(g_hMoneyPool, avgCurrency);
+    //PrintToServer("Average MvM Currency : %d ; Money Pool : %d", avgCurrency, GetConVarInt(g_hMoneyPool));
+
+    return Plugin_Continue;
+}
+
+public void Event_MvmWaveBegin(Event event, const char[] name, bool dontBroadcast)
+{
+    if (!g_bMvMActive)
+        return;
+
+    //g_iMoneyPoolSnapshot = GetConVarInt(g_hMoneyPool);
+
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        if (!IsClientInGame(i))
+            continue;
+
+        g_iMoneySpentSnapshot[i] = g_iMoneySpent[i];
+
+        // Dispose previous snapshots
+        if (g_hPlayerUpgradesSnapshot[i] != null)   { delete g_hPlayerUpgradesSnapshot[i];   g_hPlayerUpgradesSnapshot[i] = null; }
+        if (g_hPlayerPurchasesSnapshot[i] != null)  { delete g_hPlayerPurchasesSnapshot[i];  g_hPlayerPurchasesSnapshot[i] = null; }
+
+        // Clone current live handles into snapshots
+        // - Upgrades: generic cloner
+        g_hPlayerUpgradesSnapshot[i] = CloneKeyValues(
+            view_as<KeyValues>(g_hPlayerUpgrades[i]),
+            "Upgrades"
+        );
+
+        // - Purchases: use your purchases cloner
+        g_hPlayerPurchasesSnapshot[i] = ClonePurchasesKV(
+            view_as<KeyValues>(g_hPlayerPurchases[i]),
+            i
+        );
+    }
+
+    PrintToServer("[HU] Wave state snapshot saved.");
+}
+
+public void Event_MvmWaveFailed(Event event, const char[] name, bool dontBroadcast)
+{
+    if (!g_bMvMActive)
+        return;
+
+    // Check mission popfile
+    int ent = FindEntityByClassname(-1, "tf_objective_resource");
+    if (ent != -1)
+    {
+        char popfile[PLATFORM_MAX_PATH];
+        if (GetEntPropString(ent, Prop_Send, "m_iszMvMPopfileName", popfile, sizeof(popfile)))
+        {
+            char filename[64];
+            ExtractFileName(popfile, filename, sizeof(filename));
+
+            char missionName[64];
+            strcopy(missionName, sizeof(missionName), filename);
+            int dot = FindCharInString(missionName, '.');
+            if (dot != -1)
+                missionName[dot] = '\0';
+
+            if (!StrEqual(g_sCurrentMission, missionName, false))
+            {
+                PrintToServer("[HU] Mission changed on wave fail: \"%s\" → \"%s\". Skipping snapshot restore.", g_sCurrentMission, missionName);
+                strcopy(g_sCurrentMission, sizeof(g_sCurrentMission), missionName);
+
+                RefundAllPlayersUpgrades();
+                return;
+            }
+        }
+    }
+
+    // No mission change → restore snapshot
+    /* SetConVarInt(g_hMoneyPool, g_iMoneyPoolSnapshot);
+
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        if (!IsClientInGame(i))
+            continue;
+
+        g_iMoneySpent[i] = g_iMoneySpentSnapshot[i];
+
+        if (g_hPlayerUpgrades[i] != null)
+            delete g_hPlayerUpgrades[i];
+        if (g_hPlayerPurchases[i] != null)
+            delete g_hPlayerPurchases[i];
+
+        // Upgrades → use universal cloner
+        g_hPlayerUpgrades[i] = CloneKeyValues(
+            view_as<KeyValues>(g_hPlayerUpgradesSnapshot[i]), 
+            "Upgrades"
+        );
+
+        // Purchases → use special purchases cloner
+        g_hPlayerPurchases[i] = ClonePurchasesKV(
+            view_as<KeyValues>(g_hPlayerPurchasesSnapshot[i]), 
+            i
+        );
+
+        ApplyPlayerUpgrades(i);
+    }
+
+    PrintToServer("[HU] Wave failure: restored previous money and upgrade state."); */
+
+    // Current behavior: full refund instead of restore.
+    RefundAllPlayersUpgrades();
+    return;
+}
+
+public void OnMissionReset(Event event, const char[] name, bool dontBroadcast)
+{
+    if (!g_bMvMActive)
+        return;
+    
+    RefundAllPlayersUpgrades();
+    return;
+}
+
+KeyValues CloneKeyValues(KeyValues original, const char[] sectionName)
+{
+    if (original == null)
+        return new KeyValues(sectionName);
+
+    char tempPath[PLATFORM_MAX_PATH];
+    BuildPath(Path_SM, tempPath, sizeof(tempPath), "data/hu_kv_temp_%s.txt", sectionName);
+
+    original.ExportToFile(tempPath);
+
+    KeyValues clone = new KeyValues(sectionName);
+    clone.ImportFromFile(tempPath);
+    DeleteFile(tempPath);
+
+    return clone;
+}
+
+// ==== (Trying to fix snapshotting issues) ==== //
+// Clones a Purchases KV for one client. 
+// - Uses a unique temp file so parallel clones don't stomp each other.
+// - Always returns a KV with root "Purchases".
+KeyValues ClonePurchasesKV(KeyValues original, int client)
+{
+    KeyValues clone = new KeyValues("Purchases");
+
+    if (original == null)
+        return clone;
+
+    char tempPath[PLATFORM_MAX_PATH];
+    BuildPath(Path_SM, tempPath, sizeof(tempPath),
+        "data/hu_kv_temp_purchases_%d.txt", client);
+
+    original.ExportToFile(tempPath);
+    clone.ImportFromFile(tempPath);
+    DeleteFile(tempPath);
+
+    return clone;
+}
+
+/*
+void SnapshotPurchasesForClient(int client)
+{
+    // Blow away any old snapshot to prevent leaks.
+    if (g_hPlayerPurchasesSnapshot[client] != null)
+    {
+        CloseHandle(g_hPlayerPurchasesSnapshot[client]);
+        g_hPlayerPurchasesSnapshot[client] = null;
+    }
+
+    // Clone from current live "Purchases" into the snapshot slot.
+    KeyValues src = view_as<KeyValues>(g_hPlayerPurchases[client]);
+    g_hPlayerPurchasesSnapshot[client] = ClonePurchasesKV(src, client);
+}
+
+void RestorePurchasesForClient(int client)
+{
+    // If we never captured anything, just ensure the live KV exists.
+    if (g_hPlayerPurchasesSnapshot[client] == null)
+    {
+        if (g_hPlayerPurchases[client] == null)
+            g_hPlayerPurchases[client] = CreateKeyValues("Purchases");
+        return;
+    }
+
+    // Replace the live "Purchases" KV with a fresh clone of the snapshot.
+    if (g_hPlayerPurchases[client] != null)
+    {
+        CloseHandle(g_hPlayerPurchases[client]);
+        g_hPlayerPurchases[client] = null;
+    }
+
+    KeyValues snap = view_as<KeyValues>(g_hPlayerPurchasesSnapshot[client]);
+    g_hPlayerPurchases[client] = ClonePurchasesKV(snap, client);
+}
+*/
+
+void DisableMvMUpgradeStations(bool verbose = true)
+{
+    int ent = -1;
+    bool found = false;
+
+    while ((ent = FindEntityByClassname(ent, "func_upgradestation")) != -1)
+    {
+        AcceptEntityInput(ent, "Disable");
+        found = true;
+
+        if (verbose)
+        {
+            char targetname[64];
+            GetEntPropString(ent, Prop_Data, "m_iName", targetname, sizeof(targetname));
+            PrintToServer("[HU] Disabled func_upgradestation entity: %d (name: %s)", ent, targetname);
+        }
+    }
+
+    if (!found && verbose)
+    {
+        PrintToServer("[HU] Warning: No func_upgradestation entity found to disable.");
+    }
+}
+
+stock void ExtractFileName(const char[] path, char[] output, int maxlen)
+{
+    int lastSlash = -1;
+    for (int i = 0; path[i] != '\0'; i++)
+    {
+        if (path[i] == '/' || path[i] == '\\')
+            lastSlash = i;
+    }
+
+    if (lastSlash != -1)
+        strcopy(output, maxlen, path[lastSlash + 1]);
+    else
+        strcopy(output, maxlen, path);
+}
+
+// Spawns up to 'count' packs of the classname around 'center' in a ring.
+// Returns how many were actually spawned.
+int SpawnPacksAtPos(const char[] classname, const float center[3], int count)
+{
+    int spawned = 0;
+
+    for (int i = 0; i < count; i++)
+    {
+        int ent = CreateEntityByName(classname);
+        if (ent == -1) 
+            continue;
+
+        // Stop respawn manager from reviving the pack
+        DispatchKeyValue(ent, "spawnflags", "1073741824"); // SF_ITEM_NO_RESPAWN ?
+
+        float pos[3];
+        pos[0] = center[0];
+        pos[1] = center[1];
+        pos[2] = center[2] + 20.0;
+
+        TeleportEntity(ent, pos, NULL_VECTOR, NULL_VECTOR);
+        DispatchSpawn(ent);
+
+        // Hook touch to ensure entity is killed immediately after pickup
+        SDKHook(ent, SDKHook_StartTouch, CurrencyPack_Touched);
+
+        spawned++;
+    }
+
+    return spawned;
+}
+
+public Action CurrencyPack_Touched(int ent, int toucher)
+{
+    // Only players trigger this
+    if (toucher > 0 && toucher <= MaxClients && IsClientInGame(toucher))
+    {
+        // Wait one frame so the game processes the pickup first
+        RequestFrame(KillEntityNextFrame, EntIndexToEntRef(ent));
+    }
+    return Plugin_Continue;
+}
+
+public void KillEntityNextFrame(int entRef)
+{
+    int ent = EntRefToEntIndex(entRef);
+    if (ent != INVALID_ENT_REFERENCE && IsValidEntity(ent))
+    {
+        AcceptEntityInput(ent, "Kill"); // To make sure it's gone
+    }
+}
+
+static void BreakdownAmountIntoPacks(int amount, int &n25, int &n10, int &n5, int &approx)
+{
+    n25 = amount / 25;
+    int rem = amount % 25;
+
+    n10 = rem / 10;
+    rem = rem % 10;
+
+    n5 = rem / 5;
+
+    // We deliberately FLOOR to the nearest multiple of 5 (no overpay).
+    approx = n25 * 25 + n10 * 10 + n5 * 5;
+}
+
+public Action Command_AddMvMCash(int client, int args)
+{
+    if (args < 1)
+    {
+        ReplyToCommand(client, "[HU] Usage: mvm_addcash <amount> [spawn=true|false]");
+        return Plugin_Handled;
+    }
+
+    if (client <= 0 || !IsClientInGame(client))
+    {
+        ReplyToCommand(client, "[HU] You must be in-game to use this.");
+        return Plugin_Handled;
+    }
+
+    int amount = GetCmdArgInt(1);
+    if (amount <= 0)
+    {
+        ReplyToCommand(client, "[HU] Amount must be positive.");
+        return Plugin_Handled;
+    }
+
+    // Default is FALSE (old behavior)
+    bool spawnPacks = false;
+    if (args >= 2)
+    {
+        char arg2[16];
+        GetCmdArg(2, arg2, sizeof(arg2));
+        if (StrEqual(arg2, "1", false) || StrEqual(arg2, "true", false) || StrEqual(arg2, "yes", false))
+            spawnPacks = true;
+    }
+
+    if (!spawnPacks)
+    {
+        int count = 0;
+        for (int i = 1; i <= MaxClients; i++)
+        {
+            if (!IsClientInGame(i) || GetClientTeam(i) <= 1)
+                continue;
+
+            int current = GetEntProp(i, Prop_Send, "m_nCurrency");
+            SetEntProp(i, Prop_Send, "m_nCurrency", current + amount);
+            count++;
+        }
+        ReplyToCommand(client, "[HU] Gave %d credits to %d players.", amount, count);
+        PrintToServer("[HU] Admin gave %d credits to %d players via mvm_addcash.", amount, count);
+        return Plugin_Handled;
+    }
+
+    // Spawn stock packs (approximate using 25/10/5)
+    int n25, n10, n5, approx;
+    BreakdownAmountIntoPacks(amount, n25, n10, n5, approx);
+
+    int totalPacks = n25 + n10 + n5;
+    if (totalPacks <= 0)
+    {
+        ReplyToCommand(client, "[HU] Amount too small to approximate with 5/10/25 packs.");
+        return Plugin_Handled;
+    }
+
+    if (totalPacks > 40)
+    {
+        ReplyToCommand(client, "[HU] Would spawn %d packs (limit 40). Aborting.", totalPacks);
+        return Plugin_Handled;
+    }
+
+    float pos[3];
+    GetClientAbsOrigin(client, pos);
+
+    int spawned = 0;
+    if (n25 > 0) spawned += SpawnPacksAtPos("item_currencypack_large",  pos, n25);
+    if (n10 > 0) spawned += SpawnPacksAtPos("item_currencypack_medium", pos, n10);
+    if (n5  > 0) spawned += SpawnPacksAtPos("item_currencypack_small",  pos, n5);
+
+    ReplyToCommand(client, "[HU] Spawned %d pack(s) totaling $%d (requested $%d).", spawned, approx, amount);
+    PrintToServer("[HU] Admin spawned %d pack(s) totaling $%d under %N via mvm_addcash.", spawned, approx, client);
+
+    return Plugin_Handled;
+}
+
+// DEFAULT CONFIGS
+void GenerateConfigFiles()
+{
+    char filePath[PLATFORM_MAX_PATH];
     
     // Generate hu_translations.txt
     BuildPath(Path_SM, filePath, sizeof(filePath), "translations/%s", TRANSLATION_FILE);
@@ -2564,4 +4682,5 @@ void GenerateConfigFiles()
             CloseHandle(file);
         }
     }
+
 }
