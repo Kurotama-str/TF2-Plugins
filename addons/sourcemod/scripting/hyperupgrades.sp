@@ -18,7 +18,7 @@
 #define MAX_EDICTS 2048
 
 #define PLUGIN_NAME "Hyper Upgrades"
-#define PLUGIN_VERSION "0.B3"
+#define PLUGIN_VERSION "0.C0"
 #define CONFIG_ATTR "hu_attributes.cfg"
 #define CONFIG_UPGR "hu_upgrades.cfg"
 #define CONFIG_WEAP "hu_weapons_list.txt"
@@ -68,7 +68,7 @@ Handle g_hCurrencySyncTimer = null;
 Database g_hSettingsDB;
 
 //MvM wave snapshot
-int g_iMoneyPoolSnapshot = 0;
+//int g_iMoneyPoolSnapshot = 0;
 int g_iMoneySpentSnapshot[MAXPLAYERS + 1];
 Handle g_hPlayerUpgradesSnapshot[MAXPLAYERS + 1];
 Handle g_hPlayerPurchasesSnapshot[MAXPLAYERS + 1];
@@ -356,6 +356,10 @@ public void OnPluginStart()
         g_resistanceMappings = new ArrayList(sizeof(ResistanceMapping));
 
     LoadResistanceMappingsFromFile();
+
+    // Initialize per-player KV stores (quiet, no attribute removal)
+    HU_InitAllPlayerStores();
+
     for (int i = 1; i <= MaxClients; i++) // apply settings to players
     {
         if (IsClientInGame(i) && IsClientAuthorized(i))
@@ -372,9 +376,6 @@ public void OnPluginStart()
         }
     }
 
-    // Reset upgrades for all connected players
-    ResetAllPlayerUpgrades();
-
     g_hResetMoneyPoolOnMapStart = CreateConVar("hu_reset_money_on_mapstart", "1", "Reset the money pool to 0 on map start. 1 = Enabled, 0 = Disabled.", FCVAR_NOTIFY);
 
     // Notify of Custom Attributes support
@@ -382,6 +383,28 @@ public void OnPluginStart()
     if (g_bHasCustomAttributes)
     {
         PrintToServer("[Hyper Upgrades] Custom Attributes support is enabled.");
+    }
+}
+
+void HU_InitPlayerStores(int client)
+{
+    if (!IsClientInGame(client)) return;
+
+    if (g_hPlayerUpgrades[client] != null) { delete g_hPlayerUpgrades[client]; }
+    g_hPlayerUpgrades[client] = CreateKeyValues("Upgrades");
+
+    if (g_hPlayerPurchases[client] != null) { delete g_hPlayerPurchases[client]; }
+    g_hPlayerPurchases[client] = CreateKeyValues("Purchases");
+
+    g_iMoneySpent[client] = 0;
+}
+
+void HU_InitAllPlayerStores()
+{
+    for (int i = 1; i <= MaxClients; i++)
+    {
+        if (IsClientInGame(i))
+            HU_InitPlayerStores(i);
     }
 }
 
@@ -394,17 +417,6 @@ public void OnPluginEnd()
             continue;
 
         PrintToChat(i, "\x04[HU] \x01Hyper Upgrades reloaded, you may need to change class.");
-
-        /* TF2_RemoveAllWeapons(i);
-
-        int ent = -1;
-        while ((ent = FindEntityByClassname(ent, "tf_wearable")) != -1)
-        {
-            if (GetEntPropEnt(ent, Prop_Send, "m_hOwnerEntity") == i)
-            {
-                AcceptEntityInput(ent, "Kill");
-            }
-        }*/
 
         // Kill any per-player refresh timers
         if (g_hRefreshTimer[i] != INVALID_HANDLE)
@@ -648,13 +660,7 @@ public void OnMapStart()
         SetConVarInt(g_hMoneyPool, 0);
 
         // Also reset player upgrades
-        for (int i = 1; i <= MaxClients; i++)
-        {
-            if (IsClientInGame(i))
-            {
-                RefundPlayerUpgrades(i,false);
-            }
-        }
+        ResetAllPlayerUpgrades();
     }
     // Money_HUD_Handler
     CreateTimer(1.0, Timer_DisplayMoneyHUD, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
@@ -705,7 +711,7 @@ public void OnSafeSettingsQueryResult(Database db, DBResultSet results, const ch
         results.FetchString(5, dmgPosStr, sizeof(dmgPosStr));
         g_iDamageHudPosition[client] = ParseDamageHudPosition(dmgPosStr);
 
-        // PrintToServer("[Debug] [%N] dmg_hud_mode=%d", client, g_iDamageTypeHudMode[client]);
+        // PrintToServer("[Hyper Upgrades] [%N] dmg_hud_mode=%d", client, g_iDamageTypeHudMode[client]);
     }
     else
     {
@@ -904,7 +910,6 @@ void CheckAndHandleWeaponAliasChange(int client)
 }
 
 // Settings
-
 
 void InitSettingsDatabase()
 {
@@ -1264,45 +1269,48 @@ void ToggleResistanceHudSetting(int client)
     PrintToChat(client, "[Settings] Resistance HUD mode set to: %s", modeName);
 }
 
-void FormatDamagePercentString(float value, char[] buffer, int maxlen)
+void FormatDamagePercentString(float value, bool hasAny, char[] buffer, int maxlen)
 {
+    if (!hasAny) { strcopy(buffer, maxlen, "0"); return; }
+
     float pct = value * 100.0;
-    
-    if (pct > 99.5)
-        Format(buffer, maxlen, "%.4f%%", pct);
+    if (pct < 0.0)   pct = 0.0;
+    if (pct > 100.0) pct = 100.0;
+
+    // Higher precision at 95% and above
+    if (pct >= 99.0)
+        Format(buffer, maxlen, "%.4f", pct);
     else
-        Format(buffer, maxlen, "%.2f%%", pct);
-    
+        Format(buffer, maxlen, "%.2f", pct);
 }
 
 public Action Timer_DisplayResistanceHUD(Handle timer)
 {
     for (int i = 1; i <= MaxClients; i++)
     {
-        if (!IsClientInGame(i) || !IsPlayerAlive(i))
-            continue;
-
-        if (g_iResistanceHudMode[i] == 0)
+        if (!IsClientInGame(i) || !IsPlayerAlive(i) || g_iResistanceHudMode[i] == 0)
             continue;
 
         char buffer[256];
 
         char fireStr[16], bulletStr[16], blastStr[16], critStr[16], meleeStr[16], otherStr[16];
-        FormatDamagePercentString(1-g_fDamageTaken[i][DAMAGE_FIRE], fireStr, sizeof(fireStr));
-        FormatDamagePercentString(1-g_fDamageTaken[i][DAMAGE_BULLET], bulletStr, sizeof(bulletStr));
-        FormatDamagePercentString(1-g_fDamageTaken[i][DAMAGE_BLAST], blastStr, sizeof(blastStr));
-        FormatDamagePercentString(1-g_fDamageTaken[i][DAMAGE_CRIT], critStr, sizeof(critStr));
-        FormatDamagePercentString(1-g_fDamageTaken[i][DAMAGE_MELEE], meleeStr, sizeof(meleeStr));
-        FormatDamagePercentString(1-g_fDamageTaken[i][DAMAGE_OTHER], otherStr, sizeof(otherStr));
+        FormatDamagePercentString(1.0 - g_fDamageTaken[i][DAMAGE_FIRE],   HasAnyResistanceSource(i, DAMAGE_FIRE),   fireStr,   sizeof(fireStr));
+        FormatDamagePercentString(1.0 - g_fDamageTaken[i][DAMAGE_BULLET], HasAnyResistanceSource(i, DAMAGE_BULLET), bulletStr, sizeof(bulletStr));
+        FormatDamagePercentString(1.0 - g_fDamageTaken[i][DAMAGE_BLAST],  HasAnyResistanceSource(i, DAMAGE_BLAST),  blastStr,  sizeof(blastStr));
+        FormatDamagePercentString(1.0 - g_fDamageTaken[i][DAMAGE_CRIT],   HasAnyResistanceSource(i, DAMAGE_CRIT),   critStr,   sizeof(critStr));
+        FormatDamagePercentString(1.0 - g_fDamageTaken[i][DAMAGE_MELEE],  HasAnyResistanceSource(i, DAMAGE_MELEE),  meleeStr,  sizeof(meleeStr));
+        FormatDamagePercentString(1.0 - g_fDamageTaken[i][DAMAGE_OTHER],  HasAnyResistanceSource(i, DAMAGE_OTHER),  otherStr,  sizeof(otherStr));
 
         if (g_iResistanceHudMode[i] == 1) // Standard
         {
-            Format(buffer, sizeof(buffer), "Fire : %s%%    Bullet : %s%%\nCrit : %s%%    Melee : %s%%\nBlast : %s%%   Other : %s%%",
+            Format(buffer, sizeof(buffer),
+                "Fire : %s%%    Bullet : %s%%\nCrit : %s%%    Melee : %s%%\nBlast : %s%%   Other : %s%%",
                 fireStr, bulletStr, critStr, meleeStr, blastStr, otherStr);
         }
         else // Abridged
         {
-            Format(buffer, sizeof(buffer), "f %s%%        • %s%%\nc %s%%        m %s%%\n# %s%%        o %s%%",
+            Format(buffer, sizeof(buffer),
+                "f %s%%        • %s%%\nc %s%%        m %s%%\n# %s%%        o %s%%",
                 fireStr, bulletStr, critStr, meleeStr, blastStr, otherStr);
         }
 
@@ -1315,12 +1323,11 @@ public Action Timer_DisplayResistanceHUD(Handle timer)
         }
 
         SetHudTextParams(x, y, 1.0, 255, 255, 255, 255, 0, 0.0, 0.8, 0.8);
-        ShowSyncHudText(i, g_hHudResistSync, buffer);
+        ShowSyncHudText(i, g_hHudResistSync, "%s", buffer); // <-- important
     }
 
     return Plugin_Continue;
 }
-
 
 void SetPlayerResistanceSource(int client, DamageType type, const char[] sourceKey, float multiplier)
 {
@@ -1345,13 +1352,13 @@ void RecalculateTotalResistance(int client, DamageType type)
             float value;
             g_resistanceSources[client][type].GetValue(key, value);
             total *= value;
-            // PrintToServer("[Debug] [%N] Resistance source '%s' → %.6f for type %d", client, key, value, type);
+            // PrintToServer("[Hyper Upgrades] [%N] Resistance source '%s' → %.6f for type %d", client, key, value, type);
         }
         delete snap;
     }
 
     g_fDamageTaken[client][type] = total;
-    // PrintToServer("[Debug] [%N] Final resistance multiplier for type %d: %.6f", client, type, total);
+    // PrintToServer("[Hyper Upgrades] [%N] Final resistance multiplier for type %d: %.6f", client, type, total);
 }
 
 void BuildResistanceKey(const char[] upgradeName, int slot, const char[] slotAlias, char[] buffer, int maxlen)
@@ -1452,85 +1459,83 @@ DamageType ParseDamageType(const char[] str)
     return DAMAGE_COUNT; // Invalid
 }
 
+bool HasAnyResistanceSource(int client, DamageType type)
+{
+    if (g_resistanceSources[client][type] == null)
+        return false;
+
+    StringMapSnapshot snap = g_resistanceSources[client][type].Snapshot();
+    int len = snap.Length;
+    delete snap;
+    return (len > 0);
+}
+
 void RefreshClientResistances(int client)
 {
-    // Reset all to 0.0
+    // Reset all to 0.0 and clear sources
     for (int i = 0; i < view_as<int>(DAMAGE_COUNT); i++)
     {
         DamageType type = view_as<DamageType>(i);
-
         if (g_resistanceSources[client][type] != null)
             g_resistanceSources[client][type].Clear();
-
         g_fDamageTaken[client][type] = 0.0;
     }
 
     if (g_hPlayerUpgrades[client] == null)
         return;
 
+    // --- Collect slot names FIRST to avoid cursor conflicts with UpgradeRead() ---
+    char slotNames[64][64];
+    int slotCount = 0;
+
     KvRewind(g_hPlayerUpgrades[client]);
-
-    if (!KvGotoFirstSubKey(g_hPlayerUpgrades[client], false))
-        return;
-
-    do
+    if (KvGotoFirstSubKey(g_hPlayerUpgrades[client], false)) // slots are sections
     {
-        char slotName[32];
-        KvGetSectionName(g_hPlayerUpgrades[client], slotName, sizeof(slotName));
-
-        int slot = -1;
-        if (!StrEqual(slotName, "body"))
-        {
-            slot = StringToInt(slotName[4]); // slotX → X
-        }
-
-        if (!KvGotoFirstSubKey(g_hPlayerUpgrades[client], false))
-        {
-            KvGoBack(g_hPlayerUpgrades[client]);
-            continue;
-        }
-
         do
         {
-            char upgradeName[64];
-            KvGetSectionName(g_hPlayerUpgrades[client], upgradeName, sizeof(upgradeName));
-
-            float level = KvGetFloat(g_hPlayerUpgrades[client], NULL_STRING, 0.0);
-            // PrintToServer("[Debug] [Client %d] Upgrade '%s' has raw level %.6f", client, upgradeName, level);
-
-            // bool matched = false;
-
-            for (int j = 0; j < g_resistanceMappings.Length; j++)
-            {
-                ResistanceMapping map;
-                g_resistanceMappings.GetArray(j, map);
-
-                if (StrEqual(map.upgradeName, upgradeName))
-                {
-                    char key[64];
-                    BuildResistanceKey(upgradeName, slot, slot == -1 ? g_sPlayerAlias[client] : "", key, sizeof(key));
-
-                    float multiplier = 1 - FloatAbs(level);
-
-                    // PrintToServer("[Debug] [Client %d] Adding source '%s' with multiplier %.6f to damage type %d", client, key, multiplier, map.type);
-
-                    SetPlayerResistanceSource(client, map.type, key, multiplier);
-                    // matched = true;
-                }
-            }
-
-            // if (!matched)
-            // {
-            //     PrintToServer("[Debug] Upgrade '%s' is not mapped to any resistance type.", upgradeName);
-            // }
+            if (slotCount >= 64) break;
+            KvGetSectionName(g_hPlayerUpgrades[client], slotNames[slotCount], sizeof(slotNames[]));
+            slotCount++;
         }
         while (KvGotoNextKey(g_hPlayerUpgrades[client], false));
-
-        KvGoBack(g_hPlayerUpgrades[client]);
-
-    } while (KvGotoNextKey(g_hPlayerUpgrades[client], false));
-
+    }
     KvRewind(g_hPlayerUpgrades[client]);
+
+    // --- For each slot, read levels via helper and push resistance sources ---
+    for (int s = 0; s < slotCount; s++)
+    {
+        char slotName[64];
+        strcopy(slotName, sizeof(slotName), slotNames[s]);
+
+        // slot index: body/custom = -1, "slotN" -> N
+        int slot = -1;
+        if (StrContains(slotName, "slot", false) == 0)
+            slot = StringToInt(slotName[4]); // parse after "slot"
+
+        // Loop mapped resistance upgrades
+        for (int j = 0; j < g_resistanceMappings.Length; j++)
+        {
+            ResistanceMapping map;
+            g_resistanceMappings.GetArray(j, map);
+
+            // Read stored level for this upgrade in this slot
+            float level = UpgradeRead(client, slotName, map.upgradeName);
+            if (level == 0.0)
+                continue;
+
+            // Build unique source key and push multiplier
+            char key[64];
+            BuildResistanceKey(
+                map.upgradeName,
+                slot,
+                (slot == -1) ? g_sPlayerAlias[client] : "",
+                key, sizeof(key)
+            );
+
+            float multiplier = 1.0 - FloatAbs(level);
+            SetPlayerResistanceSource(client, map.type, key, multiplier);
+        }
+    }
 }
 
 void ToggleDamageHudSetting(int client)
@@ -1587,28 +1592,257 @@ public int MenuHandler_DamageHudPosition(Menu menu, MenuAction action, int clien
     return 0;
 }
 
+// ------------------------------------------------------------------ //
+// <Helpers for Upgrades and Purchases Handles>
+// ------------------------------------------------------------------ //
+
+// READ
+stock float UpgradeRead(int client, const char[] slotName, const char[] upgradeName)
+{
+    if (!IsClientInGame(client) || slotName[0] == '\0' || upgradeName[0] == '\0')
+        return 0.0;
+
+    Handle kv = g_hPlayerUpgrades[client];
+    if (kv == null)
+        return 0.0;
+
+    KvRewind(kv);
+    if (!KvJumpToKey(kv, slotName, false))
+        return 0.0;
+
+    float value = KvGetFloat(kv, upgradeName, 0.0);
+    KvGoBack(kv);
+    return value;
+}
+
+stock int PurchaseRead(int client, const char[] slotName, const char[] upgradeName)
+{
+    if (!IsClientInGame(client) || slotName[0] == '\0' || upgradeName[0] == '\0')
+        return 0;
+
+    Handle kv = g_hPlayerPurchases[client];
+    if (kv == null)
+        return 0;
+
+    KvRewind(kv);
+    if (!KvJumpToKey(kv, slotName, false))
+        return 0;
+
+    int count = KvGetNum(kv, upgradeName, 0);
+    KvGoBack(kv);
+    return count;
+}
+
+// WRITE
+
+/*
+void UpgradeWrite(int client, const char[] slot, const char[] upgradeName, float value)
+{
+    if (g_hPlayerUpgrades[client] == null)
+        g_hPlayerUpgrades[client] = CreateKeyValues("Upgrades");
+
+    KvRewind(g_hPlayerUpgrades[client]);
+    if (!KvJumpToKey(g_hPlayerUpgrades[client], slot, true))
+        return;
+
+    KvSetFloat(g_hPlayerUpgrades[client], upgradeName, value);
+    KvGoBack(g_hPlayerUpgrades[client]); // <- back to root
+}
+
+void PurchaseWrite(int client, const char[] slot, const char[] upgradeName, int purchases)
+{
+    if (g_hPlayerPurchases[client] == null)
+        g_hPlayerPurchases[client] = CreateKeyValues("Purchases");
+
+    KvRewind(g_hPlayerPurchases[client]);
+    if (!KvJumpToKey(g_hPlayerPurchases[client], slot, true))
+        return;
+
+    KvSetNum(g_hPlayerPurchases[client], upgradeName, purchases);
+    KvGoBack(g_hPlayerPurchases[client]); // <- back to root
+}
+*/
+
+// ADD (increment)
+float UpgradeAdd(int client, const char[] slot, const char[] upgradeName, float delta)
+{
+    if (g_hPlayerUpgrades[client] == null)
+        g_hPlayerUpgrades[client] = CreateKeyValues("Upgrades");
+
+    KvRewind(g_hPlayerUpgrades[client]);
+    if (!KvJumpToKey(g_hPlayerUpgrades[client], slot, true))
+        return 0.0;
+
+    float current = KvGetFloat(g_hPlayerUpgrades[client], upgradeName, 0.0);
+    float newValue = current + delta;
+    KvSetFloat(g_hPlayerUpgrades[client], upgradeName, newValue);
+    KvGoBack(g_hPlayerUpgrades[client]); // <- back to root
+    return newValue;
+}
+
+int PurchaseAdd(int client, const char[] slot, const char[] upgradeName, int delta)
+{
+    if (g_hPlayerPurchases[client] == null)
+        g_hPlayerPurchases[client] = CreateKeyValues("Purchases");
+
+    KvRewind(g_hPlayerPurchases[client]);
+    if (!KvJumpToKey(g_hPlayerPurchases[client], slot, true))
+        return 0;
+
+    int current = KvGetNum(g_hPlayerPurchases[client], upgradeName, 0);
+    int newValue = current + delta;
+    KvSetNum(g_hPlayerPurchases[client], upgradeName, newValue);
+    KvGoBack(g_hPlayerPurchases[client]); // <- back to root
+    return newValue;
+}
+
+// DELETE single key (no prune)
+bool UpgradeDelete(int client, const char[] slot, const char[] upgradeName)
+{
+    if (g_hPlayerUpgrades[client] == null) return false;
+
+    KvRewind(g_hPlayerUpgrades[client]);
+    if (!KvJumpToKey(g_hPlayerUpgrades[client], slot, false))
+        return false;
+
+    bool deleted = KvDeleteKey(g_hPlayerUpgrades[client], upgradeName);
+    KvGoBack(g_hPlayerUpgrades[client]);
+    return deleted;
+}
+
+bool PurchaseDelete(int client, const char[] slot, const char[] upgradeName)
+{
+    if (g_hPlayerPurchases[client] == null) return false;
+
+    KvRewind(g_hPlayerPurchases[client]);
+    if (!KvJumpToKey(g_hPlayerPurchases[client], slot, false))
+        return false;
+
+    bool deleted = KvDeleteKey(g_hPlayerPurchases[client], upgradeName);
+    KvGoBack(g_hPlayerPurchases[client]);
+    return deleted;
+}
+
+// DELETE entire slot explicitly
+bool UpgradeDeleteSlot(int client, const char[] slot)
+{
+    if (g_hPlayerUpgrades[client] == null) return false;
+    KvRewind(g_hPlayerUpgrades[client]);
+    return KvDeleteKey(g_hPlayerUpgrades[client], slot);
+}
+
+bool PurchaseDeleteSlot(int client, const char[] slot)
+{
+    if (g_hPlayerPurchases[client] == null) return false;
+    KvRewind(g_hPlayerPurchases[client]);
+    return KvDeleteKey(g_hPlayerPurchases[client], slot);
+}
+
+/*
+// Same with a check
+bool UpgradePruneSlotIfEmpty(int client, const char[] slot)
+{
+    if (g_hPlayerUpgrades[client] == null) return false;
+
+    KvRewind(g_hPlayerUpgrades[client]);
+    if (!KvJumpToKey(g_hPlayerUpgrades[client], slot, false))
+        return false;
+
+    bool hasAny = KvGotoFirstSubKey(g_hPlayerUpgrades[client], false);
+    KvGoBack(g_hPlayerUpgrades[client]); // back to root
+
+    if (!hasAny)
+    {
+        return KvDeleteKey(g_hPlayerUpgrades[client], slot);
+    }
+    return false;
+}
+
+bool PurchasePruneSlotIfEmpty(int client, const char[] slot)
+{
+    if (g_hPlayerPurchases[client] == null) return false;
+
+    KvRewind(g_hPlayerPurchases[client]);
+    if (!KvJumpToKey(g_hPlayerPurchases[client], slot, false))
+        return false;
+
+    bool hasAny = KvGotoFirstSubKey(g_hPlayerPurchases[client], false);
+    KvGoBack(g_hPlayerPurchases[client]); // back to root
+
+    if (!hasAny)
+    {
+        return KvDeleteKey(g_hPlayerPurchases[client], slot);
+    }
+    return false;
+}
+
+
+// Ensure slot/upgrade exists check
+bool UpgradeEnsureSlot(int client, const char[] slot)
+{
+    if (g_hPlayerUpgrades[client] == null)
+        g_hPlayerUpgrades[client] = CreateKeyValues("Upgrades");
+    KvRewind(g_hPlayerUpgrades[client]);
+    bool ok = KvJumpToKey(g_hPlayerUpgrades[client], slot, true);
+    KvGoBack(g_hPlayerUpgrades[client]); // <- back to root
+    return ok;
+}
+
+bool PurchaseEnsureSlot(int client, const char[] slot)
+{
+    if (g_hPlayerPurchases[client] == null)
+        g_hPlayerPurchases[client] = CreateKeyValues("Purchases");
+    KvRewind(g_hPlayerPurchases[client]);
+    bool ok = KvJumpToKey(g_hPlayerPurchases[client], slot, true);
+    KvGoBack(g_hPlayerPurchases[client]); // <- back to root
+    return ok;
+}
+*/
+
+bool UpgradeExists(int client, const char[] slot, const char[] upgradeName)
+{
+    if (g_hPlayerUpgrades[client] == null) return false;
+    KvRewind(g_hPlayerUpgrades[client]);
+    if (!KvJumpToKey(g_hPlayerUpgrades[client], slot, false)) return false;
+    bool exists = (KvGetDataType(g_hPlayerUpgrades[client], upgradeName) != KvData_None);
+    KvGoBack(g_hPlayerUpgrades[client]);
+    return exists;
+}
+
+bool PurchaseExists(int client, const char[] slot, const char[] upgradeName)
+{
+    if (g_hPlayerPurchases[client] == null) return false;
+    KvRewind(g_hPlayerPurchases[client]);
+    if (!KvJumpToKey(g_hPlayerPurchases[client], slot, false)) return false;
+    bool exists = (KvGetDataType(g_hPlayerPurchases[client], upgradeName) != KvData_None);
+    KvGoBack(g_hPlayerPurchases[client]);
+    return exists;
+}
+
+// ------------------------------------------------------------------ //
+
 // Money handler for players
 void RefundPlayerUpgrades(int client, bool bShowMessage = true)
 {
     if (!IsClientInGame(client))
         return;
 
-    // Remove all applied attributes from player and their weapons
+    // Strip applied attributes from player and their weapons
     RemovePlayerUpgrades(client);
 
-    // Clear the KeyValues upgrades
+    // Fresh Upgrades KV
     if (g_hPlayerUpgrades[client] != null)
     {
-        CloseHandle(g_hPlayerUpgrades[client]); // Delete all stored upgrades
+        delete g_hPlayerUpgrades[client];
     }
-    g_hPlayerUpgrades[client] = CreateKeyValues("Upgrades"); // Fresh Upgrades
-    // Clear the KeyValues purchases
+    g_hPlayerUpgrades[client] = CreateKeyValues("Upgrades");
+
+    // Fresh Purchases KV
     if (g_hPlayerPurchases[client] != null)
     {
-        CloseHandle(g_hPlayerPurchases[client]); // Delete all stored purchases
+        delete g_hPlayerPurchases[client];
     }
-    g_hPlayerPurchases[client] = CreateKeyValues("Purchases"); // Fresh purchases
-    
+    g_hPlayerPurchases[client] = CreateKeyValues("Purchases");
 
     // Reset money spent
     g_iMoneySpent[client] = 0;
@@ -1625,7 +1859,7 @@ void RefundAllPlayersUpgrades()
     {
         if (IsClientInGame(i))
         {
-            RefundPlayerUpgrades(i);
+            RefundPlayerUpgrades(i, true);
         }
     }
 }
@@ -1918,7 +2152,7 @@ public int MenuHandler_MainMenu(Menu menu, MenuAction action, int client, int pa
         {
             g_bInUpgradeList[client] = false;
         }
-        // PrintToServer("[Debug] MenuAction_End triggered for client %d", client);
+        // PrintToServer("[Hyper Upgrades] MenuAction_End triggered for client %d", client);
         delete menu;
     }
     else if (action == MenuAction_Select)
@@ -1949,14 +2183,14 @@ public int MenuHandler_MainMenu(Menu menu, MenuAction action, int client, int pa
         // else if (StrEqual(info, "spy"))
         // {
         //     ShowCategoryMenu(client, "Spy Upgrades");
-        //     PrintToServer("[Debug] Showing class-specific upgrades: %s", info);
+        //     PrintToServer("[Hyper Upgrades] Showing class-specific upgrades: %s", info);
         // }
         //  else if (StrEqual(info, "engineer"))
         // {
         //     ShowCategoryMenu(client, "PDA Upgrades");
-        //     // PrintToServer("[Debug] Showing class-specific upgrades: %s", info);
+        //     // PrintToServer("[Hyper Upgrades] Showing class-specific upgrades: %s", info);
         //     ShowCategoryMenu(client, "Building Upgrades");
-        //     // PrintToServer("[Debug] Showing class-specific upgrades: %s", info);
+        //     // PrintToServer("[Hyper Upgrades] Showing class-specific upgrades: %s", info);
         // }
         else if (StrEqual(info, "settings"))
         {
@@ -1981,9 +2215,7 @@ void ShowRefundSlotMenu(int client)
     Menu menu = new Menu(MenuHandler_RefundSlotMenu);
     menu.SetTitle("Select Upgrade Group to Refund");
 
-    KvRewind(g_hPlayerUpgrades[client]);
-
-    if (!KvGotoFirstSubKey(g_hPlayerUpgrades[client], false))
+    if (g_hPlayerUpgrades[client] == null && g_hPlayerPurchases[client] == null)
     {
         PrintToChat(client, "[Hyper Upgrades] No upgrades to refund.");
         g_bInUpgradeList[client] = false;
@@ -1991,43 +2223,124 @@ void ShowRefundSlotMenu(int client)
         return;
     }
 
-    do
+    // Gather slots from both handles
+    char slots[64][64];
+    int slotCount = 0;
+
+    if (g_hPlayerUpgrades[client] != null)
+    {
+        KvRewind(g_hPlayerUpgrades[client]);
+        if (KvGotoFirstSubKey(g_hPlayerUpgrades[client], false))
+        {
+            do
+            {
+                if (slotCount >= 64) break;
+                char nm[64];
+                KvGetSectionName(g_hPlayerUpgrades[client], nm, sizeof(nm));
+
+                bool seen = false;
+                for (int s = 0; s < slotCount; s++)
+                    if (StrEqual(slots[s], nm)) { seen = true; break; }
+
+                if (!seen)
+                {
+                    strcopy(slots[slotCount], sizeof(slots[]), nm);
+                    slotCount++;
+                }
+            }
+            while (KvGotoNextKey(g_hPlayerUpgrades[client], false));
+        }
+    }
+
+    if (g_hPlayerPurchases[client] != null)
+    {
+        KvRewind(g_hPlayerPurchases[client]);
+        if (KvGotoFirstSubKey(g_hPlayerPurchases[client], false))
+        {
+            do
+            {
+                if (slotCount >= 64) break;
+                char nm[64];
+                KvGetSectionName(g_hPlayerPurchases[client], nm, sizeof(nm));
+
+                bool seen = false;
+                for (int s = 0; s < slotCount; s++)
+                    if (StrEqual(slots[s], nm)) { seen = true; break; }
+
+                if (!seen)
+                {
+                    strcopy(slots[slotCount], sizeof(slots[]), nm);
+                    slotCount++;
+                }
+            }
+            while (KvGotoNextKey(g_hPlayerPurchases[client], false));
+        }
+    }
+
+    // Add only non-empty slots (exists-checks), else they won't appear
+    bool addedAny = false;
+    for (int s = 0; s < slotCount; s++)
     {
         char slotName[64];
-        KvGetSectionName(g_hPlayerUpgrades[client], slotName, sizeof(slotName));
+        strcopy(slotName, sizeof(slotName), slots[s]);
+
+        bool hasAny = false;
+        for (int u = 0; u < g_upgrades.Length; u++)
+        {
+            UpgradeData up;
+            g_upgrades.GetArray(u, up);
+
+            if (UpgradeExists(client, slotName, up.name) || PurchaseExists(client, slotName, up.name))
+            {
+                hasAny = true;
+                break;
+            }
+        }
+
+        if (!hasAny)
+        {
+            // Clean up any stale empty node just in case:
+            UpgradeDeleteSlot(client, slotName);
+            PurchaseDeleteSlot(client, slotName);
+            continue;
+        }
 
         if (StrEqual(slotName, "body"))
-        {
             menu.AddItem("body", "Body Upgrades");
-        }
         else if (StrEqual(slotName, "slot0"))
-        {
             menu.AddItem("slot0", "Primary Upgrades");
-        }
         else if (StrEqual(slotName, "slot1"))
-        {
             menu.AddItem("slot1", "Secondary Upgrades");
-        }
         else if (StrEqual(slotName, "slot2"))
-        {
             menu.AddItem("slot2", "Melee Upgrades");
+        else if (StrContains(slotName, "slot", false) == 0)
+        {
+            char label[64];
+            int slotNum = StringToInt(slotName[4]);
+            Format(label, sizeof(label), "Other Upgrades (%d)", slotNum);
+            menu.AddItem(slotName, label);
         }
         else
         {
             char label[64];
-            int slotNum = StringToInt(slotName[4]); // Extract number from 'slotX'
-            Format(label, sizeof(label), "Other Upgrades (%d)", slotNum);
+            Format(label, sizeof(label), "Other: %s", slotName);
             menu.AddItem(slotName, label);
         }
 
-    } while (KvGotoNextKey(g_hPlayerUpgrades[client], false));
+        addedAny = true;
+    }
 
-    KvRewind(g_hPlayerUpgrades[client]);
+    if (!addedAny)
+    {
+        PrintToChat(client, "[Hyper Upgrades] No upgrades to refund.");
+        g_bInUpgradeList[client] = false;
+        delete menu;
+        return;
+    }
 
     menu.ExitBackButton = true;
     menu.Display(client, MENU_TIME_FOREVER);
 }
-
 
 // Slot Menu Handler
 public int MenuHandler_RefundSlotMenu(Menu menu, MenuAction action, int client, int item)
@@ -2058,6 +2371,16 @@ void ShowRefundUpgradeMenu(int client, const char[] slotKey)
     Format(title, sizeof(title), "Refund Upgrades - %s", slotKey);
     menu.SetTitle(title);
 
+    if (g_hPlayerUpgrades[client] == null)
+    {
+        PrintToChat(client, "[Hyper Upgrades] No upgrades found in this group.");
+        g_bInUpgradeList[client] = false;
+        delete menu;
+        return;
+    }
+
+    KvRewind(g_hPlayerUpgrades[client]);
+
     if (!KvJumpToKey(g_hPlayerUpgrades[client], slotKey, false))
     {
         PrintToChat(client, "[Hyper Upgrades] No upgrades found in this group.");
@@ -2068,8 +2391,10 @@ void ShowRefundUpgradeMenu(int client, const char[] slotKey)
 
     if (!KvGotoFirstSubKey(g_hPlayerUpgrades[client], false))
     {
-        KvGoBack(g_hPlayerUpgrades[client]);
+        KvGoBack(g_hPlayerUpgrades[client]); // back to root
         PrintToChat(client, "[Hyper Upgrades] No upgrades found in this group.");
+        g_bInUpgradeList[client] = false;
+        delete menu;
         return;
     }
 
@@ -2078,11 +2403,13 @@ void ShowRefundUpgradeMenu(int client, const char[] slotKey)
         char upgradeName[64];
         KvGetSectionName(g_hPlayerUpgrades[client], upgradeName, sizeof(upgradeName));
 
+        // If we have a nicer display name in g_upgradeIndex, use it; otherwise use the raw key.
         int idx;
         if (g_upgradeIndex.GetValue(upgradeName, idx))
         {
             UpgradeData upgrade;
             g_upgrades.GetArray(idx, upgrade);
+
             char itemData[128];
             Format(itemData, sizeof(itemData), "%s|%s", upgrade.name, slotKey); // "upgradeName|slotKey"
             menu.AddItem(itemData, upgrade.name);
@@ -2096,13 +2423,12 @@ void ShowRefundUpgradeMenu(int client, const char[] slotKey)
 
     } while (KvGotoNextKey(g_hPlayerUpgrades[client], false));
 
-    KvGoBack(g_hPlayerUpgrades[client]);
+    KvGoBack(g_hPlayerUpgrades[client]); // back to root
     KvRewind(g_hPlayerUpgrades[client]);
 
     menu.ExitBackButton = true;
     menu.Display(client, MENU_TIME_FOREVER);
 }
-
 
 // Handle Refund Action
 public int MenuHandler_RefundUpgradeMenu(Menu menu, MenuAction action, int client, int item)
@@ -2139,135 +2465,64 @@ public int MenuHandler_RefundUpgradeMenu(Menu menu, MenuAction action, int clien
 // Refund Logic
 void RefundSpecificUpgrade(int client, const char[] upgradeName, const char[] slotKey)
 {
-    if (g_hPlayerUpgrades[client] == null || g_hPlayerPurchases[client] == null)
-        return;
+    if (!IsClientInGame(client)) return;
+    if (g_hPlayerUpgrades[client] == null || g_hPlayerPurchases[client] == null) return;
 
-    // Step 1: Look up purchases to determine refund
-    KvRewind(g_hPlayerPurchases[client]);
-    if (!KvJumpToKey(g_hPlayerPurchases[client], slotKey, false))
-    {
-        PrintToServer("[Debug] Could not find purchases slot '%s' for upgrade '%s'", slotKey, upgradeName);
-        return;
-    }
-
-    int purchases = KvGetNum(g_hPlayerPurchases[client], upgradeName, 0);
+    // 1) How many purchases? (0 => nothing to refund)
+    int purchases = PurchaseRead(client, slotKey, upgradeName);
     if (purchases <= 0)
     {
-        KvGoBack(g_hPlayerPurchases[client]);
+        PrintToServer("[Hyper Upgrades] No purchases found for '%s' in slot '%s' (client %d).", upgradeName, slotKey, client);
         return;
     }
 
-    KvGoBack(g_hPlayerPurchases[client]);
+    // 2) Debug info
+    float value = UpgradeRead(client, slotKey, upgradeName);
+    PrintToServer("[Hyper Upgrades] Refunding upgrade '%s' from slot '%s' (value=%.6f, purchases=%d) for client %d",
+                  upgradeName, slotKey, value, purchases, client);
 
-    // Step 2: Lookup the actual value for debug info
-    KvRewind(g_hPlayerUpgrades[client]);
-    if (!KvJumpToKey(g_hPlayerUpgrades[client], slotKey, false))
-    {
-        PrintToServer("[Debug] Could not find upgrades slot '%s' for refunding upgrade '%s'", slotKey, upgradeName);
-        return;
-    }
-
-    float value = KvGetFloat(g_hPlayerUpgrades[client], upgradeName, 0.0);
-    KvGoBack(g_hPlayerUpgrades[client]);
-
-    PrintToServer("[Debug] Refunding upgrade '%s' from slot '%s' (value=%.6f, purchases=%d)", upgradeName, slotKey, value, purchases);
-
+    // 3) Money back
     int refundAmount = CalculateRefundAmountFromPurchases(upgradeName, purchases);
     g_iMoneySpent[client] -= refundAmount;
-    if (g_iMoneySpent[client] < 0)
-        g_iMoneySpent[client] = 0;
+    if (g_iMoneySpent[client] < 0) g_iMoneySpent[client] = 0;
 
-    // Step 3: Build new handles
-    KeyValues tempUpgrades = CreateKeyValues("Upgrades");
-    KeyValues tempPurchases = CreateKeyValues("Purchases");
+    // 4) Remove the upgrade in both trees
+    UpgradeDelete(client, slotKey, upgradeName);
+    PurchaseDelete(client, slotKey, upgradeName);
 
-    // Rebuild UPGRADES handle
-    KvRewind(g_hPlayerUpgrades[client]);
-    if (KvGotoFirstSubKey(g_hPlayerUpgrades[client], false))
+    // 5) If the slot is now empty (no remaining keys in upgrades/purchases), nuke it.
+    bool hasAny = false;
+    for (int u = 0; u < g_upgrades.Length; u++)
     {
-        do
+        UpgradeData up;
+        g_upgrades.GetArray(u, up);
+
+        if (UpgradeExists(client, slotKey, up.name) || PurchaseExists(client, slotKey, up.name))
         {
-            char currentSlot[64];
-            KvGetSectionName(g_hPlayerUpgrades[client], currentSlot, sizeof(currentSlot));
-            bool matchSlot = StrEqual(currentSlot, slotKey);
-
-            if (KvGotoFirstSubKey(g_hPlayerUpgrades[client], false))
-            {
-                do
-                {
-                    char upgrade[64];
-                    KvGetSectionName(g_hPlayerUpgrades[client], upgrade, sizeof(upgrade));
-
-                    if (!matchSlot || !StrEqual(upgrade, upgradeName))
-                    {
-                        float val = KvGetFloat(g_hPlayerUpgrades[client], NULL_STRING, 0.0);
-                        KvJumpToKey(tempUpgrades, currentSlot, true);
-                        KvSetFloat(tempUpgrades, upgrade, val);
-                        KvGoBack(tempUpgrades);
-                    }
-                }
-                while (KvGotoNextKey(g_hPlayerUpgrades[client], false));
-
-                KvGoBack(g_hPlayerUpgrades[client]);
-            }
-
-        } while (KvGotoNextKey(g_hPlayerUpgrades[client], false));
+            hasAny = true;
+            break;
+        }
     }
 
-    // Rebuild PURCHASES handle (exact same pattern)
-    KvRewind(g_hPlayerPurchases[client]);
-    if (KvGotoFirstSubKey(g_hPlayerPurchases[client], false))
+    if (!hasAny)
     {
-        do
-        {
-            char currentSlot[64];
-            KvGetSectionName(g_hPlayerPurchases[client], currentSlot, sizeof(currentSlot));
-            bool matchSlot = StrEqual(currentSlot, slotKey);
-
-            if (KvGotoFirstSubKey(g_hPlayerPurchases[client], false))
-            {
-                do
-                {
-                    char upgrade[64];
-                    KvGetSectionName(g_hPlayerPurchases[client], upgrade, sizeof(upgrade));
-
-                    if (!matchSlot || !StrEqual(upgrade, upgradeName))
-                    {
-                        int count = KvGetNum(g_hPlayerPurchases[client], NULL_STRING, 0);
-                        KvJumpToKey(tempPurchases, currentSlot, true);
-                        KvSetNum(tempPurchases, upgrade, count);
-                        KvGoBack(tempPurchases);
-                    }
-                }
-                while (KvGotoNextKey(g_hPlayerPurchases[client], false));
-
-                KvGoBack(g_hPlayerPurchases[client]);
-            }
-
-        } while (KvGotoNextKey(g_hPlayerPurchases[client], false));
+        UpgradeDeleteSlot(client, slotKey);
+        PurchaseDeleteSlot(client, slotKey);
     }
 
-    // Swap handles
-    KvRewind(g_hPlayerUpgrades[client]);
-    CloseHandle(g_hPlayerUpgrades[client]);
-    g_hPlayerUpgrades[client] = tempUpgrades;
-
-    KvRewind(g_hPlayerPurchases[client]);
-    CloseHandle(g_hPlayerPurchases[client]);
-    g_hPlayerPurchases[client] = tempPurchases;
-
+    // 6) Done
     PrintToConsole(client, "[Hyper Upgrades] Refunded upgrade: %s. Amount refunded: %d$", upgradeName, refundAmount);
 }
 
 void RefundAllUpgradesInSlot(int client, int slot)
 {
-    if (g_hPlayerUpgrades[client] == null || g_hPlayerPurchases[client] == null)
-        return;
+    if (!IsClientInGame(client)) return;
+    if (g_hPlayerUpgrades[client] == null || g_hPlayerPurchases[client] == null) return;
 
     char slotKey[16];
     Format(slotKey, sizeof(slotKey), "slot%d", slot);
 
-    // Step 1: Calculate total refund from this slot
+    // --- Step 1: Calculate total refund from this slot (read-only) ---
     int totalRefund = 0;
 
     KvRewind(g_hPlayerPurchases[client]);
@@ -2280,101 +2535,33 @@ void RefundAllUpgradesInSlot(int client, int slot)
                 char upgradeName[64];
                 KvGetSectionName(g_hPlayerPurchases[client], upgradeName, sizeof(upgradeName));
 
-                int purchases = KvGetNum(g_hPlayerPurchases[client], NULL_STRING, 0);
+                // Read via helper (don’t mutate directly)
+                int purchases = PurchaseRead(client, slotKey, upgradeName);
                 if (purchases > 0)
                 {
                     totalRefund += CalculateRefundAmountFromPurchases(upgradeName, purchases);
                     PrintToServer("[HU] Refunding upgrade '%s' (%d purchases) from slot %s", upgradeName, purchases, slotKey);
                 }
+            }
+            while (KvGotoNextKey(g_hPlayerPurchases[client], false));
 
-            } while (KvGotoNextKey(g_hPlayerPurchases[client], false));
-
-            KvGoBack(g_hPlayerPurchases[client]);
+            KvGoBack(g_hPlayerPurchases[client]); // back to slot level
         }
-        KvGoBack(g_hPlayerPurchases[client]);
+        KvGoBack(g_hPlayerPurchases[client]); // back to root
     }
 
     g_iMoneySpent[client] -= totalRefund;
     if (g_iMoneySpent[client] < 0)
         g_iMoneySpent[client] = 0;
 
-    // Step 2: Rebuild new handles WITHOUT this slot
-    KeyValues newUpgrades = CreateKeyValues("Upgrades");
-    KeyValues newPurchases = CreateKeyValues("Purchases");
-
-    // Copy other upgrade branches
-    KvRewind(g_hPlayerUpgrades[client]);
-    if (KvGotoFirstSubKey(g_hPlayerUpgrades[client], false))
-    {
-        do
-        {
-            char currentSlot[64];
-            KvGetSectionName(g_hPlayerUpgrades[client], currentSlot, sizeof(currentSlot));
-
-            if (StrEqual(currentSlot, slotKey))
-                continue; // Skip refunding slot
-
-            if (KvGotoFirstSubKey(g_hPlayerUpgrades[client], false))
-            {
-                do
-                {
-                    char upgrade[64];
-                    KvGetSectionName(g_hPlayerUpgrades[client], upgrade, sizeof(upgrade));
-                    float val = KvGetFloat(g_hPlayerUpgrades[client], NULL_STRING, 0.0);
-
-                    KvJumpToKey(newUpgrades, currentSlot, true);
-                    KvSetFloat(newUpgrades, upgrade, val);
-                    KvGoBack(newUpgrades);
-
-                } while (KvGotoNextKey(g_hPlayerUpgrades[client], false));
-
-                KvGoBack(g_hPlayerUpgrades[client]);
-            }
-
-        } while (KvGotoNextKey(g_hPlayerUpgrades[client], false));
-    }
-
-    // Copy other purchase branches
-    KvRewind(g_hPlayerPurchases[client]);
-    if (KvGotoFirstSubKey(g_hPlayerPurchases[client], false))
-    {
-        do
-        {
-            char currentSlot[64];
-            KvGetSectionName(g_hPlayerPurchases[client], currentSlot, sizeof(currentSlot));
-
-            if (StrEqual(currentSlot, slotKey))
-                continue; // Skip refunding slot
-
-            if (KvGotoFirstSubKey(g_hPlayerPurchases[client], false))
-            {
-                do
-                {
-                    char upgrade[64];
-                    KvGetSectionName(g_hPlayerPurchases[client], upgrade, sizeof(upgrade));
-                    int count = KvGetNum(g_hPlayerPurchases[client], NULL_STRING, 0);
-
-                    KvJumpToKey(newPurchases, currentSlot, true);
-                    KvSetNum(newPurchases, upgrade, count);
-                    KvGoBack(newPurchases);
-
-                } while (KvGotoNextKey(g_hPlayerPurchases[client], false));
-
-                KvGoBack(g_hPlayerPurchases[client]);
-            }
-
-        } while (KvGotoNextKey(g_hPlayerPurchases[client], false));
-    }
-
-    // Swap in new handles
-    CloseHandle(g_hPlayerUpgrades[client]);
-    g_hPlayerUpgrades[client] = newUpgrades;
-
-    CloseHandle(g_hPlayerPurchases[client]);
-    g_hPlayerPurchases[client] = newPurchases;
+    // --- Step 2: Delete this slot from both handles via helpers ---
+    // (No manual rebuilding of trees.)
+    UpgradeDeleteSlot(client, slotKey);
+    PurchaseDeleteSlot(client, slotKey);
 
     PrintToConsole(client, "[Hyper Upgrades] Refunded all upgrades in %s. Amount refunded: %d$", slotKey, totalRefund);
 }
+
 
 // I like explicit names. Just to be clear, this calculates it for one specific upgrade.
 int CalculateRefundAmountFromPurchases(const char[] upgradeName, int purchases)
@@ -2511,7 +2698,7 @@ bool GetWeaponAlias(int defindex, char[] alias, int maxlen)
         if (weapon.defindex == defindex)
         {
             strcopy(alias, maxlen, weapon.alias);
-            // PrintToServer("[Debug] Retrieved alias: %s", alias);
+            // PrintToServer("[Hyper Upgrades] Retrieved alias: %s", alias);
             return true;
         }
     }
@@ -2564,7 +2751,7 @@ void ShowCategoryMenu(int client, const char[] category)
     {
         EquippedItem item;
         item = GetEquippedEntityForSlot(client, 0);
-        PrintToServer("[Debug] Slot %d: weapon defindex = %d", 0, item.defindex);
+        PrintToServer("[Hyper Upgrades] Slot %d: weapon defindex = %d", 0, item.defindex);
         if (IsValidEntity(item.entity))
         {
             strcopy(alias, sizeof(alias), item.alias);
@@ -2576,7 +2763,7 @@ void ShowCategoryMenu(int client, const char[] category)
     {
         EquippedItem item;
         item = GetEquippedEntityForSlot(client, 1);
-        PrintToServer("[Debug] Slot %d: weapon defindex = %d", 1, item.defindex);
+        PrintToServer("[Hyper Upgrades] Slot %d: weapon defindex = %d", 1, item.defindex);
         if (IsValidEntity(item.entity))
         {
             strcopy(alias, sizeof(alias), item.alias);
@@ -2588,7 +2775,7 @@ void ShowCategoryMenu(int client, const char[] category)
     {
         EquippedItem item;
         item = GetEquippedEntityForSlot(client, 2);
-        PrintToServer("[Debug] Slot %d: weapon defindex = %d", 2, item.defindex);
+        PrintToServer("[Hyper Upgrades] Slot %d: weapon defindex = %d", 2, item.defindex);
         if (IsValidEntity(item.entity))
         {
             strcopy(alias, sizeof(alias), item.alias);
@@ -2610,7 +2797,7 @@ void ShowCategoryMenu(int client, const char[] category)
     g_iPlayerBrowsingSlot[client] = weaponSlot;
     g_bPlayerBrowsing[client] = true;
 
-    PrintToServer("[Debug] Showing upgrades for category: %s | alias: %s", g_sPlayerCategory[client], g_sPlayerAlias[client]);
+    PrintToServer("[Hyper Upgrades] Showing upgrades for category: %s | alias: %s", g_sPlayerCategory[client], g_sPlayerAlias[client]);
 
     if (!kv.JumpToKey(category, false))
     {
@@ -2810,7 +2997,6 @@ public int MenuHandler_UpgradeMenu(Menu menu, MenuAction action, int client, int
                 break;
             }
         }
-
         delete menu;
     }
     else if (action == MenuAction_Select)
@@ -2845,19 +3031,30 @@ public int MenuHandler_UpgradeMenu(Menu menu, MenuAction action, int client, int
         char upgradeAlias[64];
         strcopy(upgradeAlias, sizeof(upgradeAlias), upgrade.alias);
 
-        int baseCost = upgrade.cost;
-        int costIncrease = upgrade.costIncrease;
-        float increment = upgrade.increment;
-        float initValue = upgrade.initValue;
-        float limit = upgrade.limit;
-        bool hasLimit = upgrade.hadLimit;
+        int baseCost      = upgrade.cost;
+        int costIncrease  = upgrade.costIncrease;
+        float increment   = upgrade.increment;
+        float initValue   = upgrade.initValue;
+        float limit       = upgrade.limit;
+        bool hasLimit     = upgrade.hadLimit;
 
-        float currentLevel = GetPlayerUpgradeValueForSlot(client, weaponSlot, upgradeName);
+        // Resolve slot path for handle helpers
+        char slotPath[16];
+        if (weaponSlot == -1)
+            strcopy(slotPath, sizeof(slotPath), "body");
+        else if (weaponSlot == -2)
+            strcopy(slotPath, sizeof(slotPath), "buildings");
+        else
+            Format(slotPath, sizeof(slotPath), "slot%d", weaponSlot);
+
+        // Read current value/purchases strictly via helpers
+        float currentLevel = UpgradeRead(client, slotPath, upgradeName);
+        int purchases      = PurchaseRead(client, slotPath, upgradeName);
+
         int upgradeMultiplier = g_bInUpgradeList[client] ? GetUpgradeMultiplier(client) : 1;
 
         int scale = (FloatAbs(limit) > 2000.0 || FloatAbs(currentLevel) > 2000.0) ? 1000 : 100000;
 
-        int purchases = GetPlayerUpgradePurchasesForSlot(client, weaponSlot, upgradeName);
         int legalMultiplier = upgradeMultiplier;
         float legalIncrement = increment;
 
@@ -2867,14 +3064,15 @@ public int MenuHandler_UpgradeMenu(Menu menu, MenuAction action, int client, int
             int outMult = 0;
             float outInc = 0.0;
 
-            if (!GetLegalUpgradeIncrementEx(currentLevel, initValue, increment, limit, scale, upgradeMultiplier, cvarMode, outMult, outInc))
+            if (!GetLegalUpgradeIncrementEx(currentLevel, initValue, increment, limit, scale,
+                                            upgradeMultiplier, cvarMode, outMult, outInc))
             {
                 PrintToChat(client, "[Hyper Upgrades] Cannot purchase: would exceed upgrade limit.");
                 return 0;
             }
 
             legalMultiplier = outMult;
-            legalIncrement = outInc;
+            legalIncrement  = outInc;
         }
 
         // Cost calculation
@@ -2898,39 +3096,15 @@ public int MenuHandler_UpgradeMenu(Menu menu, MenuAction action, int client, int
             totalCost = result[1];
         }
 
-        float newLevel = currentLevel + (legalIncrement * legalMultiplier);
-
-        char slotPath[16];
-        if (weaponSlot == -1)
-            strcopy(slotPath, sizeof(slotPath), "body");
-        else if (weaponSlot == -2)
-            strcopy(slotPath, sizeof(slotPath), "buildings");
-        else
-            Format(slotPath, sizeof(slotPath), "slot%d", weaponSlot);
-
-        // Write upgrade value
-        KvRewind(g_hPlayerUpgrades[client]);
-        KvJumpToKey(g_hPlayerUpgrades[client], slotPath, true);
-        KvSetFloat(g_hPlayerUpgrades[client], upgradeName, newLevel);
-        KvGoBack(g_hPlayerUpgrades[client]);
-
-        // Track purchase count
-        KvRewind(g_hPlayerPurchases[client]);
-        if (KvJumpToKey(g_hPlayerPurchases[client], slotPath, true))
-        {
-            int prevCount = KvGetNum(g_hPlayerPurchases[client], upgradeName, 0);
-            KvSetNum(g_hPlayerPurchases[client], upgradeName, prevCount + legalMultiplier);
-            KvGoBack(g_hPlayerPurchases[client]);
-        }
-        else
-        {
-            PrintToServer("[ERROR] Failed to jump to purchases slot: %s", slotPath);
-        }
+        // ---- ADD THROUGH HELPERS ONLY ----
+        UpgradeAdd(client, slotPath, upgradeName, legalIncrement * legalMultiplier);
+        PurchaseAdd(client, slotPath, upgradeName, legalMultiplier);
 
         ApplyPlayerUpgrades(client);
         g_iMoneySpent[client] += totalCost;
 
-        PrintToConsole(client, "[Hyper Upgrades] Purchased upgrade: %s (+%.4f x%d). Total Cost: %d$",
+        PrintToConsole(client,
+            "[Hyper Upgrades] Purchased upgrade: %s (+%.4f x%d). Total Cost: %d$",
             upgradeAlias, legalIncrement, legalMultiplier, totalCost);
 
         DataPack dp = new DataPack();
@@ -3172,10 +3346,10 @@ void ShowUpgradeListMenu(int client, const char[] upgradeGroup)
 
     if (!foundPath)
     {
-        PrintToServer("[Debug] ShowUpgradeListMenu for client %d", client);
-        PrintToServer("[Debug] g_sPlayerCategory = '%s'", g_sPlayerCategory[client]);
-        PrintToServer("[Debug] g_sPlayerAlias = '%s'", g_sPlayerAlias[client]);
-        PrintToServer("[Debug] upgradeGroup = '%s'", upgradeGroup);
+        PrintToServer("[Hyper Upgrades] ShowUpgradeListMenu for client %d", client);
+        PrintToServer("[Hyper Upgrades] g_sPlayerCategory = '%s'", g_sPlayerCategory[client]);
+        PrintToServer("[Hyper Upgrades] g_sPlayerAlias = '%s'", g_sPlayerAlias[client]);
+        PrintToServer("[Hyper Upgrades] upgradeGroup = '%s'", upgradeGroup);
         PrintToChat(client, "[Hyper Upgrades] No upgrades found for this item.");
         delete kv;
         g_bInUpgradeList[client] = false;
@@ -3224,10 +3398,21 @@ void ShowUpgradeListMenu(int client, const char[] upgradeGroup)
         float limit = upgrade.limit;
         bool hasLimit = upgrade.hadLimit;
 
-        float currentLevel = GetPlayerUpgradeValueForSlot(client, g_iPlayerBrowsingSlot[client], upgradeName);
-        int scale = (FloatAbs(limit) > 2000.0 || FloatAbs(currentLevel) > 2000.0) ? 1000 : 100000;
+        // ---- Build slot path (no extra helpers) ----
+        char slotPath[16];
+        int browseSlot = g_iPlayerBrowsingSlot[client];
+        if (browseSlot == -1)
+            strcopy(slotPath, sizeof(slotPath), "body");
+        else if (browseSlot == -2)
+            strcopy(slotPath, sizeof(slotPath), "buildings");
+        else
+            Format(slotPath, sizeof(slotPath), "slot%d", browseSlot);
 
-        int purchases = GetPlayerUpgradePurchasesForSlot(client, g_iPlayerBrowsingSlot[client], upgradeName);
+        // ---- Read current value/purchases strictly via helpers ----
+        float currentLevel = UpgradeRead(client, slotPath, upgradeName);
+        int purchases      = PurchaseRead(client, slotPath, upgradeName);
+
+        int scale = (FloatAbs(limit) > 2000.0 || FloatAbs(currentLevel) > 2000.0) ? 1000 : 100000;
 
         int legalMultiplier = multiplier;
 
@@ -3304,61 +3489,6 @@ void ShowUpgradeListMenu(int client, const char[] upgradeGroup)
     }
 }
 
-
-float GetPlayerUpgradeValueForSlot(int client, int slot, const char[] upgradeName)
-{
-    if (g_hPlayerUpgrades[client] == null)
-        return 0.0;
-
-    KvRewind(g_hPlayerUpgrades[client]);
-
-    char slotPath[16];
-    if (slot == -1)
-    {
-        strcopy(slotPath, sizeof(slotPath), "body");
-    }
-    else if (slot == -2)
-    {
-        strcopy(slotPath, sizeof(slotPath), "buildings"); // ✅ Support building upgrades
-    }
-    else
-    {
-        Format(slotPath, sizeof(slotPath), "slot%d", slot);
-    }
-
-    if (!KvJumpToKey(g_hPlayerUpgrades[client], slotPath, false))
-    {
-        // PrintToServer("[DEBUG] False Path");
-        return 0.0;
-    }
-
-    // 🔍 Debug output to track where it's looking
-    // PrintToServer("[DEBUG] float GetPlayerUpgradeValueForSlot(): Looking in [%s] for \"%s\"", slotPath, upgradeName);
-
-    float storedLevel = KvGetFloat(g_hPlayerUpgrades[client], upgradeName, 0.0);
-
-    KvRewind(g_hPlayerUpgrades[client]);
-
-    return storedLevel;
-}
-
-int GetPlayerUpgradePurchasesForSlot(int client, int slot, const char[] upgradeName)
-{
-    if (g_hPlayerPurchases[client] == null)
-        return 0;
-
-    char slotPath[16];
-    if (slot == -1)        strcopy(slotPath, sizeof(slotPath), "body");
-    else if (slot == -2)   strcopy(slotPath, sizeof(slotPath), "buildings");
-    else                   Format(slotPath, sizeof(slotPath), "slot%d", slot);
-
-    KvRewind(g_hPlayerPurchases[client]);
-    if (!KvJumpToKey(g_hPlayerPurchases[client], slotPath, false))
-        return 0;
-
-    return KvGetNum(g_hPlayerPurchases[client], upgradeName, 0);
-}
-
 bool GetUpgradeAliasFromName(const char[] upgradeName, char[] aliasOut, int maxlen)
 {
     int idx;
@@ -3369,7 +3499,7 @@ bool GetUpgradeAliasFromName(const char[] upgradeName, char[] aliasOut, int maxl
     g_upgrades.GetArray(idx, upgrade);
 
     strcopy(aliasOut, maxlen, upgrade.alias);
-    // PrintToServer("[DEBUG] Upgrade name: %s → alias: %s", upgradeName, upgrade.alias);
+    // PrintToServer("[Hyper Upgrades] Upgrade name: %s → alias: %s", upgradeName, upgrade.alias);
     return true;
 }
 
@@ -3411,11 +3541,9 @@ int GetUpgradeMultiplier(int client)
     return 1; // Default if neither key is pressed
 }
 
-
 public Action Command_DebugUpgradeHandle(int client, int args)
 {
     bool useSnapshot = false;
-
     if (args >= 1)
     {
         char arg[8];
@@ -3436,72 +3564,68 @@ public Action Command_DebugUpgradeHandle(int client, int args)
         if (hKv == null)
             continue;
 
+        // Collect slot names first
+        char slotNames[64][64];
+        int slotCount = 0;
+
         KvRewind(hKv);
-        if (!KvGotoFirstSubKey(hKv, false))
-            continue;
-
-        bool hasUpgrades = false;
-
-        // Pre-scan for any non-zero upgrades
-        do
+        if (KvGotoFirstSubKey(hKv, false))
         {
-            if (KvGotoFirstSubKey(hKv, false))
+            do
             {
-                do
-                {
-                    float level = KvGetFloat(hKv, NULL_STRING, 0.0);
-                    if (level != 0.0)
-                    {
-                        hasUpgrades = true;
-                        break;
-                    }
-                }
-                while (KvGotoNextKey(hKv, false));
-
-                KvGoBack(hKv);
+                if (slotCount >= 64) break;
+                KvGetSectionName(hKv, slotNames[slotCount], sizeof(slotNames[]));
+                slotCount++;
             }
-
-            if (hasUpgrades)
-                break;
+            while (KvGotoNextKey(hKv, false));
         }
-        while (KvGotoNextKey(hKv, false));
-
         KvRewind(hKv);
 
-        if (!hasUpgrades)
-            continue;
+        bool printedAnyForClient = false;
 
-        anyUpgradesFound = true;
-        PrintToServer("---- Client %N (%d) ----", i, i);
-
-        KvGotoFirstSubKey(hKv, false);
-        do
+        for (int s = 0; s < slotCount; s++)
         {
             char slotName[64];
-            KvGetSectionName(hKv, slotName, sizeof(slotName));
-            PrintToServer("  [%s]", slotName);
+            strcopy(slotName, sizeof(slotName), slotNames[s]);
 
-            if (KvGotoFirstSubKey(hKv, false))
+            bool printedThisSlot = false;
+
+            for (int u = 0; u < g_upgrades.Length; u++)
             {
-                do
+                UpgradeData up;
+                g_upgrades.GetArray(u, up);
+
+                float level = 0.0;
+                if (useSnapshot)
                 {
-                    char upgradeName[64];
-                    float level = KvGetFloat(hKv, NULL_STRING, 0.0);
-                    if (level != 0.0)
-                    {
-                        KvGetSectionName(hKv, upgradeName, sizeof(upgradeName));
-                        PrintToServer("    %s: %.2f", upgradeName, level);
-                    }
+                    KvJumpToKey(hKv, slotName, false);
+                    level = KvGetFloat(hKv, up.name, 0.0);
+                    KvGoBack(hKv);
                 }
-                while (KvGotoNextKey(hKv, false));
+                else
+                {
+                    level = UpgradeRead(i, slotName, up.name);
+                }
 
-                KvGoBack(hKv);
+                if (level != 0.0)
+                {
+                    if (!printedThisSlot)
+                    {
+                        if (!printedAnyForClient)
+                        {
+                            PrintToServer("---- Client %N (%d) ----", i, i);
+                            printedAnyForClient = true;
+                        }
+                        PrintToServer("  [%s]", slotName);
+                        printedThisSlot = true;
+                    }
+                    PrintToServer("    %s: %.2f", up.name, level);
+                }
             }
-
         }
-        while (KvGotoNextKey(hKv, false));
 
-        KvRewind(hKv);
+        if (printedAnyForClient)
+            anyUpgradesFound = true;
     }
 
     if (!anyUpgradesFound)
@@ -3516,7 +3640,6 @@ public Action Command_DebugUpgradeHandle(int client, int args)
 public Action Command_DebugPurchaseHandle(int client, int args)
 {
     bool useSnapshot = false;
-
     if (args >= 1)
     {
         char arg[8];
@@ -3537,72 +3660,68 @@ public Action Command_DebugPurchaseHandle(int client, int args)
         if (hKv == null)
             continue;
 
+        // Collect slot names first
+        char slotNames[64][64];
+        int slotCount = 0;
+
         KvRewind(hKv);
-        if (!KvGotoFirstSubKey(hKv, false))
-            continue;
-
-        bool hasPurchases = false;
-
-        // Pre-scan
-        do
+        if (KvGotoFirstSubKey(hKv, false))
         {
-            if (KvGotoFirstSubKey(hKv, false))
+            do
             {
-                do
-                {
-                    int count = KvGetNum(hKv, NULL_STRING, 0);
-                    if (count > 0)
-                    {
-                        hasPurchases = true;
-                        break;
-                    }
-                }
-                while (KvGotoNextKey(hKv, false));
-
-                KvGoBack(hKv);
+                if (slotCount >= 64) break;
+                KvGetSectionName(hKv, slotNames[slotCount], sizeof(slotNames[]));
+                slotCount++;
             }
-
-            if (hasPurchases)
-                break;
+            while (KvGotoNextKey(hKv, false));
         }
-        while (KvGotoNextKey(hKv, false));
-
         KvRewind(hKv);
 
-        if (!hasPurchases)
-            continue;
+        bool printedAnyForClient = false;
 
-        anyPurchasesFound = true;
-        PrintToServer("---- Client %N (%d) ----", i, i);
-
-        KvGotoFirstSubKey(hKv, false);
-        do
+        for (int s = 0; s < slotCount; s++)
         {
             char slotName[64];
-            KvGetSectionName(hKv, slotName, sizeof(slotName));
-            PrintToServer("  [%s]", slotName);
+            strcopy(slotName, sizeof(slotName), slotNames[s]);
 
-            if (KvGotoFirstSubKey(hKv, false))
+            bool printedThisSlot = false;
+
+            for (int u = 0; u < g_upgrades.Length; u++)
             {
-                do
+                UpgradeData up;
+                g_upgrades.GetArray(u, up);
+
+                int count = 0;
+                if (useSnapshot)
                 {
-                    int count = KvGetNum(hKv, NULL_STRING, 0);
-                    if (count > 0)
-                    {
-                        char upgradeName[64];
-                        KvGetSectionName(hKv, upgradeName, sizeof(upgradeName));
-                        PrintToServer("    %s: %d", upgradeName, count);
-                    }
+                    KvJumpToKey(hKv, slotName, false);
+                    count = KvGetNum(hKv, up.name, 0);
+                    KvGoBack(hKv);
                 }
-                while (KvGotoNextKey(hKv, false));
+                else
+                {
+                    count = PurchaseRead(i, slotName, up.name);
+                }
 
-                KvGoBack(hKv);
+                if (count > 0)
+                {
+                    if (!printedThisSlot)
+                    {
+                        if (!printedAnyForClient)
+                        {
+                            PrintToServer("---- Client %N (%d) ----", i, i);
+                            printedAnyForClient = true;
+                        }
+                        PrintToServer("  [%s]", slotName);
+                        printedThisSlot = true;
+                    }
+                    PrintToServer("    %s: %d", up.name, count);
+                }
             }
-
         }
-        while (KvGotoNextKey(hKv, false));
 
-        KvRewind(hKv);
+        if (printedAnyForClient)
+            anyPurchasesFound = true;
     }
 
     if (!anyPurchasesFound)
@@ -3660,7 +3779,6 @@ void HU_ApplyAttributeFromAlias(int entity, const char[] alias, float value) // 
     }
 }
 
-
 void ApplyPlayerUpgrades(int client)
 {
     if (g_hPlayerUpgrades[client] == null)
@@ -3678,75 +3796,70 @@ void ApplyPlayerUpgrades(int client)
         }
     }
 
+    // --- Collect slot names first to avoid cursor conflicts with helpers ---
+    char slotNames[64][64];
+    int slotCount = 0;
+
+    KvRewind(g_hPlayerUpgrades[client]);
+    if (KvGotoFirstSubKey(g_hPlayerUpgrades[client], false))
+    {
+        do
+        {
+            if (slotCount >= 64) break;
+            KvGetSectionName(g_hPlayerUpgrades[client], slotNames[slotCount], sizeof(slotNames[]));
+            slotCount++;
+        }
+        while (KvGotoNextKey(g_hPlayerUpgrades[client], false));
+    }
     KvRewind(g_hPlayerUpgrades[client]);
 
-    if (!KvGotoFirstSubKey(g_hPlayerUpgrades[client], false))
-        return;
-
-    do
+    // --- For each slot, apply any non-zero upgrade values ---
+    for (int s = 0; s < slotCount; s++)
     {
-        char slotName[8];
-        KvGetSectionName(g_hPlayerUpgrades[client], slotName, sizeof(slotName));
+        char slotName[64];
+        strcopy(slotName, sizeof(slotName), slotNames[s]);
 
         int entity = -1;
-        bool isBody = StrEqual(slotName, "body");
-
-        if (isBody)
+        if (StrEqual(slotName, "body"))
         {
             entity = client;
         }
-        else
+        else if (StrContains(slotName, "slot", false) == 0) // "slotN"
         {
-            int slot = StringToInt(slotName[4]);
+            int slotIndex = StringToInt(slotName[4]);
             EquippedItem item;
-            item = GetEquippedEntityForSlot(client, slot);
+            item = GetEquippedEntityForSlot(client, slotIndex);
             entity = item.entity;
-
             if (!IsValidEntity(entity))
                 continue;
         }
-
-        if (!KvGotoFirstSubKey(g_hPlayerUpgrades[client], false))
+        else
         {
-            KvGoBack(g_hPlayerUpgrades[client]);
+            // Skip custom groups here (e.g., "buildings" handled elsewhere)
             continue;
         }
 
-        do
+        // Iterate known upgrades; apply those present for this slot
+        for (int u = 0; u < g_upgrades.Length; u++)
         {
-            char upgradeName[64];
-            KvGetSectionName(g_hPlayerUpgrades[client], upgradeName, sizeof(upgradeName));
+            UpgradeData up;
+            g_upgrades.GetArray(u, up);
 
-            float value = KvGetFloat(g_hPlayerUpgrades[client], NULL_STRING, 0.0);
+            float value = UpgradeRead(client, slotName, up.name);
+            if (value == 0.0)
+                continue;
 
-            // Resolve alias from upgrade name
             char upgradeAlias[64];
-            if (!GetUpgradeAliasFromName(upgradeName, upgradeAlias, sizeof(upgradeAlias)))
+            if (!GetUpgradeAliasFromName(up.name, upgradeAlias, sizeof(upgradeAlias)))
             {
-                PrintToConsole(client, "[Warning] Alias not found for upgrade name: %s", upgradeName);
+                PrintToConsole(client, "[Warning] Alias not found for upgrade name: %s", up.name);
                 continue;
             }
 
-            float initValue = 0.0;
-            int idx;
-            if (g_upgradeIndex.GetValue(upgradeName, idx))
-            {
-                UpgradeData upgrade;
-                g_upgrades.GetArray(idx, upgrade);
-                initValue = upgrade.initValue;
-            }
-
-            float finalValue = initValue + value;
-
+            float finalValue = up.initValue + value;
             HU_ApplyAttributeFromAlias(entity, upgradeAlias, finalValue);
-
-        } while (KvGotoNextKey(g_hPlayerUpgrades[client], false));
-
-        KvGoBack(g_hPlayerUpgrades[client]);
-
-    } while (KvGotoNextKey(g_hPlayerUpgrades[client], false));
-
-    KvRewind(g_hPlayerUpgrades[client]);
+        }
+    }
 
     if (g_iResistanceHudMode[client] != 0)
     {
@@ -3895,8 +4008,6 @@ void ApplyBuildingUpgrades(int client, int entity, const char[] classname)
     if (g_hPlayerUpgrades[client] == null)
         return;
 
-    KvRewind(g_hPlayerUpgrades[client]);
-
     // Decide which alias to use (used in hu_attributes.cfg)
     char alias[64];
     if (StrEqual(classname, "obj_sentrygun"))
@@ -3908,27 +4019,35 @@ void ApplyBuildingUpgrades(int client, int entity, const char[] classname)
     else
         return;
 
+    KvRewind(g_hPlayerUpgrades[client]);
+
     // Jump to the "buildings" section in the player upgrade data
     if (!KvJumpToKey(g_hPlayerUpgrades[client], "buildings", false))
         return;
 
     // Loop through all upgrades stored directly under "buildings"
     if (!KvGotoFirstSubKey(g_hPlayerUpgrades[client], false))
+    {
+        KvGoBack(g_hPlayerUpgrades[client]); // back to root
         return;
+    }
 
     do
     {
         char upgradeName[64];
         KvGetSectionName(g_hPlayerUpgrades[client], upgradeName, sizeof(upgradeName));
-        float value = KvGetFloat(g_hPlayerUpgrades[client], NULL_STRING, 0.0);
 
-        // Get attribute alias from name
+        // Read stored delta/level via helper
+        float value = UpgradeRead(client, "buildings", upgradeName);
+
+        // Get attribute alias from upgrade display name
         char upgradeAlias[64];
         if (!GetUpgradeAliasFromName(upgradeName, upgradeAlias, sizeof(upgradeAlias)))
             continue;
 
         // Only apply upgrades meant for this building type
-        if (!StrContains(upgradeAlias, alias, false)) // Case-insensitive contains check
+        // StrContains(...) returns -1 if not found.
+        if (StrContains(upgradeAlias, alias, false) == -1)
             continue;
 
         // Get attribute name from alias
@@ -3954,6 +4073,7 @@ void ApplyBuildingUpgrades(int client, int entity, const char[] classname)
 
     } while (KvGotoNextKey(g_hPlayerUpgrades[client], false));
 
+    KvGoBack(g_hPlayerUpgrades[client]); // back to root
     KvRewind(g_hPlayerUpgrades[client]);
 }
 
@@ -4172,7 +4292,7 @@ public void Event_MvmWaveBegin(Event event, const char[] name, bool dontBroadcas
     if (!g_bMvMActive)
         return;
 
-    g_iMoneyPoolSnapshot = GetConVarInt(g_hMoneyPool);
+    //g_iMoneyPoolSnapshot = GetConVarInt(g_hMoneyPool);
 
     for (int i = 1; i <= MaxClients; i++)
     {
@@ -4181,23 +4301,22 @@ public void Event_MvmWaveBegin(Event event, const char[] name, bool dontBroadcas
 
         g_iMoneySpentSnapshot[i] = g_iMoneySpent[i];
 
-        if (g_hPlayerUpgradesSnapshot[i] != null)
-            CloseHandle(g_hPlayerUpgradesSnapshot[i]);
-        if (g_hPlayerPurchasesSnapshot[i] != null)
-            CloseHandle(g_hPlayerPurchasesSnapshot[i]);
+        // Dispose previous snapshots
+        if (g_hPlayerUpgradesSnapshot[i] != null)   { delete g_hPlayerUpgradesSnapshot[i];   g_hPlayerUpgradesSnapshot[i] = null; }
+        if (g_hPlayerPurchasesSnapshot[i] != null)  { delete g_hPlayerPurchasesSnapshot[i];  g_hPlayerPurchasesSnapshot[i] = null; }
 
-        // Upgrades → use universal cloner
+        // Clone current live handles into snapshots
+        // - Upgrades: generic cloner
         g_hPlayerUpgradesSnapshot[i] = CloneKeyValues(
-            view_as<KeyValues>(g_hPlayerUpgrades[i]), 
+            view_as<KeyValues>(g_hPlayerUpgrades[i]),
             "Upgrades"
         );
 
-        // Purchases → use special purchases cloner
+        // - Purchases: use your purchases cloner
         g_hPlayerPurchasesSnapshot[i] = ClonePurchasesKV(
-            view_as<KeyValues>(g_hPlayerPurchases[i]), 
+            view_as<KeyValues>(g_hPlayerPurchases[i]),
             i
         );
-
     }
 
     PrintToServer("[HU] Wave state snapshot saved.");
@@ -4246,27 +4365,28 @@ public void Event_MvmWaveFailed(Event event, const char[] name, bool dontBroadca
         g_iMoneySpent[i] = g_iMoneySpentSnapshot[i];
 
         if (g_hPlayerUpgrades[i] != null)
-            CloseHandle(g_hPlayerUpgrades[i]);
+            delete g_hPlayerUpgrades[i];
         if (g_hPlayerPurchases[i] != null)
-            CloseHandle(g_hPlayerPurchases[i]);
+            delete g_hPlayerPurchases[i];
 
         // Upgrades → use universal cloner
-        g_hPlayerUpgrades[i] = view_as<Handle>(CloneKeyValues(
+        g_hPlayerUpgrades[i] = CloneKeyValues(
             view_as<KeyValues>(g_hPlayerUpgradesSnapshot[i]), 
             "Upgrades"
-        ));
+        );
 
         // Purchases → use special purchases cloner
-        g_hPlayerPurchases[i] = view_as<Handle>(ClonePurchasesKV(
+        g_hPlayerPurchases[i] = ClonePurchasesKV(
             view_as<KeyValues>(g_hPlayerPurchasesSnapshot[i]), 
             i
-        ));
-
+        );
 
         ApplyPlayerUpgrades(i);
     }
 
     PrintToServer("[HU] Wave failure: restored previous money and upgrade state."); */
+
+    // Current behavior: full refund instead of restore.
     RefundAllPlayersUpgrades();
     return;
 }
@@ -4319,6 +4439,7 @@ KeyValues ClonePurchasesKV(KeyValues original, int client)
     return clone;
 }
 
+/*
 void SnapshotPurchasesForClient(int client)
 {
     // Blow away any old snapshot to prevent leaks.
@@ -4353,6 +4474,7 @@ void RestorePurchasesForClient(int client)
     KeyValues snap = view_as<KeyValues>(g_hPlayerPurchasesSnapshot[client]);
     g_hPlayerPurchases[client] = ClonePurchasesKV(snap, client);
 }
+*/
 
 void DisableMvMUpgradeStations(bool verbose = true)
 {
