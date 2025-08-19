@@ -14,9 +14,9 @@
 public Plugin myinfo =
 {
     name = PLUGIN_NAME,
-    author = "Kuro",
+    author = "Kuro + OpenAI",
     description = "Scales damage taken per damage type via custom attributes",
-    version = "1.0"
+    version = "1.01"
 };
 
 public void OnPluginStart()

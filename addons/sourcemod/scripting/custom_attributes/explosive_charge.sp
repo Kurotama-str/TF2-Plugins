@@ -17,7 +17,7 @@
 
 #define ATTR_NAME "explosive charge"
 #define BASE_RANGE 20.0
-#define BASE_DAMAGE 10.0
+#define BASE_DAMAGE 15.0
 float g_fDamageMultiplier = 1.0;
 
 bool g_bChargeExplode[MAXPLAYERS + 1]; // tracks if explosion is allowed
@@ -25,9 +25,9 @@ bool g_bChargeExplode[MAXPLAYERS + 1]; // tracks if explosion is allowed
 public Plugin myinfo =
 {
     name = "Explosive Charge",
-    author = "Kuro",
+    author = "Kuro + OpenAI",
     description = "Explodes on shield impact",
-    version = "1.0"
+    version = "1.01"
 };
 
 public void OnPluginStart()
@@ -39,6 +39,7 @@ public void OnPluginStart()
             SDKHook(i, SDKHook_OnTakeDamage, OnTakeDamage);
             g_bChargeExplode[i] = false;
     }
+    HookEvent("player_death", Event_PlayerDeath, EventHookMode_Post);
 }
 
 public void OnClientPutInServer(int client)
@@ -135,7 +136,6 @@ public void TF2_OnConditionRemoved(int client, TFCond condition)
         // PrintToServer("[Explosive Charge] Charge ended passively or against a non living obstacle. No explosion.");
         return;
     }
-    g_bChargeExplode[client] = false;
 
     float vecOrigin[3];
     TF2Util_GetPlayerShootPosition(client, vecOrigin);
@@ -156,7 +156,7 @@ public void TF2_OnConditionRemoved(int client, TFCond condition)
     // PrintToServer("[Explosive Charge] Position = (%.1f, %.1f, %.1f)", vecOrigin[0], vecOrigin[1], vecOrigin[2]);
 
     TE_SetupTFExplosion(vecOrigin, .weaponid = TF_WEAPON_GRENADELAUNCHER, .entity = shield,
-        .particleIndex = FindParticleSystemIndex("fluidSmokeExpl_ring_mvm"));
+        .particleIndex = FindParticleSystemIndex("ExplosionCore_MidAir"));
     TE_SendToAll();
     // PrintToServer("[Explosive Charge] Explosion effect sent.");
 
@@ -169,7 +169,7 @@ public void TF2_OnConditionRemoved(int client, TFCond condition)
 
     // Calculate final damage
     float baseDamage = BASE_DAMAGE;
-    float damage = baseDamage * g_fDamageMultiplier * damageIncreased * damageDecreased;
+    float damage = baseDamage * g_fDamageMultiplier * damageIncreased * damageDecreased * attrValue;
     if (damage < 0.0) damage = 0.0;
 
     // // PrintToServer("[Explosive Charge] Radius = %.1f, Base Damage = %.1f, Final Damage = %.1f", radius, baseDamage, damage);
@@ -201,6 +201,39 @@ public void TF2_OnConditionRemoved(int client, TFCond condition)
 
     delete radInfo;
     delete info;
+    g_bChargeExplode[client] = false
+}
+
+public void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
+{
+    int attacker = GetClientOfUserId(event.GetInt("attacker"));
+
+    if (attacker <= 0 || attacker > MaxClients || !IsClientInGame(attacker))
+        return;
+
+    // check that attacker is a Demoman with shield
+    int shield = GetPlayerShieldEntity(attacker);
+    if (!IsValidEntity(shield))
+        return;
+
+    // only heal if shield has explosive charge
+    float attrValue = TF2CustAttr_GetFloat(shield, ATTR_NAME, 0.0);
+    if (attrValue <= 0.0)
+        return;
+
+    // Apply heal from wearables
+    float healOnKill = GetWearableHealOnKill(attacker);
+    if (healOnKill > 0.0)
+    {
+        int current = GetClientHealth(attacker);
+        int maxOverheal = GetExplosiveChargeMaxOverheal(attacker);
+        int newHealth = current + RoundToCeil(healOnKill);
+
+        if (newHealth > maxOverheal)
+            newHealth = maxOverheal;
+
+        SetEntityHealth(attacker, newHealth);
+    }
 }
 
 int FindParticleSystemIndex(const char[] name)
@@ -279,4 +312,44 @@ bool IsEquippedByClient(int ent, int client)
     if (!IsValidEntity(ent)) return false;
     if (!HasEntProp(ent, Prop_Send, "m_hOwnerEntity")) return false;
     return (GetEntPropEnt(ent, Prop_Send, "m_hOwnerEntity") == client);
+}
+
+// Heal On Kill
+float GetWearableHealOnKill(int client)
+{
+    float total = 0.0;
+    int ent = -1;
+
+    while ((ent = FindEntityByClassname(ent, "tf_wearable*")) != -1)
+    {
+        if (GetEntPropEnt(ent, Prop_Send, "m_hOwnerEntity") != client)
+            continue;
+        if (!HasEntProp(ent, Prop_Send, "m_AttributeList"))
+            continue;
+
+        Address addr = TF2Attrib_GetByName(ent, "heal on kill");
+        if (addr != Address_Null)
+        {
+            float val = TF2Attrib_GetValue(addr);
+            if (val > 0.0)
+                total += val;
+        }
+    }
+
+    return total;
+}
+
+int GetExplosiveChargeMaxOverheal(int client)
+{
+    if (client <= 0 || client > MaxClients || !IsClientInGame(client))
+        return 0;
+
+    int maxHealth = TF2_GetPlayerMaxHealth(client);
+
+    return RoundToCeil(float(maxHealth) * 1.1); // 110%
+}
+
+stock int TF2_GetPlayerMaxHealth(int client)
+{
+    return GetEntProp(GetPlayerResourceEntity(), Prop_Send, "m_iMaxHealth", _, client);
 }

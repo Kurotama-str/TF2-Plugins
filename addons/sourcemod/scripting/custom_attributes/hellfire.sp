@@ -14,8 +14,11 @@
 #define BASE_DAMAGE 12.0
 #define FIRE_COOLDOWN 0.1
 
+// sound support
+#define FLAME_LOOP   "weapons/flame_thrower_loop.wav"
+
 // attribute support 1
-#define NUM_HF_ATTRIBUTES 14
+#define NUM_HF_ATTRIBUTES 17
 
 enum HFAttributeIndex 
 {
@@ -32,29 +35,52 @@ enum HFAttributeIndex
     HF_RevealDisguised,
     HF_DamageBonus,
     HF_DamagePenalty,
-    HF_DamagePenaltyVsPlayers
+    HF_DamagePenaltyVsPlayers,
+
+    // Ammo handling
+    HF_MaxAmmoPrimaryIncreased,   // multiplier, default 1
+    HF_MaxAmmoPrimaryReduced,     // multiplier, default 1
+    HF_HiddenPrimaryMaxAmmoBonus  // multiplier, default 1
 };
 
 float g_fLastRingTime[MAXPLAYERS + 1];
 bool g_bHasCustomAttributes = false;
 ConVar g_cvFlameCount;
 
+ConVar g_cvHFBlockNative, g_cvHFCostPerRing, g_cvHFBlockPad;
+
+int  g_iHFReserve[MAXPLAYERS + 1];     // our custom reserve
+bool g_bHFAmmoInit[MAXPLAYERS + 1];    // did we latch starting reserve
+int g_iHFMaxReserve[MAXPLAYERS + 1];   // computed max reserve cap (after multipliers)
+ConVar g_cvHFBaseMaxReserve;                 // base max reserve before multipliers (default: Pyro 200)
+bool g_bHellfireLoopPlaying[MAXPLAYERS+1];
+
 public Plugin myinfo = {
     name = "Hellfire Ring Attribute",
     author = "Kuro + OpenAI",
     description = "Replaces Pyro's flamethrower with a fire ring",
-    version = "1.3",
+    version = "1.4",
     url = ""
 };
 
-public void OnPluginStart() {
+public void OnPluginStart() 
+{
     RegConsoleCmd("sm_testfirering", TestFireRing);
     HookEvent("player_spawn", OnPlayerSpawn);
+
+    // Block native flames & custom ammo cost
+    g_cvHFBlockNative = CreateConVar("hf_block_native", "1", "Block native flamethrower firing when hellfire is present", FCVAR_NONE, true, 0.0, true, 1.0);
+    g_cvHFCostPerRing = CreateConVar("hf_cost_per_ring", "1", "Custom ammo consumed per Hellfire ring", FCVAR_NONE, true, 0.0, true, 100.0);
+    g_cvHFBlockPad    = CreateConVar("hf_block_pad", "0.25", "Seconds to push next primary attack when blocking native fire", FCVAR_NONE, true, 0.05, true, 0.5);
+    g_cvHFBaseMaxReserve = CreateConVar("hf_base_max_reserve", "200", "Base primary reserve for Hellfire (before maxammo multipliers)", FCVAR_NONE, true, 1.0, true, 1000.0);
+
 
     g_bHasCustomAttributes = LibraryExists("tf2custattr");
     if (g_bHasCustomAttributes) {
         //PrintToServer("[HellfireRing] Custom Attributes support detected.");
     }
+
+    PrecacheSound(FLAME_LOOP);
 
     HookUserMessage(GetUserMessageId("VotePass"), DummyHook, true); // ensure OnPlayerRunCmd triggers
     g_cvFlameCount = CreateConVar("hf_particlemult", "3", "Base number of flame particles per ring (used as multiplier)", FCVAR_NONE, true, 1.0, true, 100.0);
@@ -62,13 +88,15 @@ public void OnPluginStart() {
     HookEvent("player_death", Event_PlayerDeath, EventHookMode_Post);
 }
 
-public void OnLibraryAdded(const char[] name) {
+public void OnLibraryAdded(const char[] name) 
+{
     if (StrEqual(name, "tf2custattr")) {
         g_bHasCustomAttributes = true;
         PrintToServer("[HellfireRing] Custom Attributes plugin loaded.");
     }
 }
-public void OnLibraryRemoved(const char[] name) {
+public void OnLibraryRemoved(const char[] name) 
+{
     if (StrEqual(name, "tf2custattr")) {
         g_bHasCustomAttributes = false;
         PrintToServer("[HellfireRing] Custom Attributes plugin unloaded.");
@@ -122,17 +150,11 @@ public Action TestFireRing(int client, int args) {
 public void OnPlayerSpawn(Event event, const char[] name, bool dontBroadcast) {
     int client = GetClientOfUserId(event.GetInt("userid"));
     g_fLastRingTime[client] = 0.0;
-}
 
-bool IsFlamethrowerFiring(int weapon)
-{
-    if (!IsValidEntity(weapon))
-        return false;
-
-    float nextAttack = GetEntPropFloat(weapon, Prop_Send, "m_flNextPrimaryAttack");
-    float gameTime = GetGameTime();
-
-    return (gameTime < nextAttack);
+    // reset hellfire custom ammo for this life; we’ll latch on first use
+    g_bHFAmmoInit[client] = false;
+    g_iHFReserve[client] = 0;
+    HandleHellfireLoop(client, false);
 }
 
 public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3], float angles[3], int &weapon)
@@ -140,32 +162,63 @@ public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3
     if (!g_bHasCustomAttributes || !IsClientInGame(client) || !IsPlayerAlive(client))
         return Plugin_Continue;
 
+    // Active weapon must be valid and be the one with Hellfire
     int activeWeapon = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
     if (!IsValidEntity(activeWeapon))
         return Plugin_Continue;
 
-    float attr = TF2CustAttr_GetFloat(activeWeapon, ATTR_NAME, 0.0);
-    if (attr <= 0.0)
+    float strength = TF2CustAttr_GetFloat(activeWeapon, ATTR_NAME, 0.0);
+    if (strength <= 0.0)
         return Plugin_Continue;
 
-    TF2Attrib_SetByName(activeWeapon, "flame_speed", 0.0);
-    TF2Attrib_SetByName(activeWeapon, "flame_up_speed", 0.0);
-    TF2Attrib_SetByName(activeWeapon, "flame_lifetime", -100.0);
+    // === Fetch attributes and compute ammo cap ===
+    float hfAttrs[NUM_HF_ATTRIBUTES];
+    GetHellfireAttributesFromWeapon(activeWeapon, hfAttrs);
+    g_iHFMaxReserve[client] = ComputeHellfireMaxReserve(hfAttrs, client);
 
-    if ((buttons & IN_ATTACK) && IsFlamethrowerFiring(activeWeapon)) {
-        float now = GetGameTime();
-        if (now - g_fLastRingTime[client] < FIRE_COOLDOWN)
-            return Plugin_Continue;
+    // Initialize/maintain our custom reserve
+    InitHellfireAmmoIfNeeded(client, activeWeapon);
+    AbsorbEngineReserveIncreases(client, activeWeapon); // pick up packs/dispenser refills
 
-        int ammo = GetEntProp(activeWeapon, Prop_Send, "m_iClip1");
-        if (ammo <= 0) {
-            PrintToConsole(client, "[HellfireRing] %N has no ammo to fire", client);
-            return Plugin_Continue;
-        }
+    // Clamp reserve to computed cap
+    if (g_iHFReserve[client] > g_iHFMaxReserve[client])
+        g_iHFReserve[client] = g_iHFMaxReserve[client];
 
-        FireRing(client, attr);
-        g_fLastRingTime[client] = now;
+    bool pressing = (buttons & IN_ATTACK) != 0;
+    float now = GetGameTime();
+
+    // Always block native primary while M1 is down (so no stock flames, no stock ammo drain)
+    if (pressing && g_cvHFBlockNative.BoolValue) {
+        BlockPrimaryNow(activeWeapon, g_cvHFBlockPad.FloatValue);
     }
+
+    if (pressing) {
+        if (now - g_fLastRingTime[client] >= FIRE_COOLDOWN) {
+            int cost = RoundToFloor(Max(g_cvHFCostPerRing.IntValue * strength, 1.0));
+            if (g_iHFReserve[client] >= cost) {
+                // Keep native flames inert as an extra safety
+                TF2Attrib_SetByName(activeWeapon, "flame_speed", 0.0);
+                TF2Attrib_SetByName(activeWeapon, "flame_up_speed", 0.0);
+                TF2Attrib_SetByName(activeWeapon, "flame_lifetime", -100.0);
+
+                FireRing(client, strength);
+                HandleHellfireLoop(client, true); // keep loop sound alive
+                g_fLastRingTime[client] = now;
+                g_iHFReserve[client] -= cost;
+
+                if (g_iHFReserve[client] < 0) 
+                    g_iHFReserve[client] = 0;
+            }
+        }
+    }
+    else {
+        HandleHellfireLoop(client, false); // shut off loop sound
+    }
+
+    // Final clamp and HUD sync
+    if (g_iHFReserve[client] > g_iHFMaxReserve[client])
+        g_iHFReserve[client] = g_iHFMaxReserve[client];
+    SyncReserveToEngine(client, activeWeapon);
 
     return Plugin_Continue;
 }
@@ -189,6 +242,10 @@ void GetHellfireAttributesFromWeapon(int weapon, float output[NUM_HF_ATTRIBUTES]
     output[HF_DamageBonus]            = 1.0;
     output[HF_DamagePenalty]          = 1.0;
     output[HF_DamagePenaltyVsPlayers] = 1.0;
+    // Ammo mult defaults (default to 1.0)
+    output[HF_MaxAmmoPrimaryIncreased]   = 1.0;
+    output[HF_MaxAmmoPrimaryReduced]     = 1.0;
+    output[HF_HiddenPrimaryMaxAmmoBonus] = 1.0;
 
     static const char attrNames[NUM_HF_ATTRIBUTES][] = {
         "weapon burn dmg increased",
@@ -204,7 +261,10 @@ void GetHellfireAttributesFromWeapon(int weapon, float output[NUM_HF_ATTRIBUTES]
         "reveal disguised victim on hit",
         "damage bonus",
         "damage penalty",
-        "dmg penalty vs players"
+        "dmg penalty vs players",
+        "maxammo primary increased",
+        "maxammo primary reduced",
+        "hidden primary max ammo bonus"
     };
 
     for (int i = 0; i < NUM_HF_ATTRIBUTES; i++)
@@ -233,6 +293,8 @@ void FireRing(int client, float rangeMult)
     float attrs[NUM_HF_ATTRIBUTES];
     GetHellfireAttributesFromWeapon(weapon, attrs);
 
+
+    float attr = TF2CustAttr_GetFloat(weapon, ATTR_NAME, 0.0);
     int maxEntities = GetMaxEntities();
     for (int ent = 1; ent < maxEntities; ent++) {
         if (!IsValidEntity(ent) || !IsValidEdict(ent))
@@ -262,7 +324,6 @@ void FireRing(int client, float rangeMult)
         GetEntityClassname(ent, classname, sizeof(classname));
 
         //PrintToServer("[HellfireRing] Entity %d (class: %s) is of type: %s", ent, classname, type);
-        float attr = TF2CustAttr_GetFloat(weapon, ATTR_NAME, 0.0);
         float damage = CalculateHellfireDamage(BASE_DAMAGE + RoundFloat(attr * 4.0), attrs);
         int dmgType = DMG_BURN | DMG_IGNITE;
 
@@ -302,6 +363,13 @@ void FireRing(int client, float rangeMult)
     }
 
     EmitFireRingParticle(client, range, rangeMult);
+}
+
+float Max(float a, float b = 1.0)
+{
+    if (a > b)
+        return a;
+    return b
 }
 
 // attribute support 3
@@ -579,4 +647,136 @@ int TF2_GetClassMaxHealth(TFClassType class)
     }
 
     return 100; // fallback default for unknown/invalid class
+}
+
+// Ensure our custom reserve is initialized from the engine the first time we see hellfire
+void InitHellfireAmmoIfNeeded(int client, int weapon)
+{
+    if (g_bHFAmmoInit[client])
+        return;
+
+    int ammoType = GetEntProp(weapon, Prop_Data, "m_iPrimaryAmmoType");
+    if (ammoType < 0) {
+        // Weird case (shouldn't happen on flamethrowers), just mark initialized
+        g_iHFReserve[client] = 0;
+        g_bHFAmmoInit[client] = true;
+        return;
+    }
+
+    int reserve = GetEntProp(client, Prop_Send, "m_iAmmo", _, ammoType);
+
+    // Clamp to current cap if it's been computed already
+    if (g_iHFMaxReserve[client] > 0 && reserve > g_iHFMaxReserve[client]) {
+        reserve = g_iHFMaxReserve[client];
+    }
+
+    g_iHFReserve[client] = reserve;  // start from (clamped) HUD value
+    g_bHFAmmoInit[client] = true;
+}
+
+// Read any increases from pickups/dispenser before we overwrite the HUD,
+// so our custom reserve can grow naturally.
+void AbsorbEngineReserveIncreases(int client, int weapon)
+{
+    int ammoType = GetEntProp(weapon, Prop_Data, "m_iPrimaryAmmoType");
+    if (ammoType < 0) 
+        return;
+
+    int engineVal = GetEntProp(client, Prop_Send, "m_iAmmo", _, ammoType);
+
+    if (engineVal > g_iHFReserve[client]) {
+        g_iHFReserve[client] = engineVal;
+
+        // clamp to cap
+        if (g_iHFReserve[client] > g_iHFMaxReserve[client]) {
+            g_iHFReserve[client] = g_iHFMaxReserve[client];
+        }
+    }
+}
+
+// Mirror our custom reserve back to the engine so the HUD displays correctly.
+void SyncReserveToEngine(int client, int weapon)
+{
+    int ammoType = GetEntProp(weapon, Prop_Data, "m_iPrimaryAmmoType");
+    if (ammoType < 0) return;
+    if (g_iHFReserve[client] < 0) g_iHFReserve[client] = 0;
+    SetEntProp(client, Prop_Send, "m_iAmmo", g_iHFReserve[client], _, ammoType);
+}
+
+// Push the weapon’s next primary attack forward to block native firing this tick.
+void BlockPrimaryNow(int weapon, float pad)
+{
+    float now = GetGameTime();
+    SetEntPropFloat(weapon, Prop_Send, "m_flNextPrimaryAttack", now + pad);
+}
+
+// Compute maxammo
+int ComputeHellfireMaxReserve(const float attrs[NUM_HF_ATTRIBUTES], int client)
+{
+    float base = g_cvHFBaseMaxReserve.FloatValue;
+
+    // Weapon-local multipliers (already filled in attrs by GetHellfireAttributesFromWeapon)
+    float inc = attrs[HF_MaxAmmoPrimaryIncreased];
+    float red = attrs[HF_MaxAmmoPrimaryReduced];
+    float hid = attrs[HF_HiddenPrimaryMaxAmmoBonus];
+
+    if (!(inc > 0.0)) inc = 1.0;
+    if (!(red > 0.0)) red = 1.0;
+    if (!(hid > 0.0)) hid = 1.0;
+
+    // Client-wide multipliers (scan client entity directly)
+    float bodyInc = 1.0;
+    float bodyRed = 1.0;
+    float bodyHid = 1.0;
+
+    static const char ammoAttrs[3][] = {
+        "maxammo primary increased",
+        "maxammo primary reduced",
+        "hidden primary max ammo bonus"
+    };
+
+    float bodyVals[3] = { 1.0, 1.0, 1.0 };
+
+    for (int i = 0; i < 3; i++)
+    {
+        Address addr = TF2Attrib_GetByName(client, ammoAttrs[i]);
+        if (addr != Address_Null)
+        {
+            float val = TF2Attrib_GetValue(addr);
+            if (val > 0.0 && val == val) // valid and not NaN
+            {
+                bodyVals[i] = val;
+            }
+        }
+    }
+
+    bodyInc = bodyVals[0];
+    bodyRed = bodyVals[1];
+    bodyHid = bodyVals[2];
+
+    // Final cap
+    float cap = base * inc * red * hid * bodyInc * bodyRed * bodyHid;
+
+    if (cap < 1.0) cap = 1.0;
+    if (cap > 2000000.0) cap = 2000000.0;
+
+    return RoundToFloor(cap);
+}
+
+public void HandleHellfireLoop(int client, bool pressing)
+{
+    if (pressing) {
+        if (!g_bHellfireLoopPlaying[client]) {
+            EmitSoundToAll(FLAME_LOOP, client, SNDCHAN_WEAPON, SNDLEVEL_NORMAL, SND_NOFLAGS);
+            g_bHellfireLoopPlaying[client] = true;
+            //PrintToChatAll("Triggered On");
+        }
+    } 
+    else {
+        if (g_bHellfireLoopPlaying[client]) {
+            StopSound(client, SNDCHAN_WEAPON, FLAME_LOOP);
+            g_bHellfireLoopPlaying[client] = false;
+            //PrintToChatAll("Triggered Off");
+        }
+    }
 }

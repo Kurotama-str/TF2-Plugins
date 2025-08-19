@@ -1,6 +1,5 @@
 // Plugin: Leecher Medigun Modifier
 // Description: Disables healing on enemies, drains enemies, and heals medic
-// Author: Kuro (based on style from hellfire.sp)
 
 #include <sourcemod>
 #include <sdktools>
@@ -36,9 +35,9 @@ float g_fRandomCritChance = 0.05; // 5% chance by default
 public Plugin myinfo =
 {
     name = "Leecher Medigun",
-    author = "Kuro",
+    author = "Kuro + OpenAI",
     description = "Custom medigun with leecher logic",
-    version = "1.1"
+    version = "1.2.1"
 };
 
 public void OnPluginStart()
@@ -171,12 +170,18 @@ void StopDrainTimer(int client)
 
 public Action Timer_DrainThink(Handle timer, any client)
 {
+    if (!IsValidEntity(client))
+        return Plugin_Stop;
+    
     if (!IsClientInGame(client) || !IsPlayerAlive(client))
         return Plugin_Continue;
 
     int weapon = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
+    if (!IsValidEntity(weapon))
+        return Plugin_Stop;
+
     float attr = TF2CustAttr_GetFloat(weapon, ATTR_NAME, 0.0);
-    if (!IsValidEntity(weapon) || attr <= 0.0)
+    if (attr <= 0.0)
         return Plugin_Continue;
 
     int target = GetEntPropEnt(weapon, Prop_Send, "m_hHealingTarget");
