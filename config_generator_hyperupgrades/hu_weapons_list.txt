@@ -113,7 +113,7 @@
 441,tf_weapon_particle_cannon
 513,tf_weapon_rocketlauncher
 658,tf_weapon_rocketlauncher
-730,tf_weapon_rocketlauncher
+730,tf_weapon_rocketbeggar
 800,tf_weapon_rocketlauncher
 809,tf_weapon_rocketlauncher
 889,tf_weapon_rocketlauncher
@@ -362,7 +362,7 @@
 29,tf_weapon_medigun
 211,tf_weapon_medigun
 35,tf_weapon_medigun
-411,tf_weapon_medigun
+411,tf_weapon_quickfix
 663,tf_weapon_medigun
 796,tf_weapon_medigun
 805,tf_weapon_medigun
@@ -372,7 +372,7 @@
 912,tf_weapon_medigun
 961,tf_weapon_medigun
 970,tf_weapon_medigun
-998,tf_weapon_medigun
+998,tf_weapon_vaccinator
 15008,tf_weapon_medigun
 15010,tf_weapon_medigun
 15025,tf_weapon_medigun
