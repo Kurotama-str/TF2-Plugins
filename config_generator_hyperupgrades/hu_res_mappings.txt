@@ -1,0 +1,26 @@
+// Format: DAMAGE_TYPE,Upgrade Name
+// Example: DAMAGE_FIRE,*Fire Resistance
+
+// Available damage types:
+// DAMAGE_FIRE
+// DAMAGE_BULLET
+// DAMAGE_BLAST
+// DAMAGE_CRIT
+// DAMAGE_MELEE
+// DAMAGE_OTHER
+
+DAMAGE_FIRE,*Fire Resistance
+DAMAGE_FIRE,*Dmg From Ranged Reduced
+DAMAGE_FIRE,*Dmg Taken Reduced
+DAMAGE_BULLET,*Bullet Resistance
+DAMAGE_BULLET,*Dmg From Ranged Reduced
+DAMAGE_BULLET,*Dmg Taken Reduced
+DAMAGE_BLAST,*Blast Resistance
+DAMAGE_BLAST,*Dmg From Ranged Reduced
+DAMAGE_BLAST,*Dmg Taken Reduced
+DAMAGE_CRIT,*Crit Resistance
+DAMAGE_CRIT,*Dmg From Ranged Reduced
+DAMAGE_CRIT,*Dmg Taken Reduced
+DAMAGE_MELEE,*Melee Resistance
+DAMAGE_MELEE,*Dmg Taken Reduced
+DAMAGE_OTHER,*Dmg Taken Reduced

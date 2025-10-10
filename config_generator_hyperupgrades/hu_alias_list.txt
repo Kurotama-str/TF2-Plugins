@@ -838,3 +838,63 @@ weapon_uses_stattrak_module,weapon_uses_stattrak_module
 wide_item_level,wide item level
 zombiezombiezombiezombie,zombiezombiezombiezombie
 zoom_speed_mod_disabled,zoom speed mod disabled
+
+#Dev Attributes
+milk_bolts,fires milk bolt
+airblast_dash,airblast dashes
+melee_cleave,melee cleave attack
+tele_speedboost,mod teleporter speed boost
+water_breath,can breathe under water
+swimming_mastery,swimming mastery
+gun_last_shot_crits,last shot crits
+keep_disguise_onshoot,keep disguise on attack
+meleehit_sharehealth,add give health to teammate on hit
+minigun_spinholster,mod minigun can holster while spinning
+mult_dispenser_rate,mult dispenser rate
+mvm_sentry_ammo,mvm sentry ammo
+teleporter_recharge_rate,mult teleporter recharge rate
+dispenser_disguise_oncrouch,disguise as dispenser on crouch
+teleport_instead_of_die,teleport instead of die
+uber_on_damage_taken,uber on damage taken
+mod_soldier_buff_range,mod soldier buff range
+sniper_beep_ontarget,sniper beep with enemy under crosshair
+
+
+#Custom Attributes' Aliases,Custom Attributes
+CUSTOM_medigun_drains_health,medigun drains health
+CUSTOM_oil_replaces_airblast,oil replaces airblast
+CUSTOM_parachute_redeploy,parachute redeploy
+CUSTOM_exploding_shield_bash,exploding shield bash
+CUSTOM_hellfire_ring,hellfire ring
+CUSTOM_guided_nuke,guided nuke
+CUSTOM_leecher,leecher
+CUSTOM_explosive_charge,explosive charge
+CUSTOM_aproj_speed,aproj speed
+CUSTOM_rocketeer,rocketeer
+CUSTOM_explosive_headshot,explosive headshot
+
+
+#custom dmg taken mults
+CUSTOM_generic_dmg_mult,generic dmg mult
+CUSTOM_crit_dmg_mult,crit dmg mult
+CUSTOM_bullet_dmg_mult,bullet dmg mult
+CUSTOM_slash_dmg_mult,slash dmg mult
+CUSTOM_burn_dmg_mult,burn dmg mult
+CUSTOM_club_dmg_mult,club dmg mult
+CUSTOM_shock_dmg_mult,shock dmg mult
+CUSTOM_sonic_dmg_mult,sonic dmg mult
+CUSTOM_blast_dmg_mult,blast dmg mult
+CUSTOM_acid_dmg_mult,acid dmg mult
+CUSTOM_poison_dmg_mult,poison dmg mult
+CUSTOM_radiation_dmg_mult,radiation dmg mult
+CUSTOM_drown_dmg_mult,drown dmg mult
+CUSTOM_paralyze_dmg_mult,paralyze dmg mult
+CUSTOM_nervegas_dmg_mult,nervegas dmg mult
+CUSTOM_slowburn_dmg_mult,slowburn dmg mult
+CUSTOM_plasma_dmg_mult,plasma dmg mult
+CUSTOM_airboat_dmg_mult,airboat dmg mult
+CUSTOM_dissolve_dmg_mult,dissolve dmg mult
+CUSTOM_prevent_physics_force_dmg_mult,prevent_physics_force dmg mult
+CUSTOM_nevergib_dmg_mult,nevergib dmg mult
+CUSTOM_alwaysgib_dmg_mult,alwaysgib dmg mult
+CUSTOM_energybeam_dmg_mult,energybeam dmg mult
